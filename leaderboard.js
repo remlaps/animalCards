@@ -87,42 +87,67 @@ document.addEventListener('DOMContentLoaded', async () => {
                     winsByAccount[mint.account].push(mint);
                 }
             }
-// Sort top burners
+// Sort by number of BurnsMax titles won (top card winners), tie-break by burn amount
             const sortedBurners = Object.entries(burners)
-                .sort((a, b) => b[1] - a[1])
+                .sort((a, b) => {
+                    const aTitles = (winsByAccount[a[0]] || []).length;
+                    const bTitles = (winsByAccount[b[0]] || []).length;
+                    return (bTitles - aTitles) || (b[1] - a[1]);
+                })
                 .slice(0, 10); // Top 10
 
             // Summarize each top account's wins into unique card types, each with its serials
             const uniqueCardsByAccount = {};
+            const pendingClassesByAccount = {}; // account -> classes won but no card released yet
             for (const [account] of sortedBurners) {
                 const bySpecies = new Map();
+                const pendingClasses = new Set();
                 for (const m of (winsByAccount[account] || [])) {
-                    if (m.status === 'none') continue; // no actual card issued
+                    if (m.status === 'none') {
+                        // No card issued for this class yet; record which class it would've been.
+                        pendingClasses.add(m.className);
+                        continue;
+                    }
                     const key = `${m.card.class}|${m.card.species}`;
                     if (!bySpecies.has(key)) bySpecies.set(key, { card: m.card, serials: [] });
                     bySpecies.get(key).serials.push(m.serial);
                 }
                 uniqueCardsByAccount[account] = Array.from(bySpecies.values());
+                pendingClassesByAccount[account] = Array.from(pendingClasses);
             }
 
             // Render table
             if (sortedBurners.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No burns found in this timeframe.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No BurnsMax titles won in this timeframe.</td></tr>';
             } else {
                 sortedBurners.forEach(([account], index) => {
                     const uniqueCards = uniqueCardsByAccount[account] || [];
-                    const cardHtml = uniqueCards.length === 0
-                        ? '<span style="color: var(--text-secondary)">No card won in timeframe</span>'
-                        : uniqueCards.map(u => `
-                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;">
-                                <img src="${u.card.image_url}" alt="${u.card.species}" style="width: 28px; height: 28px; border-radius: 4px; object-fit: cover; flex-shrink: 0;">
-                                <span style="font-weight: 600;">${u.card.species}</span>
-                            </div>`).join('');
+                    const pendingClasses = pendingClassesByAccount[account] || [];
+                    const titlesWon = (winsByAccount[account] || []).length;
+
+                    // Cards actually issued (released species or generic class card).
+                    const issuedHtml = uniqueCards.map(u => `
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;">
+                            <img src="${u.card.image_url}" alt="${u.card.species}" style="width: 28px; height: 28px; border-radius: 4px; object-fit: cover; flex-shrink: 0;">
+                            <span style="font-weight: 600;">${u.card.species}</span>
+                        </div>`).join('');
+
+                    // Classes won but no card released yet -> show what kind it would've been.
+                    const pendingHtml = pendingClasses.map(c => `
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;">
+                            <span style="font-weight: 600;">${c}</span>
+                            <span style="color: var(--text-secondary); font-size: 0.75rem;">(no card released yet)</span>
+                        </div>`).join('');
+
+                    const cardHtml = (issuedHtml || pendingHtml)
+                        ? issuedHtml + pendingHtml
+                        : '<span style="color: var(--text-secondary)">No card won in timeframe</span>';
 
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td class="rank-cell">#${index + 1}</td>
                         <td style="font-weight: 600;">@${account}</td>
+                        <td style="font-weight: 600;">${titlesWon}</td>
                         <td>${(burnSTEEM[account] || 0).toFixed(3)}</td>
                         <td>${(burnSBD[account] || 0).toFixed(3)}</td>
                         <td>${cardHtml}</td>
@@ -147,6 +172,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <div class="card-content">
                                     <div class="card-class">${u.card.class} • ${u.card.rarity}</div>
                                     <h3 class="card-species">${u.card.species}</h3>
+                                    ${u.card.is_generic ? '<p style="color: var(--text-secondary); font-size: 0.8rem; font-style: italic; margin-top: 0.25rem;">A specific species will be released in the future.</p>' : ''}
+                                    <p class="card-attribution">Generation: ${u.card.generation} • Photo by ${u.card.photo_credit}</p>
                                     <div class="card-meta">
                                         <span style="font-size:0.75rem;">Serial(s): ${u.serials.join(', ')}</span>
                                     </div>
