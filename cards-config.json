@@ -56,6 +56,16 @@
       "slot": 2,
       "generation": "unstable-test",
       "photo_credit": "remlaps"
+    },
+    {
+      "card_id": 10,
+      "species": "Common Grackle",
+      "class": "Bird",
+      "rarity": "Rare",
+      "image_url": "https://i.postimg.cc/50fT4982/Common-Grackle.png",
+      "slot": 3,
+      "generation": "unstable-test",
+      "photo_credit": "remlaps"
     }
   ]
 }
