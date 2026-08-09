@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard - Blockchain Wildlife Cards</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <header class="glass-header">
+        <div class="container header-container">
+            <h1 class="logo">Wildlife<span>Cards</span></h1>
+            <nav class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="leaderboard.html" class="active">Leaderboard</a>
+                <a href="search.html">Portfolio Search</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="page-header">
+            <h2 class="page-title">Top Burners Leaderboard</h2>
+            <div class="controls-section">
+                <label for="time-filter">Timeframe:</label>
+                <select id="time-filter" class="time-select">
+                    <option value="3600000">Past 1 Hour</option>
+                    <option value="86400000">Past 1 Day</option>
+                    <option value="604800000">Past 7 Days</option>
+                    <option value="2592000000">Past 30 Days</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="loading" class="loader-container">
+            <div class="spinner"></div>
+            <p>Scanning blockchain for recent burns...</p>
+        </div>
+
+        <div id="leaderboard-content" style="display: none;">
+            <div class="leaderboard-table-container">
+                <table class="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Account</th>
+                            <th>Total STEEM</th>
+                            <th>Total SBD</th>
+                            <th>Cards Won</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body">
+                        <!-- Populated via JS -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <h3 style="margin-bottom: 1.5rem; font-family: 'Outfit';">Card Winners — Top 10</h3>
+            <div id="recent-cards-grid">
+                <!-- Populated via JS -->
+            </div>
+        </div>
+    </main>
+
+    <script src="blockchain-api.js?v=5"></script>
+    <script src="leaderboard.js?v=5"></script>
+</body>
+</html>

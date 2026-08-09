@@ -1,0 +1,7 @@
+# Backup of the original card configuration — keep out of the repo
+cards-config.json.saveOrig.json
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.log

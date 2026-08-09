@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Portfolio - Blockchain Wildlife Cards</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <header class="glass-header">
+        <div class="container header-container">
+            <h1 class="logo">Wildlife<span>Cards</span></h1>
+            <nav class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="leaderboard.html">Leaderboard</a>
+                <a href="search.html" class="active">Portfolio Search</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="page-header" style="flex-wrap: wrap; gap: 1.5rem;">
+            <h2 class="page-title">Search Portfolio</h2>
+            
+            <form id="search-form" class="controls-section">
+                <input type="text" id="account-input" class="search-input" placeholder="Enter Steem username" required>
+                
+                <select id="time-filter" class="time-select">
+                    <option value="86400000">Past 1 Day</option>
+                    <option value="604800000">Past 7 Days</option>
+                    <option value="2592000000">Past 30 Days</option>
+                    <option value="0">All Time (Slow)</option>
+                </select>
+
+                <button type="submit" class="btn btn-primary" style="padding: 0.75rem 1.5rem;">Search</button>
+            </form>
+        </div>
+
+        <div id="loading" class="loader-container" style="display: none;">
+            <div class="spinner"></div>
+            <p>Scanning blockchain for earned cards...</p>
+        </div>
+
+        <div id="search-content" style="display: none;">
+            <h3 id="portfolio-header" style="margin-bottom: 1.5rem; font-family: 'Outfit'; font-size: 1.75rem;"></h3>
+            <p id="portfolio-stats" style="color: var(--text-secondary); margin-bottom: 2rem;"></p>
+
+            <div class="cards-grid" id="portfolio-grid">
+                <!-- Populated via JS -->
+            </div>
+        </div>
+    </main>
+
+    <script src="blockchain-api.js?v=3"></script>
+    <script src="search.js?v=3"></script>
+</body>
+</html>

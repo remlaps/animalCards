@@ -1,0 +1,40 @@
+{
+  "class_weights": {
+    "Bird": 35,
+    "Land Mammal": 30,
+    "Fish": 15,
+    "Reptile": 12,
+    "Amphibian": 5,
+    "Sea Mammal": 3
+  },
+  "cards": [
+    {
+      "card_id": 1,
+      "species": "Generic Bird",
+      "class": "Bird",
+      "rarity": "Generic",
+      "image_url": "https://i.postimg.cc/T1Pp87nX/Red-tailed-Hawk-Northern-Mockingbird.png",
+      "is_generic": true,
+      "slot": -1,
+      "photo_credit": "remlaps"
+    },
+    {
+      "card_id": 7,
+      "species": "Turkey Vulture",
+      "class": "Bird",
+      "rarity": "Common",
+      "image_url": "https://i.postimg.cc/pLqBN7wc/Turkey-Vulture.png",
+      "slot": 0,
+      "photo_credit": "remlaps"
+    },
+    {
+      "card_id": 8,
+      "species": "American Robin",
+      "class": "Bird",
+      "rarity": "Common",
+      "image_url": "https://i.postimg.cc/5tFd6wS4/American-Robin.png",
+      "slot": 1,
+      "photo_credit": "remlaps"
+    }
+  ]
+}
