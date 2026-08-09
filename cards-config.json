@@ -16,6 +16,7 @@
       "image_url": "https://i.postimg.cc/T1Pp87nX/Red-tailed-Hawk-Northern-Mockingbird.png",
       "is_generic": true,
       "slot": -1,
+      "generation": "unstable-test",
       "photo_credit": "remlaps"
     },
     {
@@ -25,6 +26,7 @@
       "rarity": "Common",
       "image_url": "https://i.postimg.cc/pLqBN7wc/Turkey-Vulture.png",
       "slot": 0,
+      "generation": "unstable-test",
       "photo_credit": "remlaps"
     },
     {
@@ -34,6 +36,7 @@
       "rarity": "Common",
       "image_url": "https://i.postimg.cc/5tFd6wS4/American-Robin.png",
       "slot": 1,
+      "generation": "unstable-test",
       "photo_credit": "remlaps"
     }
   ]

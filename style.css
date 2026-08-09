@@ -126,6 +126,7 @@ body {
 .logo span {
     background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -189,6 +190,7 @@ body {
     margin-bottom: 1.5rem;
     background: linear-gradient(135deg, #fff, #94a3b8);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -357,6 +359,12 @@ body {
     align-items: center;
     border-top: 1px solid var(--glass-border);
     padding-top: 1rem;
+}
+
+.card-attribution {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
 }
 
 /* Mystery Card Styling */

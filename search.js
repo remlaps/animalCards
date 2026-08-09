@@ -155,6 +155,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <div class="card-content">
                                 <div class="card-class">${mint.card.class} • ${mint.card.rarity}</div>
                                 <h3 class="card-species">${mint.card.species}</h3>
+                                ${mint.card.is_generic ? '<p style="color: var(--text-secondary); font-size: 0.8rem; font-style: italic; margin-top: 0.25rem;">A specific species will be released in the future.</p>' : ''}
+                                <p class="card-attribution">Generation: ${mint.card.generation} • Photo by ${mint.card.photo_credit}</p>
                                 <div class="card-meta">
                                     <span style="font-size:0.75rem;">Serial: <strong style="color:var(--text-primary);">${mint.serial}</strong></span>
                                     <span class="verify-badge" title="Hash: ${mint.trx_id}">
