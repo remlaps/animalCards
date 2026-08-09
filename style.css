@@ -481,6 +481,94 @@ body {
     color: var(--accent-primary);
 }
 
+/* Leaderboard Card Layout (mobile/tablet) */
+.leaderboard-card-row {
+    display: none;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.leaderboard-card-rank {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: var(--accent-primary);
+    margin-bottom: 0.5rem;
+}
+
+.leaderboard-card-account {
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 0.75rem;
+}
+
+.leaderboard-card-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.leaderboard-card-field {
+    font-size: 0.9rem;
+}
+
+.leaderboard-card-field-label {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.1rem;
+}
+
+.leaderboard-card-field-value {
+    font-weight: 600;
+}
+
+.leaderboard-cards-preview {
+    border-top: 1px solid var(--glass-border);
+    padding-top: 0.75rem;
+}
+
+.leaderboard-cards-preview-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.4rem;
+}
+
+.leaderboard-cards-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.leaderboard-card-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+}
+
+.leaderboard-card-chip img {
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    object-fit: cover;
+}
+
+.leaderboard-card-chip.pending {
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
 /* Status & Loading */
 .loader-container {
     display: flex;
@@ -509,4 +597,168 @@ body {
     font-style: italic;
     text-align: center;
     margin: 2rem 0;
+}
+
+/* ========== RESPONSIVE BREAKPOINTS ========== */
+
+/* Tablet and below */
+@media (max-width: 900px) {
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .controls-section {
+        width: 100%;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+
+    /* Make the leaderboard table scroll horizontally instead of clipping */
+    .leaderboard-table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .leaderboard-table {
+        min-width: 700px;
+    }
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+    .container {
+        padding: 0 1.25rem;
+    }
+
+    /* Header */
+    .header-container {
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .nav-links {
+        gap: 1.25rem;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .nav-links a {
+        font-size: 0.95rem;
+    }
+
+    /* Hero */
+    .hero-section {
+        min-height: calc(100vh - 120px);
+    }
+
+    .hero-content {
+        padding: 2.5rem 1.5rem;
+    }
+
+    .hero-title {
+        font-size: 2.25rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1.1rem;
+    }
+
+    .hero-actions {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .btn {
+        width: 100%;
+        text-align: center;
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+    }
+
+    /* Page headers */
+    .page-title {
+        font-size: 1.75rem;
+    }
+
+    .page-header {
+        margin: 2rem 0;
+    }
+
+    /* Controls */
+    .controls-section {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .time-select, .search-input {
+        font-size: 0.9rem;
+        padding: 0.6rem 0.8rem;
+    }
+
+    .search-input {
+        width: 100%;
+    }
+
+    /* Cards grid */
+    .cards-grid {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+
+    /* Leaderboard */
+    .leaderboard-table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 12px;
+    }
+
+    .leaderboard-table {
+        min-width: 700px;
+    }
+
+    .leaderboard-table th, .leaderboard-table td {
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    /* Hide desktop table rows, show mobile card rows */
+    .leaderboard-table tbody tr {
+        display: none;
+    }
+
+    .leaderboard-card-row {
+        display: block;
+    }
+
+    /* Loading */
+    .loader-container {
+        padding: 2.5rem;
+    }
+
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border-width: 3px;
+    }
+}
+
+/* Small phones */
+@media (max-width: 380px) {
+    .container {
+        padding: 0 1rem;
+    }
+
+    .hero-title {
+        font-size: 1.85rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1rem;
+    }
+
+    .leaderboard-card-fields {
+        grid-template-columns: 1fr;
+    }
 }

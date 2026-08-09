@@ -11,6 +11,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         tbody.innerHTML = '';
         cardsGrid.innerHTML = '';
 
+        // Clear any previous mobile card rows
+        const existingMobileRows = document.querySelectorAll('.leaderboard-card-row');
+        existingMobileRows.forEach(r => r.remove());
+
         const timeConstraint = parseInt(timeFilter.value, 10);
 
         try {
@@ -119,6 +123,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Render table
             if (sortedBurners.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No BurnsMax titles won in this timeframe.</td></tr>';
+                const mobileEmpty = document.createElement('div');
+                mobileEmpty.className = 'leaderboard-card-row';
+                mobileEmpty.innerHTML = '<p class="status-message" style="margin:0;">No BurnsMax titles won in this timeframe.</p>';
+                const tableContainer = document.querySelector('.leaderboard-table-container');
+                if (tableContainer && tableContainer.parentNode) {
+                    tableContainer.parentNode.insertBefore(mobileEmpty, tableContainer.nextSibling);
+                }
             } else {
                 sortedBurners.forEach(([account], index) => {
                     const uniqueCards = uniqueCardsByAccount[account] || [];
@@ -153,6 +164,51 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <td>${cardHtml}</td>
                     `;
                     tbody.appendChild(row);
+
+                    // Mobile card row (hidden on desktop, shown on mobile via CSS)
+                    const mobileCardChips = (uniqueCards.length > 0 || pendingClasses.length > 0)
+                        ? [...uniqueCards.map(u => `
+                            <span class="leaderboard-card-chip">
+                                <img src="${u.card.image_url}" alt="${u.card.species}">
+                                ${u.card.species}
+                            </span>`),
+                            ...pendingClasses.map(c => `
+                            <span class="leaderboard-card-chip pending">${c} (pending)</span>`)].join('')
+                        : '<span style="color: var(--text-secondary); font-size: 0.85rem;">No card won in timeframe</span>';
+
+                    const mobileRow = document.createElement('div');
+                    mobileRow.className = 'leaderboard-card-row';
+                    mobileRow.innerHTML = `
+                        <div class="leaderboard-card-rank">#${index + 1}</div>
+                        <div class="leaderboard-card-account">@${account}</div>
+                        <div class="leaderboard-card-fields">
+                            <div class="leaderboard-card-field">
+                                <div class="leaderboard-card-field-label">Titles Won</div>
+                                <div class="leaderboard-card-field-value">${titlesWon}</div>
+                            </div>
+                            <div class="leaderboard-card-field">
+                                <div class="leaderboard-card-field-label">Total STEEM</div>
+                                <div class="leaderboard-card-field-value">${(burnSTEEM[account] || 0).toFixed(3)}</div>
+                            </div>
+                            <div class="leaderboard-card-field">
+                                <div class="leaderboard-card-field-label">Total SBD</div>
+                                <div class="leaderboard-card-field-value">${(burnSBD[account] || 0).toFixed(3)}</div>
+                            </div>
+                            <div class="leaderboard-card-field">
+                                <div class="leaderboard-card-field-label">Cards Won</div>
+                                <div class="leaderboard-card-field-value">${uniqueCards.length + pendingClasses.length}</div>
+                            </div>
+                        </div>
+                        <div class="leaderboard-cards-preview">
+                            <div class="leaderboard-cards-preview-label">Cards Won</div>
+                            <div class="leaderboard-cards-list">${mobileCardChips}</div>
+                        </div>
+                    `;
+                    // Insert after the table container
+                    const tableContainer = document.querySelector('.leaderboard-table-container');
+                    if (tableContainer && tableContainer.parentNode) {
+                        tableContainer.parentNode.insertBefore(mobileRow, tableContainer.nextSibling);
+                    }
                 });
             }
 
