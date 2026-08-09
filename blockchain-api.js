@@ -12,9 +12,11 @@ class BlockchainAPI {
         try {
             const res = await fetch('cards-config.json');
             const config = await res.json();
-            this.cardsConfig = config.cards || [];
+                        this.cardsConfig = config.cards || [];
             this.classOrder = Object.keys(config.class_weights || {});
             this.classWeights = this.classOrder.map(c => config.class_weights[c]);
+            this.rarityWeights = config.rarity_weights || { Common: 44, Rare: 23, Epic: 12, Legendary: 4, Mythic: 1 };
+            this.genericWeight = config.generic_weight != null ? config.generic_weight : 17;
         } catch (e) {
             console.error("Failed to load cards config", e);
         }
@@ -46,16 +48,16 @@ class BlockchainAPI {
         return BigInt("0x" + hashArray.map(b => b.toString(16).padStart(2, '0')).join(''));
     }
 
-    // Resolve the card a BurnMax winner receives, deterministically.
-    // Step 1: pick a class by weighted percentage (35/30/15/12/5/3).
-    // Step 2: within the class, pick a species slot. Only if a species card
-    //         for that slot exists in config is the actual card issued.
-    //         Otherwise fall back to a generic class card, or to "none" if
-    //         the class has no card at all yet.
+        // Resolve the card a BurnMax winner receives, deterministically.
+    // Step 1: pick an animal class by weighted percentage (class_weights).
+    // Step 2: within the class, draw a species weighted by rarity so that
+    //         Common > Rare > Epic > Legendary drops naturally. Any leftover
+    //         probability falls back to the class's generic card, or to
+    //         "none" if the class has no card at all yet.
     async resolveCardForBlock(serialNumber, blockHash) {
         const hashInt = await this.hashForSerial(serialNumber, blockHash);
 
-        // Class allocation over 0..99 (weights must sum to 100).
+        // Step 1 — Class allocation over 0..99 (weights must sum to 100).
         const offset = Number(hashInt % 100n);
         let className = null;
         let classStart = 0;
@@ -73,24 +75,50 @@ class BlockchainAPI {
             classStart = 100 - (this.classWeights[this.classWeights.length - 1] || 0);
         }
 
-        // Position within the class (0..classWeight-1); the species slot.
-        const local = offset - classStart;
-
         const classCards = this.cardsConfig.filter(c => c.class === className);
         const generic = classCards.find(c => c.is_generic);
         const released = classCards
             .filter(c => !c.is_generic)
             .sort((a, b) => (a.slot ?? 0) - (b.slot ?? 0));
 
-        // A species is released only if its slot index is below the number of
-        // released species in this class (species are unlocked in slot order).
-        if (local < released.length) {
-            return { status: 'released', className, card: released[local] };
+        // No species released for this class at all yet.
+        if (released.length === 0 && !generic) {
+            return { status: 'none', className, card: null };
+        }
+
+        // Step 2 — Build a weighted pool. Rarer rarities carry less weight, so
+        // Common species drop far more often than Legendary ones. The generic
+        // placeholder absorbs the leftover probability as a tunable bucket.
+        const pool = [];
+        for (const c of released) {
+            pool.push({ card: c, weight: this.rarityWeights[c.rarity] ?? 1 });
         }
         if (generic) {
-            return { status: 'generic', className, card: generic };
+            pool.push({ card: generic, weight: this.genericWeight });
         }
-        return { status: 'none', className, card: null };
+
+        const totalWeight = pool.reduce((sum, p) => sum + p.weight, 0);
+        // Deterministic draw: re-reduce the hash modulo the total weight.
+        const pick = Number(hashInt % BigInt(totalWeight));
+        let acc = 0;
+        for (const p of pool) {
+            acc += p.weight;
+            if (pick < acc) {
+                return {
+                    status: p.card.is_generic ? 'generic' : 'released',
+                    className,
+                    card: p.card
+                };
+            }
+        }
+
+        // Safety fallback (rounding should never reach here).
+        const fallback = generic || released[0];
+        return {
+            status: fallback.is_generic ? 'generic' : 'released',
+            className,
+            card: fallback
+        };
     }
 
     // Fetch block data to verify winners in a specific block

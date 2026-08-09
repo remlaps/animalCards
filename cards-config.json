@@ -1,5 +1,5 @@
 {
-  "class_weights": {
+    "class_weights": {
     "Bird": 35,
     "Land Mammal": 30,
     "Fish": 15,
@@ -7,6 +7,14 @@
     "Amphibian": 5,
     "Sea Mammal": 3
   },
+  "rarity_weights": {
+    "Common": 44,
+    "Rare": 23,
+    "Epic": 12,
+    "Legendary": 4,
+    "Mythic": 1
+  },
+  "generic_weight": 17,
   "cards": [
     {
       "card_id": 1,
@@ -36,6 +44,16 @@
       "rarity": "Common",
       "image_url": "https://i.postimg.cc/5tFd6wS4/American-Robin.png",
       "slot": 1,
+      "generation": "unstable-test",
+      "photo_credit": "remlaps"
+    },
+    {
+      "card_id": 9,
+      "species": "American Bald Eagle",
+      "class": "Bird",
+      "rarity": "Legendary",
+      "image_url": "https://i.postimg.cc/TYvmpyp0/Bald-Eagle.png",
+      "slot": 2,
       "generation": "unstable-test",
       "photo_credit": "remlaps"
     }
