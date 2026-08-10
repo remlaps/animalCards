@@ -1,3 +1,16 @@
+// Build the "please support the photographer" tooltip text from the beneficiaries
+// map (loaded from cards-config.json into api.beneficiaries).
+function beneficiaryTip(api, rarity) {
+    const beneficiaries = (api && api.beneficiaries) || {};
+    const pct = beneficiaries[rarity] || 1;
+    const parts = [];
+    for (const [name, percent] of Object.entries(beneficiaries)) {
+        parts.push(`${percent}% for ${name.toLowerCase()} species`);
+    }
+    const list = parts.join(', ');
+    return `If you blog about this card, please consider setting a beneficiary for the photographer: ${list}. (This card: ${rarity || 'Unknown'} — ${pct}%)`;
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     const timeFilter = document.getElementById('time-filter');
     const loading = document.getElementById('loading');
@@ -245,7 +258,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     <div class="card-class">${u.card.class} • ${u.rarity || u.card.rarity}</div>
                                     <h3 class="card-species">${u.card.species}</h3>
                                     ${u.card.is_generic ? '<p style="color: var(--text-secondary); font-size: 0.8rem; font-style: italic; margin-top: 0.25rem;">A specific species will be released in the future.</p>' : ''}
-                                    <p class="card-attribution">Winner: @${account} • Generation: ${u.card.generation} • Photo by ${u.card.photo_credit}</p>
+                                    <p class="card-attribution" title="${beneficiaryTip(api, u.rarity || u.card.rarity)}">Winner: @${account} • Generation: ${u.card.generation} • Photo by ${u.card.photo_credit}</p>
                                     <div class="card-meta">
                                         <span style="font-size:0.75rem;">Serial(s): ${u.serials.join(', ')}</span>
                                     </div>

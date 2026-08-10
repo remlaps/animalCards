@@ -52,6 +52,14 @@ Rarity is shown on the site as derived from the slot position.
     "Reptile & Amphibian": 16
     // MUST sum to 100
   },
+  "beneficiaries": {
+    // Suggested photographer beneficiary % by rarity (used for the tooltip on photo credits)
+    "Common": 1,
+    "Rare": 2,
+    "Epic": 4,
+    "Legendary": 8,
+    "Mythic": 16
+  },
   "cards": [
     {
       "card_id": 7,          // unique, sequential, NEVER REUSE or CHANGE
@@ -66,6 +74,11 @@ Rarity is shown on the site as derived from the slot position.
   ]
 }
 ```
+
+The optional `beneficiaries` object maps each rarity to a suggested photographer
+beneficiary percentage. It is used to build the tooltip shown on card photo credits
+(saying e.g. "1% for common species, …"). To change the suggested percentages, edit
+this one map — no code changes needed.
 
 ### Card fields
 

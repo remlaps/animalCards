@@ -5,6 +5,13 @@
     "Fish": 16,
     "Reptile & Amphibian": 16
   },
+  "beneficiaries": {
+    "Common": 1,
+    "Rare": 2,
+    "Epic": 4,
+    "Legendary": 8,
+    "Mythic": 16
+  },
   "cards": [
     {
       "card_id": 1,
