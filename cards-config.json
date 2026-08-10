@@ -76,6 +76,15 @@
       "image_url": "https://i.postimg.cc/zfy6hy3B/Gray-Catbird.png",
       "generation": "unstable-test",
       "photo_credit": "remlaps"
+    },
+    {
+      "card_id": 13,
+      "species": "California Condor",
+      "class": "Bird",
+      "rarity": "Mythic",
+      "image_url": "https://i.postimg.cc/15j31qxP/California-Condor.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#266653255)"
     }
   ]
 }
