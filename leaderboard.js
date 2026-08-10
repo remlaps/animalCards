@@ -105,12 +105,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                     winsByAccount[mint.account].push(mint);
                 }
             }
-// Sort by number of BurnMaxxer titles won (top card winners), tie-break by burn amount
+// Weighted card total per account: each card won contributes its rarity's
+            // weight (1 for Common, 2 for Rare, 4 for Epic, ... from cards-config.json).
+            // Generic and not-yet-released ('none') cards also count, using their slot rarity.
+            const weightedTotalByAccount = {};
+            for (const [acct, mints] of Object.entries(winsByAccount)) {
+                let total = 0;
+                for (const m of mints) {
+                    total += api.beneficiaries[m.rarity] || 1;
+                }
+                weightedTotalByAccount[acct] = total;
+            }
+
+            // Sort by weighted total (descending), tie-break by burn amount.
             const sortedBurners = Object.entries(burners)
                 .sort((a, b) => {
-                    const aTitles = (winsByAccount[a[0]] || []).length;
-                    const bTitles = (winsByAccount[b[0]] || []).length;
-                    return (bTitles - aTitles) || (b[1] - a[1]);
+                    const aW = weightedTotalByAccount[a[0]] || 0;
+                    const bW = weightedTotalByAccount[b[0]] || 0;
+                    return (bW - aW) || (b[1] - a[1]);
                 })
                 .slice(0, 10); // Top 10
 
@@ -149,7 +161,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Render table
             if (sortedBurners.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No BurnMaxxer titles won in this timeframe.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No BurnMaxxer titles won in this timeframe.</td></tr>';
                 const mobileEmpty = document.createElement('div');
                 mobileEmpty.className = 'leaderboard-card-row';
                 mobileEmpty.innerHTML = '<p class="status-message" style="margin:0;">No BurnMaxxer titles won in this timeframe.</p>';
@@ -188,6 +200,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <td class="rank-cell">#${index + 1}</td>
                         <td style="font-weight: 600;">@${account}</td>
                         <td style="font-weight: 600;">${titlesWon}</td>
+                        <td style="font-weight: 600;">${weightedTotalByAccount[account] || 0}</td>
                         <td>${(burnSTEEM[account] || 0).toFixed(3)}</td>
                         <td>${(burnSBD[account] || 0).toFixed(3)}</td>
                         <td>${cardHtml}</td>
@@ -214,6 +227,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <div class="leaderboard-card-field">
                                 <div class="leaderboard-card-field-label">Titles Won</div>
                                 <div class="leaderboard-card-field-value">${titlesWon}</div>
+                            </div>
+                            <div class="leaderboard-card-field">
+                                <div class="leaderboard-card-field-label">Weighted</div>
+                                <div class="leaderboard-card-field-value">${weightedTotalByAccount[account] || 0}</div>
                             </div>
                             <div class="leaderboard-card-field">
                                 <div class="leaderboard-card-field-label">Total STEEM</div>
