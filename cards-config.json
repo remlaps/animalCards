@@ -67,6 +67,15 @@
       "image_url": "https://i.postimg.cc/qvQBvpL5/Red-Tailed-Hawk.png",
       "generation": "unstable-test",
       "photo_credit": "remlaps"
+    },
+    {
+      "card_id": 12,
+      "species": "Gray Catbird",
+      "class": "Bird",
+      "rarity": "Common",
+      "image_url": "https://i.postimg.cc/zfy6hy3B/Gray-Catbird.png",
+      "generation": "unstable-test",
+      "photo_credit": "remlaps"
     }
   ]
 }
