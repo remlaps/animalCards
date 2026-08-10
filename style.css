@@ -762,3 +762,42 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+/* ========== FOOTER ========== */
+.site-footer {
+    margin-top: 4rem;
+    padding: 1.5rem 0 2rem;
+    border-top: 1px solid var(--glass-border);
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.footer-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.footer-container a {
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: color 0.2s ease;
+}
+
+.footer-container a:hover {
+    color: var(--accent-primary);
+}
+
+.footer-github-icon {
+    width: 1.1em;
+    height: 1.1em;
+}
