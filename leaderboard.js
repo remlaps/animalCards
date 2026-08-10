@@ -81,6 +81,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         account: w.winner,
                         status: resolved.status,
                         className: resolved.className,
+                        rarity: resolved.rarity,
                         card: resolved.card,
                         block: blockNum,
                         trx_id: w.trx_id,
@@ -91,7 +92,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     winsByAccount[mint.account].push(mint);
                 }
             }
-// Sort by number of BurnsMax titles won (top card winners), tie-break by burn amount
+// Sort by number of BurnMaxxer titles won (top card winners), tie-break by burn amount
             const sortedBurners = Object.entries(burners)
                 .sort((a, b) => {
                     const aTitles = (winsByAccount[a[0]] || []).length;
@@ -103,29 +104,42 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Summarize each top account's wins into unique card types, each with its serials
             const uniqueCardsByAccount = {};
             const pendingClassesByAccount = {}; // account -> classes won but no card released yet
+            // Rarity scarcity order: fewer slots = scarcer. Used so generic cards
+            // (grouped by class+species) display their most scarce rarity label.
+            const rarityRank = { Common: 0, Rare: 1, Epic: 2, Legendary: 3, Mythic: 4 };
             for (const [account] of sortedBurners) {
                 const bySpecies = new Map();
-                const pendingClasses = new Set();
+                const pendingClasses = new Map();
                 for (const m of (winsByAccount[account] || [])) {
                     if (m.status === 'none') {
-                        // No card issued for this class yet; record which class it would've been.
-                        pendingClasses.add(m.className);
+                        // No card issued for this class yet; record which class + rarity it would've been.
+                        const pkey = `${m.className}|${m.rarity}`;
+                        if (!pendingClasses.has(pkey)) pendingClasses.set(pkey, { className: m.className, rarity: m.rarity });
                         continue;
                     }
                     const key = `${m.card.class}|${m.card.species}`;
-                    if (!bySpecies.has(key)) bySpecies.set(key, { card: m.card, serials: [] });
+                    if (!bySpecies.has(key)) {
+                        bySpecies.set(key, { card: m.card, rarity: m.status === 'generic' ? m.rarity : m.card.rarity, serials: [] });
+                    } else if (m.status === 'generic') {
+                        // Generic cards of the same class+species group together; keep the
+                        // most scarce rarity seen across all wins.
+                        const existing = bySpecies.get(key);
+                        if ((rarityRank[m.rarity] ?? -1) > (rarityRank[existing.rarity] ?? -1)) {
+                            existing.rarity = m.rarity;
+                        }
+                    }
                     bySpecies.get(key).serials.push(m.serial);
                 }
                 uniqueCardsByAccount[account] = Array.from(bySpecies.values());
-                pendingClassesByAccount[account] = Array.from(pendingClasses);
+                pendingClassesByAccount[account] = Array.from(pendingClasses.values());
             }
 
             // Render table
             if (sortedBurners.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No BurnsMax titles won in this timeframe.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No BurnMaxxer titles won in this timeframe.</td></tr>';
                 const mobileEmpty = document.createElement('div');
                 mobileEmpty.className = 'leaderboard-card-row';
-                mobileEmpty.innerHTML = '<p class="status-message" style="margin:0;">No BurnsMax titles won in this timeframe.</p>';
+                mobileEmpty.innerHTML = '<p class="status-message" style="margin:0;">No BurnMaxxer titles won in this timeframe.</p>';
                 const tableContainer = document.querySelector('.leaderboard-table-container');
                 if (tableContainer && tableContainer.parentNode) {
                     tableContainer.parentNode.insertBefore(mobileEmpty, tableContainer.nextSibling);
@@ -141,12 +155,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;">
                             <img src="${u.card.image_url}" alt="${u.card.species}" style="width: 28px; height: 28px; border-radius: 4px; object-fit: cover; flex-shrink: 0;">
                             <span style="font-weight: 600;">${u.card.species}</span>
+                            ${u.card.is_generic ? `<span class="rarity-badge" style="font-size:0.7rem; color:var(--text-secondary); border:1px solid var(--border-color,rgba(128,128,128,0.3)); border-radius:4px; padding:1px 5px;">${u.rarity || u.card.rarity}</span>` : ''}
                         </div>`).join('');
 
-                    // Classes won but no card released yet -> show what kind it would've been.
+                    // Classes won but no card released yet -> show what kind it would've been (class + rarity).
                     const pendingHtml = pendingClasses.map(c => `
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;">
-                            <span style="font-weight: 600;">${c}</span>
+                            <span style="font-weight: 600;">${c.className}</span>
+                            <span class="rarity-badge" style="font-size:0.7rem; color:var(--text-secondary); border:1px solid var(--border-color,rgba(128,128,128,0.3)); border-radius:4px; padding:1px 5px;">${c.rarity || ''}</span>
                             <span style="color: var(--text-secondary); font-size: 0.75rem;">(no card released yet)</span>
                         </div>`).join('');
 
@@ -170,10 +186,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         ? [...uniqueCards.map(u => `
                             <span class="leaderboard-card-chip">
                                 <img src="${u.card.image_url}" alt="${u.card.species}">
-                                ${u.card.species}
+                                ${u.card.species}${u.card.is_generic ? ` (${u.rarity})` : ''}
                             </span>`),
                             ...pendingClasses.map(c => `
-                            <span class="leaderboard-card-chip pending">${c} (pending)</span>`)].join('')
+                            <span class="leaderboard-card-chip pending">${c.className}${c.rarity ? ` (${c.rarity} pending)` : ' (pending)'}</span>`)].join('')
                         : '<span style="color: var(--text-secondary); font-size: 0.85rem;">No card won in timeframe</span>';
 
                     const mobileRow = document.createElement('div');
@@ -226,10 +242,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     <img src="${u.card.image_url}" alt="${u.card.species}" class="card-image">
                                 </div>
                                 <div class="card-content">
-                                    <div class="card-class">${u.card.class} • ${u.card.rarity}</div>
+                                    <div class="card-class">${u.card.class} • ${u.rarity || u.card.rarity}</div>
                                     <h3 class="card-species">${u.card.species}</h3>
                                     ${u.card.is_generic ? '<p style="color: var(--text-secondary); font-size: 0.8rem; font-style: italic; margin-top: 0.25rem;">A specific species will be released in the future.</p>' : ''}
-                                    <p class="card-attribution">Generation: ${u.card.generation} • Photo by ${u.card.photo_credit}</p>
+                                    <p class="card-attribution">Winner: @${account} • Generation: ${u.card.generation} • Photo by ${u.card.photo_credit}</p>
                                     <div class="card-meta">
                                         <span style="font-size:0.75rem;">Serial(s): ${u.serials.join(', ')}</span>
                                     </div>

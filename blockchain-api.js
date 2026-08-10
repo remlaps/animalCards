@@ -15,8 +15,6 @@ class BlockchainAPI {
                         this.cardsConfig = config.cards || [];
             this.classOrder = Object.keys(config.class_weights || {});
             this.classWeights = this.classOrder.map(c => config.class_weights[c]);
-            this.rarityWeights = config.rarity_weights || { Common: 44, Rare: 23, Epic: 12, Legendary: 4, Mythic: 1 };
-            this.genericWeight = config.generic_weight != null ? config.generic_weight : 17;
         } catch (e) {
             console.error("Failed to load cards config", e);
         }
@@ -50,10 +48,15 @@ class BlockchainAPI {
 
         // Resolve the card a BurnMax winner receives, deterministically.
     // Step 1: pick an animal class by weighted percentage (class_weights).
-    // Step 2: within the class, draw a species weighted by rarity so that
-    //         Common > Rare > Epic > Legendary drops naturally. Any leftover
-    //         probability falls back to the class's generic card, or to
-    //         "none" if the class has no card at all yet.
+    // Step 2: pick a rarity slot from a fixed pool. The slot counts are
+    //         hard-coded so they never change when cards are added or
+    //         removed — Common gets the most slots, Mythic the fewest.
+    //         Inserting a new card with the next card_id only extends
+    //         the slot-to-card mapping at the tail, leaving every earlier
+    //         block resolution intact.
+    // Step 3: the slot index within the rarity range maps directly to a
+    //         released card (sorted by card_id). If the slot exceeds the
+    //         number of released cards, the class generic card wins.
     async resolveCardForBlock(serialNumber, blockHash) {
         const hashInt = await this.hashForSerial(serialNumber, blockHash);
 
@@ -77,48 +80,71 @@ class BlockchainAPI {
 
         const classCards = this.cardsConfig.filter(c => c.class === className);
         const generic = classCards.find(c => c.is_generic);
-        const released = classCards
-            .filter(c => !c.is_generic)
-            .sort((a, b) => (a.slot ?? 0) - (b.slot ?? 0));
+
+        // Step 2 — Fixed slot-based rarity selection per class.
+        // Common: 16, Rare: 8, Epic: 4, Legendary: 2, Mythic: 1
+        // This only depends on the hash and the fixed slot counts, so we
+        // compute it before the classCards check so that every return path
+        // (including classes with no cards at all) can report the rarity.
+        const raritySlotCounts = {
+            Common: 16,
+            Rare: 8,
+            Epic: 4,
+            Legendary: 2,
+            Mythic: 1
+        };
+
+        const rarityOrder = Object.keys(raritySlotCounts);
+        let totalSlots = 0;
+        const rarityRanges = {};
+        for (const r of rarityOrder) {
+            const count = raritySlotCounts[r];
+            rarityRanges[r] = { start: totalSlots, end: totalSlots + count };
+            totalSlots += count;
+        }
+
+        const slotPick = Number(hashInt % BigInt(totalSlots));
+        const selectedRarity = rarityOrder.find(
+            r => slotPick >= rarityRanges[r].start && slotPick < rarityRanges[r].end
+        );
 
         // No species released for this class at all yet.
-        if (released.length === 0 && !generic) {
-            return { status: 'none', className, card: null };
+        if (classCards.length === 0) {
+            return { status: 'none', className, rarity: selectedRarity, card: null };
         }
 
-        // Step 2 — Build a weighted pool. Rarer rarities carry less weight, so
-        // Common species drop far more often than Legendary ones. The generic
-        // placeholder absorbs the leftover probability as a tunable bucket.
-        const pool = [];
-        for (const c of released) {
-            pool.push({ card: c, weight: this.rarityWeights[c.rarity] ?? 1 });
-        }
-        if (generic) {
-            pool.push({ card: generic, weight: this.genericWeight });
-        }
+        // Step 3 — Map the slot to a specific released card of the selected
+        // rarity. Cards are sorted by card_id so that appending a new card
+        // (with the next card_id) only extends the mapping at the tail.
+        const released = classCards
+            .filter(c => !c.is_generic && c.rarity === selectedRarity)
+            .sort((a, b) => a.card_id - b.card_id);
 
-        const totalWeight = pool.reduce((sum, p) => sum + p.weight, 0);
-        // Deterministic draw: re-reduce the hash modulo the total weight.
-        const pick = Number(hashInt % BigInt(totalWeight));
-        let acc = 0;
-        for (const p of pool) {
-            acc += p.weight;
-            if (pick < acc) {
-                return {
-                    status: p.card.is_generic ? 'generic' : 'released',
-                    className,
-                    card: p.card
-                };
+        const slotInRarity = slotPick - rarityRanges[selectedRarity].start;
+
+        if (released.length === 0) {
+            // No released cards yet for this class; generic wins.
+            if (generic) {
+                return { status: 'generic', className, rarity: selectedRarity, card: generic };
             }
+            return { status: 'none', className, rarity: selectedRarity, card: null };
         }
 
-        // Safety fallback (rounding should never reach here).
-        const fallback = generic || released[0];
-        return {
-            status: fallback.is_generic ? 'generic' : 'released',
-            className,
-            card: fallback
-        };
+        if (slotInRarity < released.length) {
+            const selected = released[slotInRarity];
+            return {
+                status: selected.is_generic ? 'generic' : 'released',
+                className,
+                rarity: selectedRarity,
+                card: selected
+            };
+        }
+
+        // Slot is beyond the number of released cards; generic wins.
+        if (generic) {
+            return { status: 'generic', className, rarity: selectedRarity, card: generic };
+        }
+        return { status: 'none', className, rarity: selectedRarity, card: null };
     }
 
     // Fetch block data to verify winners in a specific block
