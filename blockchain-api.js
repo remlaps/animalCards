@@ -104,12 +104,25 @@ class BlockchainAPI {
         const classCards = this.cardsConfig.filter(c => c.class === className);
         const generic = classCards.find(c => c.is_generic);
 
-        // Step 2 — Fixed slot-based rarity selection per class.
-        // Common: 16, Rare: 8, Epic: 4, Legendary: 2, Mythic: 1
-        // This only depends on the hash and the fixed slot counts, so we
-        // compute it before the classCards check so that every return path
-        // (including classes with no cards at all) can report the rarity.
+        // Step 2 — Fixed slot-based rarity selection per class, weighted.
+        // Common: 16, Rare: 8, Epic: 4, Legendary: 2, Mythic: 1 (slot counts).
+        // EACH slot is then weighted by its rarity multiplier (16/8/4/2/1), so a
+        // Common slot is 16x more likely than a Mythic slot and 2x more likely
+        // than a Rare slot. This gives the "two dimensions of scarcity":
+        //   (1) more species exist at lower rarities (the slot counts above),
+        //   (2) lower-rarity slots are more likely to be chosen (the weight).
+        // Total weight = 16*16 + 8*8 + 4*4 + 2*2 + 1*1 = 341. It only depends
+        // on the hash and the fixed slot counts/weights, so we compute it
+        // before the classCards check so that every return path (including
+        // classes with no cards at all) can report the rarity.
         const raritySlotCounts = {
+            Common: 16,
+            Rare: 8,
+            Epic: 4,
+            Legendary: 2,
+            Mythic: 1
+        };
+        const rarityWeight = {
             Common: 16,
             Rare: 8,
             Epic: 4,
@@ -118,15 +131,36 @@ class BlockchainAPI {
         };
 
         const rarityOrder = Object.keys(raritySlotCounts);
-        let totalSlots = 0;
         const rarityRanges = {};
+        const slotWeights = [];   // one entry (the rarity multiplier) per slot
+        let totalSlots = 0;
+        let totalWeight = 0;
         for (const r of rarityOrder) {
             const count = raritySlotCounts[r];
             rarityRanges[r] = { start: totalSlots, end: totalSlots + count };
+            for (let i = 0; i < count; i++) {
+                slotWeights.push(rarityWeight[r]);
+            }
             totalSlots += count;
+            totalWeight += count * rarityWeight[r];
         }
 
-        const slotPick = Number(hashInt % BigInt(totalSlots));
+        // Weighted pick over the 31 slots: each slot contributes rarityWeight
+        // to the cumulative range. pickWeight is uniform over [0, totalWeight),
+        // so higher-weight (lower-rarity) slots are chosen more often.
+        const pickWeight = Number(hashInt % BigInt(totalWeight));
+        let slotPick = null;
+        let acc = 0;
+        for (let i = 0; i < slotWeights.length; i++) {
+            acc += slotWeights[i];
+            if (pickWeight < acc) {
+                slotPick = i;
+                break;
+            }
+        }
+        // Safety fallback (only reachable if totalWeight mismatches the loop).
+        if (slotPick === null) slotPick = totalSlots - 1;
+
         const selectedRarity = rarityOrder.find(
             r => slotPick >= rarityRanges[r].start && slotPick < rarityRanges[r].end
         );
