@@ -130,14 +130,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 })
                 .slice(0, 10); // Top 10
 
-            // Summarize each top account's wins into unique card types, each with its serials
+            // Summarize each top account's wins into unique card types, each with its serials.
+            // Cards are grouped by class + rarity + species, so a generic card won at
+            // different slot rarities appears as separate entries, each with a quantity.
             const uniqueCardsByAccount = {};
             const pendingClassesByAccount = {}; // account -> classes won but no card released yet
-            // Rarity scarcity order: fewer slots = scarcer. Used so generic cards
-            // (grouped by class+species) display their most scarce rarity label.
-            const rarityRank = { Common: 0, Rare: 1, Epic: 2, Legendary: 3, Mythic: 4 };
             for (const [account] of sortedBurners) {
-                const bySpecies = new Map();
+                const byCard = new Map();
                 const pendingClasses = new Map();
                 for (const m of (winsByAccount[account] || [])) {
                     if (m.status === 'none') {
@@ -146,20 +145,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                         if (!pendingClasses.has(pkey)) pendingClasses.set(pkey, { className: m.className, rarity: m.rarity });
                         continue;
                     }
-                    const key = `${m.card.class}|${m.card.species}`;
-                    if (!bySpecies.has(key)) {
-                        bySpecies.set(key, { card: m.card, rarity: m.status === 'generic' ? m.rarity : m.card.rarity, serials: [] });
-                    } else if (m.status === 'generic') {
-                        // Generic cards of the same class+species group together; keep the
-                        // most scarce rarity seen across all wins.
-                        const existing = bySpecies.get(key);
-                        if ((rarityRank[m.rarity] ?? -1) > (rarityRank[existing.rarity] ?? -1)) {
-                            existing.rarity = m.rarity;
-                        }
+                    const rarity = m.status === 'generic' ? m.rarity : m.card.rarity;
+                    const key = `${m.card.class}|${rarity}|${m.card.species}`;
+                    if (!byCard.has(key)) {
+                        byCard.set(key, { card: m.card, rarity, serials: [] });
                     }
-                    bySpecies.get(key).serials.push(m.serial);
+                    byCard.get(key).serials.push(m.serial);
                 }
-                uniqueCardsByAccount[account] = Array.from(bySpecies.values());
+                uniqueCardsByAccount[account] = Array.from(byCard.values());
                 pendingClassesByAccount[account] = Array.from(pendingClasses.values());
             }
 
@@ -270,10 +263,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const uniqueCards = uniqueCardsByAccount[account] || [];
                     const cardsHtml = uniqueCards.length === 0
                         ? '<p class="status-message" style="grid-column: 1/-1;">No card won in this timeframe.</p>'
-                        : uniqueCards.map(u => `
+                        : uniqueCards.map(u => {
+                            const qty = u.serials.length;
+                            const countBadge = qty > 1 ? `<span class="card-count-badge">×${qty}</span>` : '';
+                            const serialOrQty = qty > 1
+                                ? `<span style="font-size:0.75rem;">Quantity: <strong style="color:var(--text-primary);">${qty}</strong></span>`
+                                : `<span style="font-size:0.75rem;">Serial: <strong style="color:var(--text-primary);">${u.serials[0]}</strong></span>`;
+                            return `
                             <div class="tribute-card">
                                 <div class="card-image-container">
                                     <img src="${u.card.image_url}" alt="${u.card.species}" class="card-image">
+                                    ${countBadge}
                                 </div>
                                 <div class="card-content">
                                     <div class="card-class">${u.card.class} • ${u.rarity || u.card.rarity}</div>
@@ -281,10 +281,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     ${u.card.is_generic ? '<p style="color: var(--text-secondary); font-size: 0.8rem; font-style: italic; margin-top: 0.25rem;">A specific species will be released in the future.</p>' : ''}
                                     <p class="card-attribution" title="${beneficiaryTip(api, u.rarity || u.card.rarity)}">Winner: @${account} • Generation: ${u.card.generation} • Photo by ${u.card.photo_credit}</p>
                                     <div class="card-meta">
-                                        <span style="font-size:0.75rem;">Serial(s): ${u.serials.join(', ')}</span>
+                                        ${serialOrQty}
                                     </div>
                                 </div>
-                            </div>`).join('');
+                            </div>`;
+                        }).join('');
 
                     return `
                         <div class="winner-section" style="margin-bottom: 2.5rem;">
