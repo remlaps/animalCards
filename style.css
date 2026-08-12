@@ -26,6 +26,7 @@ body {
     overflow-x: hidden;
     position: relative;
     line-height: 1.6;
+    padding-bottom: 210px; /* keep content/footer clear of the pinned VAAS bar */
 }
 
 /* Background Animations */
@@ -105,7 +106,7 @@ body {
     position: sticky;
     top: 0;
     z-index: 100;
-    padding: 1.5rem 0;
+    padding: 1.25rem 0;
 }
 
 /* Header & Nav */
@@ -163,52 +164,26 @@ body {
     width: 100%;
 }
 
-/* Header right cluster — compact VAAS ticker + nav */
-.header-right {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    min-width: 0;
+/* Always-visible bottom VAAS footer (mirrors the sticky header) */
+.vaas-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid var(--glass-border);
+    padding: 0.75rem 0;
 }
-
-/* Compact VAAS ticker (lives inside the sticky header) */
-#vaas-mount {
-    display: flex;
-    align-items: center;
-    min-width: 0;
-}
-#vaas-mount .vaas-section {
-    margin: 0;
-    padding: 0;
-    border: none;
+/* Blend the full-size VAAS panel into the glass footer */
+.vaas-footer .vaas-section {
     background: transparent;
+    border: none;
+    border-radius: 0;
     box-shadow: none;
-    font-size: 1rem;
-    line-height: 1.35;
-    border-radius: 999px;
-    overflow: hidden;
-}
-#vaas-mount .vaas-header,
-#vaas-mount .vaas-heading,
-#vaas-mount .vaas-details,
-#vaas-mount .vaas-link {
-    display: none;
-}
-#vaas-mount .vaas-holder {
-    min-height: 0;
-    margin: 0;
-    padding: 6px 16px;
-    flex-direction: row;
-    align-items: center;
-    gap: 0;
-    border-radius: 999px;
-    background: var(--glass-bg);
-    border-width: 2px !important; /* override JS-applied thickness; keep heat color */
-    box-shadow: none !important;
-    /* keep the JS heat-signal border color for the pill outline */
-}
-#vaas-mount .vaas-scroll-wrap {
-    max-width: 300px;
+    padding: 0;
 }
 
 /* Hero Section */
