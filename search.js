@@ -423,58 +423,157 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
             };
 
+// --- Grid view: toggle (all/unique), filters, and sort ---
+            const classRank = {};
+            api.classOrder.forEach((cls, i) => { classRank[cls] = i; });
+            const rarityRankAll = { Generic: -1, Common: 0, Rare: 1, Epic: 2, Legendary: 3, Mythic: 4 };
+
+            // Normalize each won card into a renderable item.
+            const normalizeCard = (m) => {
+                if (m.status === 'none') {
+                    return { isPlaceholder: true, species: `${m.className} — placeholder`, cls: m.className, rarity: m.rarity || '', image_url: null, is_generic: false, generation: '', photo_credit: '', account: m.account, serial: m.serial, timestamp: m.timestamp, trx_id: m.trx_id };
+                }
+                const rarity = m.status === 'generic' ? (m.rarity || m.card.rarity) : m.card.rarity;
+                return { isPlaceholder: false, species: m.card.species, cls: m.card.class, rarity, image_url: m.card.image_url, is_generic: m.card.is_generic, generation: m.card.generation, photo_credit: m.card.photo_credit, account: m.account, serial: m.serial, timestamp: m.timestamp, trx_id: m.trx_id };
+            };
+            const displayCards = wonCards.map(normalizeCard);
+
+            const toolbar = document.getElementById('search-toolbar');
+            const viewToggle = document.getElementById('view-toggle');
+            const filterSpecies = document.getElementById('filter-species');
+            const filterClass = document.getElementById('filter-class');
+            const filterRarity = document.getElementById('filter-rarity');
+            const sortBy = document.getElementById('sort-by');
+            const sortDirBtn = document.getElementById('sort-dir');
+            const state = { view: 'all', species: '', cls: '', rarity: '', sortKey: 'species', sortDir: 'asc' };
+
+            // Populate filter dropdowns from the cards actually present.
+            const fillSelect = (select, values) => {
+                const allLabel = select.getAttribute('data-all-label') || 'All';
+                select.innerHTML = `<option value="">${allLabel}</option>`;
+                [...new Set(values)].sort((a, b) => String(a).localeCompare(String(b))).forEach(v => {
+                    const o = document.createElement('option');
+                    o.value = v; o.textContent = v; select.appendChild(o);
+                });
+            };
+            fillSelect(filterSpecies, displayCards.map(c => c.species));
+            fillSelect(filterClass, displayCards.map(c => c.cls));
+            fillSelect(filterRarity, displayCards.map(c => c.rarity));
+
+            const getFilteredCards = () => displayCards.filter(c =>
+                (!state.species || c.species === state.species) &&
+                (!state.cls || c.cls === state.cls) &&
+                (!state.rarity || c.rarity === state.rarity));
+
+            const sortCards = (arr) => [...arr].sort((a, b) => {
+                let val;
+                if (state.sortKey === 'rarity') {
+                    val = (rarityRankAll[a.rarity] ?? -1) - (rarityRankAll[b.rarity] ?? -1);
+                } else if (state.sortKey === 'class') {
+                    val = (classRank[a.cls] ?? 999) - (classRank[b.cls] ?? 999) || String(a.cls).localeCompare(String(b.cls));
+                } else {
+                    val = String(a.species ?? '').localeCompare(String(b.species ?? ''));
+                }
+                return state.sortDir === 'asc' ? val : -val;
+            });
+const verifyBadge = (c) => `<span class="verify-badge" title="Hash: ${c.trx_id}">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                        Verified
+                    </span>`;
+
+            const renderCardEl = (c, count, serials) => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'tribute-card';
+                const showCount = count > 1;
+                const serialSpan = showCount
+                    ? `<span style="font-size:0.75rem;">Serials: ${serials.join(', ')}</span>`
+                    : `<span style="font-size:0.75rem;">Serial: <strong style="color:var(--text-primary);">${c.serial}</strong></span>`;
+                const timeSpan = `<span style="font-size:0.75rem;">${new Date(c.timestamp + 'Z').toLocaleString()}</span>`;
+                const countSpan = showCount ? `<span style="font-size:0.75rem;">Quantity: <strong style="color:var(--text-primary);">${count}</strong></span>` : '';
+                if (c.isPlaceholder) {
+                    cardEl.innerHTML = `
+                            <div class="card-image-container pending-card-image">
+                                <span class="pending-icon">✦</span>
+                            </div>
+                            <div class="card-content">
+                                <div class="card-class">${c.cls} • ${c.rarity || ''} • Awaiting Release</div>
+                                <h3 class="card-species pending-card-species">Card Not Released Yet</h3>
+                                <p class="card-attribution">Winner: @${c.account}</p>
+                                <div class="card-meta">
+                                    ${countSpan}
+                                    ${serialSpan}
+                                    ${timeSpan}
+                                    ${verifyBadge(c)}
+                                </div>
+                            </div>`;
+                } else {
+                    cardEl.innerHTML = `
+                            <div class="card-image-container">
+                                <img src="${c.image_url}" alt="${c.species}" class="card-image">
+                                ${showCount ? `<span class="card-count-badge">×${count}</span>` : ''}
+                            </div>
+                            <div class="card-content">
+                                <div class="card-class">${c.cls} • ${c.rarity}</div>
+                                <h3 class="card-species">${c.species}</h3>
+                                ${c.is_generic ? '<p style="color: var(--text-secondary); font-size: 0.8rem; font-style: italic; margin-top: 0.25rem;">A specific species will be released in the future.</p>' : ''}
+                                <p class="card-attribution" title="${beneficiaryTip(api, c.rarity)}">Winner: @${c.account} • Generation: ${c.generation} • Photo by ${c.photo_credit}</p>
+                                <div class="card-meta">
+                                    ${countSpan}
+                                    ${serialSpan}
+                                    ${timeSpan}
+                                    ${verifyBadge(c)}
+                                </div>
+                            </div>`;
+                }
+                return cardEl;
+            };
+
+            const renderGrid = () => {
+                const filtered = sortCards(getFilteredCards());
+                grid.innerHTML = '';
+                if (filtered.length === 0) {
+                    grid.innerHTML = '<p class="status-message" style="grid-column: 1/-1;">No cards match the current filters.</p>';
+                    return;
+                }
+                if (state.view === 'unique') {
+                    // Collapse duplicate (class, species, rarity) into one card with a count.
+                    const groups = new Map();
+                    for (const c of filtered) {
+                        const key = `${c.cls}|${c.species}|${c.rarity}`;
+                        if (!groups.has(key)) groups.set(key, { item: c, serials: [] });
+                        groups.get(key).serials.push(c.serial);
+                    }
+                    groups.forEach(g => grid.appendChild(renderCardEl(g.item, g.serials.length, g.serials)));
+                } else {
+                    // All cards, each with its own serial number (newest first).
+                    filtered.forEach(c => grid.appendChild(renderCardEl(c, 1, [c.serial])));
+                }
+            };
+
+            viewToggle.addEventListener('click', (e) => {
+                const btn = e.target.closest('button[data-view]');
+                if (!btn) return;
+                state.view = btn.dataset.view;
+                viewToggle.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b === btn));
+                renderGrid();
+            });
+            filterSpecies.addEventListener('change', () => { state.species = filterSpecies.value; renderGrid(); });
+            filterClass.addEventListener('change', () => { state.cls = filterClass.value; renderGrid(); });
+            filterRarity.addEventListener('change', () => { state.rarity = filterRarity.value; renderGrid(); });
+            sortBy.addEventListener('change', () => { state.sortKey = sortBy.value; renderGrid(); });
+            sortDirBtn.addEventListener('click', () => {
+                state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+                sortDirBtn.innerHTML = state.sortDir === 'asc' ? 'Sort ▲' : 'Sort ▼';
+                renderGrid();
+            });
             renderSummary();
 
             if (wonCards.length === 0) {
                 summaryContainer.innerHTML = '';
                 grid.innerHTML = '<p class="status-message" style="grid-column: 1/-1;">No cards found for this account in the selected timeframe.</p>';
             } else {
-                // Reverse so newest are first
-                wonCards.forEach(mint => {
-                    const cardEl = document.createElement('div');
-                    cardEl.className = 'tribute-card';
-                    if (mint.status === 'none') {
-                        cardEl.innerHTML = `
-                            <div class="card-image-container pending-card-image">
-                                <span class="pending-icon">✦</span>
-                            </div>
-                            <div class="card-content">
-                                <div class="card-class">${mint.className} • ${mint.rarity || ''} • Awaiting Release</div>
-                                <h3 class="card-species pending-card-species">Card Not Released Yet</h3>
-                                <p class="card-attribution">Winner: @${mint.account}</p>
-                                <div class="card-meta">
-                                    <span style="font-size:0.75rem;">Serial: <strong style="color:var(--text-primary);">${mint.serial}</strong></span>
-                                    <span style="font-size:0.75rem;">${new Date(mint.timestamp + 'Z').toLocaleString()}</span>
-                                    <span class="verify-badge" title="Hash: ${mint.trx_id}">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                                        Verified
-                                    </span>
-                                </div>
-                            </div>
-                        `;
-                    } else {
-                        cardEl.innerHTML = `
-                            <div class="card-image-container">
-                                <img src="${mint.card.image_url}" alt="${mint.card.species}" class="card-image">
-                            </div>
-                            <div class="card-content">
-                                <div class="card-class">${mint.card.class} • ${mint.status === 'generic' ? (mint.rarity || mint.card.rarity) : mint.card.rarity}</div>
-                                <h3 class="card-species">${mint.card.species}</h3>
-                                ${mint.card.is_generic ? '<p style="color: var(--text-secondary); font-size: 0.8rem; font-style: italic; margin-top: 0.25rem;">A specific species will be released in the future.</p>' : ''}
-                                <p class="card-attribution" title="${beneficiaryTip(api, mint.status === 'generic' ? (mint.rarity || mint.card.rarity) : mint.card.rarity)}">Winner: @${mint.account} • Generation: ${mint.card.generation} • Photo by ${mint.card.photo_credit}</p>
-                                <div class="card-meta">
-                                    <span style="font-size:0.75rem;">Serial: <strong style="color:var(--text-primary);">${mint.serial}</strong></span>
-                                    <span style="font-size:0.75rem;">${new Date(mint.timestamp + 'Z').toLocaleString()}</span>
-                                    <span class="verify-badge" title="Hash: ${mint.trx_id}">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                                        Verified
-                                    </span>
-                                </div>
-                            </div>
-                        `;
-                    }
-                    grid.appendChild(cardEl);
-                });
+                toolbar.style.display = 'block';
+                renderGrid();
             }
 
             loading.style.display = 'none';

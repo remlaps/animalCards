@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Search Portfolio - animalCards</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=3">
+    <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
     <div class="background-blobs">
@@ -53,6 +53,27 @@
             <h3 id="portfolio-header" style="margin-bottom: 1.5rem; font-family: 'Outfit'; font-size: 1.75rem;"></h3>
             <p id="portfolio-stats" style="color: var(--text-secondary); margin-bottom: 1.5rem;"></p>
 
+            <div id="search-toolbar" style="display: none; margin-bottom: 1.5rem;">
+                <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between;">
+                    <div class="controls-section" id="view-toggle">
+                        <span class="toolbar-label">View:</span>
+                        <button type="button" class="view-btn active" data-view="all">All Cards</button>
+                        <button type="button" class="view-btn" data-view="unique">Unique Cards</button>
+                    </div>
+                    <div class="controls-section" style="flex-wrap: wrap;">
+                        <select id="filter-species" class="time-select" data-all-label="All Species"></select>
+                        <select id="filter-class" class="time-select" data-all-label="All Classes"></select>
+                        <select id="filter-rarity" class="time-select" data-all-label="All Rarities"></select>
+                        <select id="sort-by" class="time-select">
+                            <option value="species">Sort: Species</option>
+                            <option value="class">Sort: Class</option>
+                            <option value="rarity">Sort: Rarity</option>
+                        </select>
+                        <button type="button" id="sort-dir" class="btn btn-secondary">Sort ▲</button>
+                    </div>
+                </div>
+            </div>
+
             <div id="portfolio-summary" style="margin-bottom: 2rem;">
                 <!-- Summary table populated via JS -->
             </div>
@@ -77,6 +98,6 @@
     </footer>
 
     <script src="blockchain-api.js?v=15"></script>
-    <script src="search.js?v=23"></script>
+    <script src="search.js?v=24"></script>
 </body>
 </html>
