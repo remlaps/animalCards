@@ -122,6 +122,16 @@
       "image_url": "https://i.postimg.cc/9Xnxnkyj/White-breasted-Nuthatch.png",
       "generation": "unstable-test",
       "photo_credit": "remlaps"
+    },
+    {
+      "card_id": 17,
+      "species": "Black Vulture",
+      "class": "Bird",
+      "rarity": "Common",
+      "slot": 7,
+      "image_url": "https://i.postimg.cc/TYWpVyRL/Black-Vulture.png",
+      "generation": "unstable-test",
+      "photo_credit": "remlaps"
     }
   ]
 }
