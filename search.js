@@ -14,6 +14,18 @@ function beneficiaryTip(api, rarity) {
     const list = parts.join(', ');
     return `If you blog about this card, please consider setting a beneficiary for the photographer: ${list}. (This card: ${rarity || 'Unknown'} — ${pct}%)`;
 }
+// Format a UTC ISO timestamp as a human-readable GMT string (always shown in GMT).
+function formatGMT(timestamp) {
+    const d = new Date(timestamp + 'Z');
+    if (isNaN(d.getTime())) return '';
+    const parts = Intl.DateTimeFormat('en-GB', {
+        timeZone: 'GMT', hour12: false,
+        year: 'numeric', month: 'short', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+    }).formatToParts(d);
+    const get = (t) => (parts.find(x => x.type === t) || {}).value || '';
+    return `${get('day')} ${get('month')} ${get('year')} ${get('hour')}:${get('minute')}:${get('second')} GMT`;
+}
 
 // Run an async fn over items with at most `concurrency` tasks in flight at once.
 async function mapWithConcurrency(items, concurrency, fn) {
@@ -488,7 +500,7 @@ const verifyBadge = (c) => `<span class="verify-badge" title="Hash: ${c.trx_id}"
                 const serialSpan = showCount
                     ? `<span style="font-size:0.75rem;">Serials: ${serials.join(', ')}</span>`
                     : `<span style="font-size:0.75rem;">Serial: <strong style="color:var(--text-primary);">${c.serial}</strong></span>`;
-                const timeSpan = `<span style="font-size:0.75rem;">${new Date(c.timestamp + 'Z').toLocaleString()}</span>`;
+                const timeSpan = `<span style="font-size:0.75rem;">${formatGMT(c.timestamp)}</span>`;
                 const countSpan = showCount ? `<span style="font-size:0.75rem;">Quantity: <strong style="color:var(--text-primary);">${count}</strong></span>` : '';
                 if (c.isPlaceholder) {
                     cardEl.innerHTML = `
@@ -501,8 +513,8 @@ const verifyBadge = (c) => `<span class="verify-badge" title="Hash: ${c.trx_id}"
                                 <p class="card-attribution">Winner: @${c.account}</p>
                                 <div class="card-meta">
                                     ${countSpan}
-                                    ${serialSpan}
-                                    ${timeSpan}
+                                    ${showCount ? '' : serialSpan}
+                                    ${showCount ? '' : timeSpan}
                                     ${verifyBadge(c)}
                                 </div>
                             </div>`;
@@ -519,8 +531,8 @@ const verifyBadge = (c) => `<span class="verify-badge" title="Hash: ${c.trx_id}"
                                 <p class="card-attribution" title="${beneficiaryTip(api, c.rarity)}">Winner: @${c.account} • Generation: ${c.generation} • Photo by ${c.photo_credit}</p>
                                 <div class="card-meta">
                                     ${countSpan}
-                                    ${serialSpan}
-                                    ${timeSpan}
+                                    ${showCount ? '' : serialSpan}
+                                    ${showCount ? '' : timeSpan}
                                     ${verifyBadge(c)}
                                 </div>
                             </div>`;
