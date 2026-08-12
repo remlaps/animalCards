@@ -82,205 +82,67 @@ document.addEventListener('DOMContentLoaded', async () => {
             let earliestTimeMs = timeConstraint ? Date.now() - timeConstraint : 0;
             if (createdMs > earliestTimeMs) earliestTimeMs = createdMs;
 
-            // 1) Fetch all transfers from this account to null AND resolve their block
-            //    numbers. Preferred: SteemWorld SDS (returns only this account's
-            //    burns — fast). If any SDS step fails in this browser, fall back to
-            //    scanning the null-account history, which returns exact blocks and
-            //    transaction ids in one pass (reliable, but slower).
-            loadingStatus.textContent = 'Fetching burn transfers...';
+            // 1) Fetch the null-account history once. Each history item natively carries its
+            //    block number and transaction id, so we skip SDS block estimation and
+            //    per-block verification entirely — the same approach the leaderboard
+            //    uses. This is much faster for long time ranges.
+            loadingStatus.textContent = 'Fetching burn history...';
             loadingProgress.textContent = '';
-            let transfers = [];
-            let sdsStep = '';
-            try {
-                // --- SDS: transfers ---
-                sdsStep = 'fetching transfers';
-                const sdsTransfers = [];
-                {
-                    const LIMIT = 1000;
-                    let offset = 0;
-                    while (true) {
-                        const res = await api.getTransfersByTypeFromTo('transfer', account, 'null', 'time', 'DESC', LIMIT, offset);
-                        const rows = (res && res.rows) || [];
-                        if (rows.length === 0) break;
-                        let reachedOldest = false;
-                        for (const r of rows) {
-                            const timeMs = r[0] * 1000;
-                            if (timeMs < earliestTimeMs) { reachedOldest = true; break; }
-                            sdsTransfers.push({ time: r[0], from: r[1], to: r[2], amount: r[3], unit: r[4], memo: r[5] });
-                        }
-                        if (reachedOldest || rows.length < LIMIT) break;
-                        offset += LIMIT;
-                    }
+            const history = await api.getAccountHistory('null', timeConstraint, earliestTimeMs);
+
+            // Track the searched account's transfers (for stats) and the per-block,
+            // per-asset max burner (for winner determination). An exact tie for the
+            // max burn means no one wins that block+asset.
+            const transfers = [];
+            const blocksData = {};
+            for (const item of history) {
+                const op = item.op;
+                if (op[0] !== 'transfer' || op[1].to !== 'null') continue;
+                const from = op[1].from;
+                const [valStr, asset] = op[1].amount.split(' ');
+                const val = parseFloat(valStr);
+                if (asset !== 'STEEM' && asset !== 'SBD') continue;
+
+                // Record the searched account's own burns for the stats line.
+                if (from === account) {
+                    transfers.push({
+                        from,
+                        to: op[1].to,
+                        amount: val,
+                        unit: asset,
+                        memo: op[1].memo,
+                        block: item.block,
+                        trx_id: item.trx_id,
+                        timestamp: item.timestamp
+                    });
                 }
 
-                // --- SDS: resolve block numbers ---
-                // Firing one getBlockInfoByTime per transfer floods SteemWorld's chain_api
-                // (503s). Instead, estimate each block from the previous one (blocks are 3s
-                // apart) and only re-query SDS when the time gap grows large enough that
-                // missed-block drift could matter. The content-based verification below
-                // corrects any small residual error.
-                sdsStep = 'resolving block numbers';
-                loadingStatus.textContent = 'Resolving block numbers...';
-                const REANCHOR_SECONDS = 600; // re-query SDS if >10min since last anchor
-                const resolvedBlocks = [];
-                let anchorTime = null;
-                let anchorBlock = null;
-                let resolvedCount = 0;
-                // sdsTransfers are ordered by time DESC (newest first).
-                for (const t of sdsTransfers) {
-                    let candidateBlock;
-                    if (anchorBlock === null || (anchorTime - t.time) > REANCHOR_SECONDS) {
-                        // Exact lookup + the consistent +1 offset (transaction is in the
-                        // block whose timestamp is 3s after the transfer time).
-                        candidateBlock = await api.getBlockNumByTime(t.time) + 1;
-                        anchorTime = t.time;
-                        anchorBlock = candidateBlock;
-                    } else {
-                        const delta = Math.round((anchorTime - t.time) / 3);
-                        candidateBlock = anchorBlock - delta;
-                    }
-                    resolvedBlocks.push({ ...t, candidateBlock });
-                    resolvedCount++;
-                    if (resolvedCount % 25 === 0 || resolvedCount === sdsTransfers.length) {
-                        loadingProgress.textContent = `Resolving block ${resolvedCount.toLocaleString()} of ${sdsTransfers.length.toLocaleString()}`;
-                    }
+                if (!blocksData[item.block]) {
+                    blocksData[item.block] = {
+                        STEEM: { maxBurn: 0, winner: null, trx_id: null, timestamp: item.timestamp },
+                        SBD: { maxBurn: 0, winner: null, trx_id: null, timestamp: item.timestamp }
+                    };
                 }
-                transfers = resolvedBlocks;
-            } catch (err) {
-                console.warn(`SteemWorld SDS failed at step "${sdsStep}":`, err);
-                loadingStatus.textContent = 'SDS unavailable; scanning null history...';
-                loadingProgress.textContent += ` (SDS ${sdsStep} failed: ${err.message})`;
-                const history = await api.getAccountHistory('null', timeConstraint, earliestTimeMs);
-                for (const item of history) {
-                    const op = item.op;
-                    if (op[0] === 'transfer' && op[1].from === account && op[1].to === 'null') {
-                        const [valStr, asset] = op[1].amount.split(' ');
-                        transfers.push({
-                            time: new Date(item.timestamp + 'Z').getTime() / 1000,
-                            from: op[1].from,
-                            to: op[1].to,
-                            amount: parseFloat(valStr),
-                            unit: asset,
-                            memo: op[1].memo,
-                            candidateBlock: item.block // history already knows the block
-                        });
-                    }
+                const slot = blocksData[item.block][asset];
+                if (val > slot.maxBurn) {
+                    slot.maxBurn = val;
+                    slot.winner = from;
+                    slot.trx_id = item.trx_id;
+                    slot.timestamp = item.timestamp;
+                } else if (val === slot.maxBurn) {
+                    // Exact tie for the top burn -> no one wins this block+asset.
+                    slot.winner = null;
+                    slot.trx_id = null;
                 }
             }
 
-            // Transfers that resolve to the same block
-            const transfersByBlock = {};
-            for (const t of transfers) {
-                (transfersByBlock[t.candidateBlock] = transfersByBlock[t.candidateBlock] || []).push(t);
-            }
-
-            // 3) Fetch each unique block once (parallel). Capture per-asset burners,
-            //    the account's transaction id (to seed the card hash), and the block
-            //    timestamp so we can correct SteemWorld's off-by-one.
-            const blockCache = {};
-            const getBlockInfo = async (blockNum) => {
-                if (blockCache[blockNum]) return blockCache[blockNum];
-                const blockData = await api.getBlock(blockNum);
-                const burners = { STEEM: {}, SBD: {} };
-                const accountTrxIds = { STEEM: null, SBD: null };
-                const ts = blockData && blockData.timestamp ? blockData.timestamp : null;
-                if (blockData && blockData.transactions) {
-                    for (const tx of blockData.transactions) {
-                        for (const op of tx.operations) {
-                            if (op[0] === 'transfer' && op[1].to === 'null') {
-                                const from = op[1].from;
-                                const [valStr, asset] = op[1].amount.split(' ');
-                                const val = parseFloat(valStr);
-                                if (!burners[asset][from]) burners[asset][from] = 0;
-                                burners[asset][from] += val;
-                                if (from === account && (tx.transaction_id || tx.trx_id)) {
-                                    accountTrxIds[asset] = tx.transaction_id || tx.trx_id;
-                                }
-                            }
-                        }
-                    }
-                }
-                blockCache[blockNum] = {
-                    time: ts ? new Date(ts + "Z").getTime() / 1000 : null,
-                    ts,
-                    burners,
-                    accountTrxIds
-                };
-                return blockCache[blockNum];
-            };
-
-            const uniqueBlocks = Object.keys(transfersByBlock).map(Number);
-
-            // This block-fetching phase is where BurnMaxxers are identified: each block
-            // is fetched (via callSteem/getBlock) to read who burned to null. Set the
-            // status here and track progress as blocks are fetched.
-            loadingStatus.textContent = 'Identifying BurnMaxxers...';
-            let fetchedBlocks = 0;
-            const totalBlocksToFetch = uniqueBlocks.length;
-            loadingProgress.textContent = `Fetched 0 of ${totalBlocksToFetch.toLocaleString()} blocks`;
-            const tickGetBlockInfo = async (blockNum) => {
-                const info = await getBlockInfo(blockNum);
-                fetchedBlocks++;
-                loadingProgress.textContent = `Fetched ${fetchedBlocks.toLocaleString()} of ${totalBlocksToFetch.toLocaleString()} blocks`;
-                return info;
-            };
-            await mapWithConcurrency(uniqueBlocks, BLOCK_CONCURRENCY, tickGetBlockInfo);
-
-            // Build the set of neighbor blocks to fetch for the content-based verification.
-            // The estimate can only be at or slightly before the real block (blocks are
-            // never produced faster than 3s), so the drift is always forward — we only
-            // need +1 (and +2 as a safety buffer for rare missed blocks).
-            const neighborSet = new Set();
-            for (const b of uniqueBlocks) {
-                neighborSet.add(b + 1);
-                neighborSet.add(b + 2);
-            }
-
-            // Fetch those neighbor blocks so the content-based verification below can
-            // reassign a transfer when the block estimate is off by a block or two.
-            loadingStatus.textContent = 'Verifying block assignments...';
-            const neighborList = [...neighborSet];
-            let fetchedNeighborCount = 0;
-            loadingProgress.textContent = `Verified 0 of ${neighborList.length.toLocaleString()} neighbor blocks`;
-            const tickNeighbor = async (blockNum) => {
-                const info = await getBlockInfo(blockNum);
-                fetchedNeighborCount++;
-                loadingProgress.textContent = `Verified ${fetchedNeighborCount.toLocaleString()} of ${neighborList.length.toLocaleString()} neighbor blocks`;
-                return info;
-            };
-            await mapWithConcurrency(neighborList, BLOCK_CONCURRENCY, tickNeighbor);
-
-            // Verify each transfer is actually present in its candidate block. If the block
-            // attribution is ever off (e.g. a different steemworld offset), check the
-            // neighboring blocks and reassign to whichever actually contains the burn.
-            // Matching is by (amount, unit) for this account.
-            const accountBurnsByBlock = {};
-            for (const t of transfers) {
-                const belongsTo = (blockNum) => {
-                    const info = blockCache[blockNum];
-                    if (!info) return false;
-                    const burners = info.burners[t.unit] || {};
-                    return burners[account] >= t.amount;
-                };
-
-                let actualBlock = t.candidateBlock;
-                if (!belongsTo(actualBlock)) {
-                    // Drift is always forward; only the next couple of blocks can hold it.
-                    for (let d = 1; d <= 2; d++) {
-                        const bn = t.candidateBlock + d;
-                        if (belongsTo(bn)) { actualBlock = bn; break; }
-                    }
-                }
-
-                if (!accountBurnsByBlock[actualBlock]) accountBurnsByBlock[actualBlock] = { STEEM: 0, SBD: 0, timestamp: (blockCache[actualBlock] && blockCache[actualBlock].ts) || null };
-                accountBurnsByBlock[actualBlock][t.unit] += t.amount;
-            }
-
-            // 4) Determine winners per block (parallel).
-            const blockNums = Object.keys(accountBurnsByBlock).sort((a, b) => b - a); // Newest first
-            const totalSteem = Object.values(accountBurnsByBlock).reduce((s, b) => s + b.STEEM, 0);
-            const totalSbd = Object.values(accountBurnsByBlock).reduce((s, b) => s + b.SBD, 0);
+            // 3) Compute the account's totals and the newest-first block list from the
+            //    data already gathered. No per-block fetch or verification needed —
+            //    the null history already gave us exact block numbers and trx ids.
+            const totalSteem = transfers.reduce((s, t) => s + (t.unit === 'STEEM' ? t.amount : 0), 0);
+            const totalSbd = transfers.reduce((s, t) => s + (t.unit === 'SBD' ? t.amount : 0), 0);
             const burnTransactionCount = transfers.length;
+            const blockNums = Object.keys(blocksData).sort((a, b) => b - a); // Newest first
 
             let processed = 0;
             loadingStatus.textContent = 'Identifying BurnMaxxers...';
@@ -288,34 +150,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             async function processBlock(blockNumStr) {
                 const blockNum = Number(blockNumStr);
-                const userBurn = accountBurnsByBlock[blockNum];
-                const info = await getBlockInfo(blockNum);
+                const bData = blocksData[blockNum];
                 const found = [];
 
                 for (const asset of ['STEEM', 'SBD']) {
-                    if (userBurn[asset] > 0) {
-                        let max = 0;
-                        let winner = null;
-                        const burners = (info && info.burners[asset]) || {};
-                        for (const [burner, amount] of Object.entries(burners)) {
-                            if (amount > max) { max = amount; winner = burner; }
-                        }
-                        if (winner === account) {
-                            const serial = `${blockNum}.${asset === 'STEEM' ? 0 : 1}`;
-                            const trxId = (info && info.accountTrxIds[asset]) || '';
-                            const resolved = await api.resolveCardForBlock(serial, trxId);
-                            found.push({
-                                account: account,
-                                status: resolved.status,
-                                className: resolved.className,
-                                rarity: resolved.rarity,
-                                card: resolved.card,
-                                block: blockNum,
-                                trx_id: trxId,
-                                serial: serial,
-                                timestamp: userBurn.timestamp
-                            });
-                        }
+                    const slot = bData[asset];
+                    // Only the single max burner wins; a tie leaves winner null (no card).
+                    if (slot.winner === account) {
+                        const serial = `${blockNum}.${asset === 'STEEM' ? 0 : 1}`;
+                        const trxId = slot.trx_id || '';
+                        const resolved = await api.resolveCardForBlock(serial, trxId);
+                        found.push({
+                            account: account,
+                            status: resolved.status,
+                            className: resolved.className,
+                            rarity: resolved.rarity,
+                            card: resolved.card,
+                            block: blockNum,
+                            trx_id: trxId,
+                            serial: serial,
+                            timestamp: slot.timestamp
+                        });
                     }
                 }
 

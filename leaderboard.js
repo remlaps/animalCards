@@ -70,6 +70,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         blocksData[item.block][asset].winner = from;
                         // Use the trx_id of the winning transaction for the deterministic hash
                         blocksData[item.block][asset].trx_id = item.trx_id;
+                    } else if (val === blocksData[item.block][asset].maxBurn) {
+                        // Exact tie for the top burn → no one wins this block+asset.
+                        blocksData[item.block][asset].winner = null;
+                        blocksData[item.block][asset].trx_id = null;
                     }
                 }
             }
