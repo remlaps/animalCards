@@ -26,6 +26,7 @@ body {
     overflow-x: hidden;
     position: relative;
     line-height: 1.6;
+    padding-bottom: 210px; /* keep content/footer clear of the pinned VAAS bar */
 }
 
 /* Background Animations */
@@ -163,6 +164,28 @@ body {
     width: 100%;
 }
 
+/* Always-visible bottom VAAS footer (mirrors the sticky header) */
+.vaas-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid var(--glass-border);
+    padding: 0.75rem 0;
+}
+/* Blend the full-size VAAS panel into the glass footer */
+.vaas-footer .vaas-section {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+}
+
 /* Hero Section */
 .hero-section {
     display: flex;
@@ -281,6 +304,51 @@ body {
 
 .search-input {
     width: 250px;
+}
+
+/* Search toolbar: view toggle + filters + sort */
+.toolbar-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.view-btn {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--glass-border);
+    color: white;
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: border-color 0.3s, background 0.3s, color 0.3s;
+    white-space: nowrap;
+}
+
+.view-btn:hover {
+    border-color: var(--accent-primary);
+}
+
+.view-btn.active {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: #fff;
+}
+
+.card-count-badge {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: var(--accent-primary);
+    color: #fff;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    z-index: 2;
 }
 
 /* Cards Grid */

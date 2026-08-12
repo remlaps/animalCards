@@ -1,5 +1,4 @@
 const STEEM_API_URL = 'https://api.steemit.com';
-const SDS_API_URL = 'https://sds.steemworld.org';
 
 class BlockchainAPI {
     constructor() {
@@ -218,52 +217,6 @@ class BlockchainAPI {
         return await this.callSteem('condenser_api.get_accounts', [names]);
     }
 
-    // Fetch with a timeout so a hung request rejects instead of spinning forever.
-    async fetchWithTimeout(url, timeoutMs) {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), timeoutMs);
-        try {
-            const res = await fetch(url, { signal: controller.signal });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            return res;
-        } finally {
-            clearTimeout(timer);
-        }
-    }
-
-    // SteemWorld SDS: fetch transfers of `type` from `from` to `to`.
-    // Returns { cols, rows } where each row is [time, from, to, amount, unit, memo].
-    // Rows are ordered by time (DESC by default). Paginate with limit (<=1000) & offset.
-    async getTransfersByTypeFromTo(type, from, to, orderBy, orderDir, limit, offset) {
-        const oBy = orderBy || 'time';
-        const oDir = orderDir || 'DESC';
-        const lim = limit || 1000;
-        const off = offset || 0;
-        const url = `${SDS_API_URL}/transfers_api/getTransfersByTypeFromTo/${type}/${from}/${to}/${oBy}/${oDir}/${lim}/${off}`;
-        const res = await this.fetchWithTimeout(url, 15000);
-        const data = await res.json();
-        if (data.code !== 0) throw new Error(data.msg || 'SteemWorld SDS transfers error');
-        return data.result;
-    }
-
-    // SteemWorld SDS: get the nearest block number for a given timestamp (seconds).
-    // Retries transient failures (the endpoint rate-limits when hammered), then throws
-    // so the caller can fall back to the null-account history.
-    async getBlockNumByTime(timestamp, retries = 3) {
-        const url = `${SDS_API_URL}/chain_api/getBlockInfoByTime/${timestamp}`;
-        for (let attempt = 0; attempt <= retries; attempt++) {
-            try {
-                const res = await this.fetchWithTimeout(url, 10000);
-                const data = await res.json();
-                if (data.code !== 0) throw new Error(data.msg || 'SteemWorld SDS block-by-time error');
-                return data.result.block_num;
-            } catch (e) {
-                if (attempt === retries) throw e;
-                await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
-            }
-        }
-    }
-
     // Fetch account history with time constraints.
     // Paginates back from the present (newest first).
     //   timeConstraintMs - optional window: stop when an op is older than this
@@ -278,6 +231,7 @@ class BlockchainAPI {
         let limit = 100;
         let keepFetching = true;
         const now = Date.now();
+        let frontierTs = null; // raw timestamp of the oldest history op scanned so far
 
         while (keepFetching) {
             const result = await this.callSteem('condenser_api.get_account_history', [account, start, limit]);
@@ -298,10 +252,11 @@ class BlockchainAPI {
                 }
 
                 history.push(tx);
+                frontierTs = tx.timestamp;
             }
 
             // Report live progress (e.g. number of history operations scanned so far)
-            if (onProgress) onProgress(history.length);
+            if (onProgress) onProgress(history.length, frontierTs);
             
             // if we need to paginate further backwards
             if (keepFetching && result.length > 0) {

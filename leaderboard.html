@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Leaderboard - animalCards</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=3">
+    <link rel="stylesheet" href="style.css?v=7">
+    <link rel="stylesheet" href="vaas.css?v=1">
 </head>
 <body>
     <div class="background-blobs">
@@ -35,6 +36,8 @@
                     <option value="86400000">Past 1 Day</option>
                     <option value="604800000">Past 7 Days</option>
                     <option value="2592000000">Past 30 Days</option>
+                    <option value="7776000000">Past 90 Days</option>
+                    <option value="31536000000">Past 1 Year</option>
                 </select>
             </div>
         </div>
@@ -71,6 +74,12 @@
         </div>
     </main>
 
+    <footer class="vaas-footer">
+        <div class="container">
+            <div id="vaas-mount"></div>
+        </div>
+    </footer>
+
     <footer class="site-footer">
         <div class="container footer-container">
             <span>animalCards</span>
@@ -84,7 +93,18 @@
         </div>
     </footer>
 
-    <script src="blockchain-api.js?v=18"></script>
+    <script src="blockchain-api.js?v=19"></script>
     <script src="leaderboard.js?v=12"></script>
+    <script src="vaas.js?v=2"></script>
+    <script>
+        // Drop-in VAAS widget — adopts animalCards' glass design tokens.
+        VAAS.init({
+            theme: {
+                cardBg: 'var(--glass-bg)',
+                muted: 'var(--text-secondary)',
+                border: 'var(--glass-border)'
+            }
+        }).mount('#vaas-mount');
+    </script>
 </body>
 </html>

@@ -14,6 +14,18 @@ function beneficiaryTip(api, rarity) {
     const list = parts.join(', ');
     return `If you blog about this card, please consider setting a beneficiary for the photographer: ${list}. (This card: ${rarity || 'Unknown'} — ${pct}%)`;
 }
+// Format a UTC ISO timestamp as a human-readable GMT string (always shown in GMT).
+function formatGMT(timestamp) {
+    const d = new Date(timestamp + 'Z');
+    if (isNaN(d.getTime())) return '';
+    const parts = Intl.DateTimeFormat('en-GB', {
+        timeZone: 'GMT', hour12: false,
+        year: 'numeric', month: 'short', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+    }).formatToParts(d);
+    const get = (t) => (parts.find(x => x.type === t) || {}).value || '';
+    return `${get('day')} ${get('month')} ${get('year')} ${get('hour')}:${get('minute')}:${get('second')} GMT`;
+}
 
 // Run an async fn over items with at most `concurrency` tasks in flight at once.
 async function mapWithConcurrency(items, concurrency, fn) {
@@ -70,205 +82,80 @@ document.addEventListener('DOMContentLoaded', async () => {
             let earliestTimeMs = timeConstraint ? Date.now() - timeConstraint : 0;
             if (createdMs > earliestTimeMs) earliestTimeMs = createdMs;
 
-            // 1) Fetch all transfers from this account to null AND resolve their block
-            //    numbers. Preferred: SteemWorld SDS (returns only this account's
-            //    burns — fast). If any SDS step fails in this browser, fall back to
-            //    scanning the null-account history, which returns exact blocks and
-            //    transaction ids in one pass (reliable, but slower).
-            loadingStatus.textContent = 'Fetching burn transfers...';
+            // 1) Fetch the null-account history once. Each history item natively carries its
+            //    block number and transaction id, so we skip SDS block estimation and
+            //    per-block verification entirely — the same approach the leaderboard
+            //    uses. This is much faster for long time ranges.
+            loadingStatus.textContent = 'Fetching burn history...';
             loadingProgress.textContent = '';
-            let transfers = [];
-            let sdsStep = '';
-            try {
-                // --- SDS: transfers ---
-                sdsStep = 'fetching transfers';
-                const sdsTransfers = [];
-                {
-                    const LIMIT = 1000;
-                    let offset = 0;
-                    while (true) {
-                        const res = await api.getTransfersByTypeFromTo('transfer', account, 'null', 'time', 'DESC', LIMIT, offset);
-                        const rows = (res && res.rows) || [];
-                        if (rows.length === 0) break;
-                        let reachedOldest = false;
-                        for (const r of rows) {
-                            const timeMs = r[0] * 1000;
-                            if (timeMs < earliestTimeMs) { reachedOldest = true; break; }
-                            sdsTransfers.push({ time: r[0], from: r[1], to: r[2], amount: r[3], unit: r[4], memo: r[5] });
-                        }
-                        if (reachedOldest || rows.length < LIMIT) break;
-                        offset += LIMIT;
-                    }
+            let lastMonthShown = null;
+            const history = await api.getAccountHistory('null', timeConstraint, earliestTimeMs, (count, ts) => {
+                if (!ts) {
+                    // No timestamp yet (e.g. nothing scanned so far) — just show the count.
+                    loadingProgress.textContent = `Scanned ${count.toLocaleString()} history ops`;
+                    return;
+                }
+                // Redisplay only once per calendar month the scan frontier crosses.
+                const monthKey = ts.slice(0, 7); // "YYYY-MM" from the raw timestamp
+                if (monthKey !== lastMonthShown) {
+                    lastMonthShown = monthKey;
+                    loadingProgress.textContent = `Scanned ${count.toLocaleString()} history ops — back to ${formatGMT(ts)}`;
+                }
+            });
+
+            // Track the searched account's transfers (for stats) and the per-block,
+            // per-asset max burner (for winner determination). An exact tie for the
+            // max burn means no one wins that block+asset.
+            const transfers = [];
+            const blocksData = {};
+            for (const item of history) {
+                const op = item.op;
+                if (op[0] !== 'transfer' || op[1].to !== 'null') continue;
+                const from = op[1].from;
+                const [valStr, asset] = op[1].amount.split(' ');
+                const val = parseFloat(valStr);
+                if (asset !== 'STEEM' && asset !== 'SBD') continue;
+
+                // Record the searched account's own burns for the stats line.
+                if (from === account) {
+                    transfers.push({
+                        from,
+                        to: op[1].to,
+                        amount: val,
+                        unit: asset,
+                        memo: op[1].memo,
+                        block: item.block,
+                        trx_id: item.trx_id,
+                        timestamp: item.timestamp
+                    });
                 }
 
-                // --- SDS: resolve block numbers ---
-                // Firing one getBlockInfoByTime per transfer floods SteemWorld's chain_api
-                // (503s). Instead, estimate each block from the previous one (blocks are 3s
-                // apart) and only re-query SDS when the time gap grows large enough that
-                // missed-block drift could matter. The content-based verification below
-                // corrects any small residual error.
-                sdsStep = 'resolving block numbers';
-                loadingStatus.textContent = 'Resolving block numbers...';
-                const REANCHOR_SECONDS = 600; // re-query SDS if >10min since last anchor
-                const resolvedBlocks = [];
-                let anchorTime = null;
-                let anchorBlock = null;
-                let resolvedCount = 0;
-                // sdsTransfers are ordered by time DESC (newest first).
-                for (const t of sdsTransfers) {
-                    let candidateBlock;
-                    if (anchorBlock === null || (anchorTime - t.time) > REANCHOR_SECONDS) {
-                        // Exact lookup + the consistent +1 offset (transaction is in the
-                        // block whose timestamp is 3s after the transfer time).
-                        candidateBlock = await api.getBlockNumByTime(t.time) + 1;
-                        anchorTime = t.time;
-                        anchorBlock = candidateBlock;
-                    } else {
-                        const delta = Math.round((anchorTime - t.time) / 3);
-                        candidateBlock = anchorBlock - delta;
-                    }
-                    resolvedBlocks.push({ ...t, candidateBlock });
-                    resolvedCount++;
-                    if (resolvedCount % 25 === 0 || resolvedCount === sdsTransfers.length) {
-                        loadingProgress.textContent = `Resolving block ${resolvedCount.toLocaleString()} of ${sdsTransfers.length.toLocaleString()}`;
-                    }
+                if (!blocksData[item.block]) {
+                    blocksData[item.block] = {
+                        STEEM: { maxBurn: 0, winner: null, trx_id: null, timestamp: item.timestamp },
+                        SBD: { maxBurn: 0, winner: null, trx_id: null, timestamp: item.timestamp }
+                    };
                 }
-                transfers = resolvedBlocks;
-            } catch (err) {
-                console.warn(`SteemWorld SDS failed at step "${sdsStep}":`, err);
-                loadingStatus.textContent = 'SDS unavailable; scanning null history...';
-                loadingProgress.textContent += ` (SDS ${sdsStep} failed: ${err.message})`;
-                const history = await api.getAccountHistory('null', timeConstraint, earliestTimeMs);
-                for (const item of history) {
-                    const op = item.op;
-                    if (op[0] === 'transfer' && op[1].from === account && op[1].to === 'null') {
-                        const [valStr, asset] = op[1].amount.split(' ');
-                        transfers.push({
-                            time: new Date(item.timestamp + 'Z').getTime() / 1000,
-                            from: op[1].from,
-                            to: op[1].to,
-                            amount: parseFloat(valStr),
-                            unit: asset,
-                            memo: op[1].memo,
-                            candidateBlock: item.block // history already knows the block
-                        });
-                    }
+                const slot = blocksData[item.block][asset];
+                if (val > slot.maxBurn) {
+                    slot.maxBurn = val;
+                    slot.winner = from;
+                    slot.trx_id = item.trx_id;
+                    slot.timestamp = item.timestamp;
+                } else if (val === slot.maxBurn) {
+                    // Exact tie for the top burn -> no one wins this block+asset.
+                    slot.winner = null;
+                    slot.trx_id = null;
                 }
             }
 
-            // Transfers that resolve to the same block
-            const transfersByBlock = {};
-            for (const t of transfers) {
-                (transfersByBlock[t.candidateBlock] = transfersByBlock[t.candidateBlock] || []).push(t);
-            }
-
-            // 3) Fetch each unique block once (parallel). Capture per-asset burners,
-            //    the account's transaction id (to seed the card hash), and the block
-            //    timestamp so we can correct SteemWorld's off-by-one.
-            const blockCache = {};
-            const getBlockInfo = async (blockNum) => {
-                if (blockCache[blockNum]) return blockCache[blockNum];
-                const blockData = await api.getBlock(blockNum);
-                const burners = { STEEM: {}, SBD: {} };
-                const accountTrxIds = { STEEM: null, SBD: null };
-                const ts = blockData && blockData.timestamp ? blockData.timestamp : null;
-                if (blockData && blockData.transactions) {
-                    for (const tx of blockData.transactions) {
-                        for (const op of tx.operations) {
-                            if (op[0] === 'transfer' && op[1].to === 'null') {
-                                const from = op[1].from;
-                                const [valStr, asset] = op[1].amount.split(' ');
-                                const val = parseFloat(valStr);
-                                if (!burners[asset][from]) burners[asset][from] = 0;
-                                burners[asset][from] += val;
-                                if (from === account && (tx.transaction_id || tx.trx_id)) {
-                                    accountTrxIds[asset] = tx.transaction_id || tx.trx_id;
-                                }
-                            }
-                        }
-                    }
-                }
-                blockCache[blockNum] = {
-                    time: ts ? new Date(ts + "Z").getTime() / 1000 : null,
-                    ts,
-                    burners,
-                    accountTrxIds
-                };
-                return blockCache[blockNum];
-            };
-
-            const uniqueBlocks = Object.keys(transfersByBlock).map(Number);
-
-            // This block-fetching phase is where BurnMaxxers are identified: each block
-            // is fetched (via callSteem/getBlock) to read who burned to null. Set the
-            // status here and track progress as blocks are fetched.
-            loadingStatus.textContent = 'Identifying BurnMaxxers...';
-            let fetchedBlocks = 0;
-            const totalBlocksToFetch = uniqueBlocks.length;
-            loadingProgress.textContent = `Fetched 0 of ${totalBlocksToFetch.toLocaleString()} blocks`;
-            const tickGetBlockInfo = async (blockNum) => {
-                const info = await getBlockInfo(blockNum);
-                fetchedBlocks++;
-                loadingProgress.textContent = `Fetched ${fetchedBlocks.toLocaleString()} of ${totalBlocksToFetch.toLocaleString()} blocks`;
-                return info;
-            };
-            await mapWithConcurrency(uniqueBlocks, BLOCK_CONCURRENCY, tickGetBlockInfo);
-
-            // Build the set of neighbor blocks to fetch for the content-based verification.
-            // The estimate can only be at or slightly before the real block (blocks are
-            // never produced faster than 3s), so the drift is always forward — we only
-            // need +1 (and +2 as a safety buffer for rare missed blocks).
-            const neighborSet = new Set();
-            for (const b of uniqueBlocks) {
-                neighborSet.add(b + 1);
-                neighborSet.add(b + 2);
-            }
-
-            // Fetch those neighbor blocks so the content-based verification below can
-            // reassign a transfer when the block estimate is off by a block or two.
-            loadingStatus.textContent = 'Verifying block assignments...';
-            const neighborList = [...neighborSet];
-            let fetchedNeighborCount = 0;
-            loadingProgress.textContent = `Verified 0 of ${neighborList.length.toLocaleString()} neighbor blocks`;
-            const tickNeighbor = async (blockNum) => {
-                const info = await getBlockInfo(blockNum);
-                fetchedNeighborCount++;
-                loadingProgress.textContent = `Verified ${fetchedNeighborCount.toLocaleString()} of ${neighborList.length.toLocaleString()} neighbor blocks`;
-                return info;
-            };
-            await mapWithConcurrency(neighborList, BLOCK_CONCURRENCY, tickNeighbor);
-
-            // Verify each transfer is actually present in its candidate block. If the block
-            // attribution is ever off (e.g. a different steemworld offset), check the
-            // neighboring blocks and reassign to whichever actually contains the burn.
-            // Matching is by (amount, unit) for this account.
-            const accountBurnsByBlock = {};
-            for (const t of transfers) {
-                const belongsTo = (blockNum) => {
-                    const info = blockCache[blockNum];
-                    if (!info) return false;
-                    const burners = info.burners[t.unit] || {};
-                    return burners[account] >= t.amount;
-                };
-
-                let actualBlock = t.candidateBlock;
-                if (!belongsTo(actualBlock)) {
-                    // Drift is always forward; only the next couple of blocks can hold it.
-                    for (let d = 1; d <= 2; d++) {
-                        const bn = t.candidateBlock + d;
-                        if (belongsTo(bn)) { actualBlock = bn; break; }
-                    }
-                }
-
-                if (!accountBurnsByBlock[actualBlock]) accountBurnsByBlock[actualBlock] = { STEEM: 0, SBD: 0, timestamp: (blockCache[actualBlock] && blockCache[actualBlock].ts) || null };
-                accountBurnsByBlock[actualBlock][t.unit] += t.amount;
-            }
-
-            // 4) Determine winners per block (parallel).
-            const blockNums = Object.keys(accountBurnsByBlock).sort((a, b) => b - a); // Newest first
-            const totalSteem = Object.values(accountBurnsByBlock).reduce((s, b) => s + b.STEEM, 0);
-            const totalSbd = Object.values(accountBurnsByBlock).reduce((s, b) => s + b.SBD, 0);
+            // 3) Compute the account's totals and the newest-first block list from the
+            //    data already gathered. No per-block fetch or verification needed —
+            //    the null history already gave us exact block numbers and trx ids.
+            const totalSteem = transfers.reduce((s, t) => s + (t.unit === 'STEEM' ? t.amount : 0), 0);
+            const totalSbd = transfers.reduce((s, t) => s + (t.unit === 'SBD' ? t.amount : 0), 0);
             const burnTransactionCount = transfers.length;
+            const blockNums = Object.keys(blocksData).sort((a, b) => b - a); // Newest first
 
             let processed = 0;
             loadingStatus.textContent = 'Identifying BurnMaxxers...';
@@ -276,34 +163,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             async function processBlock(blockNumStr) {
                 const blockNum = Number(blockNumStr);
-                const userBurn = accountBurnsByBlock[blockNum];
-                const info = await getBlockInfo(blockNum);
+                const bData = blocksData[blockNum];
                 const found = [];
 
                 for (const asset of ['STEEM', 'SBD']) {
-                    if (userBurn[asset] > 0) {
-                        let max = 0;
-                        let winner = null;
-                        const burners = (info && info.burners[asset]) || {};
-                        for (const [burner, amount] of Object.entries(burners)) {
-                            if (amount > max) { max = amount; winner = burner; }
-                        }
-                        if (winner === account) {
-                            const serial = `${blockNum}.${asset === 'STEEM' ? 0 : 1}`;
-                            const trxId = (info && info.accountTrxIds[asset]) || '';
-                            const resolved = await api.resolveCardForBlock(serial, trxId);
-                            found.push({
-                                account: account,
-                                status: resolved.status,
-                                className: resolved.className,
-                                rarity: resolved.rarity,
-                                card: resolved.card,
-                                block: blockNum,
-                                trx_id: trxId,
-                                serial: serial,
-                                timestamp: userBurn.timestamp
-                            });
-                        }
+                    const slot = bData[asset];
+                    // Only the single max burner wins; a tie leaves winner null (no card).
+                    if (slot.winner === account) {
+                        const serial = `${blockNum}.${asset === 'STEEM' ? 0 : 1}`;
+                        const trxId = slot.trx_id || '';
+                        const resolved = await api.resolveCardForBlock(serial, trxId);
+                        found.push({
+                            account: account,
+                            status: resolved.status,
+                            className: resolved.className,
+                            rarity: resolved.rarity,
+                            card: resolved.card,
+                            block: blockNum,
+                            trx_id: trxId,
+                            serial: serial,
+                            timestamp: slot.timestamp
+                        });
                     }
                 }
 
@@ -423,58 +303,214 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
             };
 
+// --- Grid view: toggle (all/unique), filters, and sort ---
+            const classRank = {};
+            api.classOrder.forEach((cls, i) => { classRank[cls] = i; });
+            const rarityRankAll = { Generic: -1, Common: 0, Rare: 1, Epic: 2, Legendary: 3, Mythic: 4 };
+
+            // Normalize each won card into a renderable item.
+            const normalizeCard = (m) => {
+                if (m.status === 'none') {
+                    return { isPlaceholder: true, species: `${m.className} — placeholder`, cls: m.className, rarity: m.rarity || '', image_url: null, is_generic: false, generation: '', photo_credit: '', account: m.account, serial: m.serial, timestamp: m.timestamp, trx_id: m.trx_id };
+                }
+                const rarity = m.status === 'generic' ? (m.rarity || m.card.rarity) : m.card.rarity;
+                return { isPlaceholder: false, species: m.card.species, cls: m.card.class, rarity, image_url: m.card.image_url, is_generic: m.card.is_generic, generation: m.card.generation, photo_credit: m.card.photo_credit, account: m.account, serial: m.serial, timestamp: m.timestamp, trx_id: m.trx_id };
+            };
+            const displayCards = wonCards.map(normalizeCard);
+
+            const searchFilters = document.getElementById('search-filters');
+            const viewToggle = document.getElementById('view-toggle');
+            const filterSpecies = document.getElementById('filter-species');
+            const filterClass = document.getElementById('filter-class');
+            const filterRarity = document.getElementById('filter-rarity');
+            const sortBy = document.getElementById('sort-by');
+            const sortDirBtn = document.getElementById('sort-dir');
+            const clearFiltersBtn = document.getElementById('clear-filters');
+            const serialSortOption = document.getElementById('sort-option-serial');
+            const state = { view: 'all', species: '', cls: '', rarity: '', sortKey: 'serial', sortDir: 'desc' };
+
+            // Populate filter dropdowns from the cards actually present.
+            const fillSelect = (select, values) => {
+                const allLabel = select.getAttribute('data-all-label') || 'All';
+                select.innerHTML = `<option value="">${allLabel}</option>`;
+                [...new Set(values)].sort((a, b) => String(a).localeCompare(String(b))).forEach(v => {
+                    const o = document.createElement('option');
+                    o.value = v; o.textContent = v; select.appendChild(o);
+                });
+            };
+            fillSelect(filterSpecies, displayCards.map(c => c.species));
+            fillSelect(filterClass, displayCards.map(c => c.cls));
+            fillSelect(filterRarity, displayCards.map(c => c.rarity));
+
+            const getFilteredCards = () => displayCards.filter(c =>
+                (!state.species || c.species === state.species) &&
+                (!state.cls || c.cls === state.cls) &&
+                (!state.rarity || c.rarity === state.rarity));
+
+            // Parse a card's serial ("BLOCK.SUFFIX") into sortable numeric parts.
+            const serialParts = (serial) => {
+                const s = String(serial ?? '');
+                const dot = s.indexOf('.');
+                const block = dot >= 0 ? parseInt(s.slice(0, dot), 10) : parseInt(s, 10);
+                const suffix = dot >= 0 ? parseInt(s.slice(dot + 1), 10) : 0;
+                return { block: isNaN(block) ? 0 : block, suffix: isNaN(suffix) ? 0 : suffix };
+            };
+
+            // Compare two cards by the current sort key. Used for both the all-cards
+            // view and (via item attributes) the unique view. Count is a group-level
+            // value, so it is handled separately in renderGrid.
+            const compareItems = (a, b) => {
+                let val;
+                if (state.sortKey === 'serial') {
+                    const pa = serialParts(a.serial);
+                    const pb = serialParts(b.serial);
+                    val = (pa.block - pb.block) || (pa.suffix - pb.suffix);
+                } else if (state.sortKey === 'rarity') {
+                    val = (rarityRankAll[a.rarity] ?? -1) - (rarityRankAll[b.rarity] ?? -1);
+                } else if (state.sortKey === 'class') {
+                    val = (classRank[a.cls] ?? 999) - (classRank[b.cls] ?? 999) || String(a.cls).localeCompare(String(b.cls));
+                } else {
+                    val = String(a.species ?? '').localeCompare(String(b.species ?? ''));
+                }
+                return val;
+            };
+            const sortCards = (arr) => [...arr].sort((a, b) => {
+                const val = compareItems(a, b);
+                return state.sortDir === 'asc' ? val : -val;
+            });
+const verifyBadge = (c) => `<span class="verify-badge" title="Hash: ${c.trx_id}">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                        Verified
+                    </span>`;
+
+            const renderCardEl = (c, count, serials) => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'tribute-card';
+                const showCount = count > 1;
+                const serialSpan = showCount
+                    ? `<span style="font-size:0.75rem;">Serials: ${serials.join(', ')}</span>`
+                    : `<span style="font-size:0.75rem;">Serial: <strong style="color:var(--text-primary);">${c.serial}</strong></span>`;
+                const timeSpan = `<span style="font-size:0.75rem;">${formatGMT(c.timestamp)}</span>`;
+                const countSpan = showCount ? `<span style="font-size:0.75rem;">Quantity: <strong style="color:var(--text-primary);">${count}</strong></span>` : '';
+                if (c.isPlaceholder) {
+                    cardEl.innerHTML = `
+                            <div class="card-image-container pending-card-image">
+                                <span class="pending-icon">✦</span>
+                            </div>
+                            <div class="card-content">
+                                <div class="card-class">${c.cls} • ${c.rarity || ''} • Awaiting Release</div>
+                                <h3 class="card-species pending-card-species">Card Not Released Yet</h3>
+                                <p class="card-attribution">Winner: @${c.account}</p>
+                                <div class="card-meta">
+                                    ${countSpan}
+                                    ${showCount ? '' : serialSpan}
+                                    ${showCount ? '' : timeSpan}
+                                    ${verifyBadge(c)}
+                                </div>
+                            </div>`;
+                } else {
+                    cardEl.innerHTML = `
+                            <div class="card-image-container">
+                                <img src="${c.image_url}" alt="${c.species}" class="card-image">
+                                ${showCount ? `<span class="card-count-badge">×${count}</span>` : ''}
+                            </div>
+                            <div class="card-content">
+                                <div class="card-class">${c.cls} • ${c.rarity}</div>
+                                <h3 class="card-species">${c.species}</h3>
+                                ${c.is_generic ? '<p style="color: var(--text-secondary); font-size: 0.8rem; font-style: italic; margin-top: 0.25rem;">A specific species will be released in the future.</p>' : ''}
+                                <p class="card-attribution" title="${beneficiaryTip(api, c.rarity)}">Winner: @${c.account} • Generation: ${c.generation} • Photo by ${c.photo_credit}</p>
+                                <div class="card-meta">
+                                    ${countSpan}
+                                    ${showCount ? '' : serialSpan}
+                                    ${showCount ? '' : timeSpan}
+                                    ${verifyBadge(c)}
+                                </div>
+                            </div>`;
+                }
+                return cardEl;
+            };
+
+            const renderGrid = () => {
+                const filtered = getFilteredCards();
+                grid.innerHTML = '';
+                if (filtered.length === 0) {
+                    grid.innerHTML = '<p class="status-message" style="grid-column: 1/-1;">No cards match the current filters.</p>';
+                    return;
+                }
+                if (state.view === 'unique') {
+                    // Collapse duplicate (class, species, rarity) into one card with a count.
+                    const groups = new Map();
+                    for (const c of filtered) {
+                        const key = `${c.cls}|${c.species}|${c.rarity}`;
+                        if (!groups.has(key)) groups.set(key, { item: c, serials: [] });
+                        groups.get(key).serials.push(c.serial);
+                    }
+                    const groupList = Array.from(groups.values());
+                    if (state.sortKey === 'count') {
+                        // Sort by the number of copies (count) of each unique card.
+                        const dir = state.sortDir === 'asc' ? 1 : -1;
+                        groupList.sort((a, b) => dir * (a.serials.length - b.serials.length));
+                    } else {
+                        groupList.sort((a, b) => {
+                            const val = compareItems(a.item, b.item);
+                            return state.sortDir === 'asc' ? val : -val;
+                        });
+                    }
+                    groupList.forEach(g => grid.appendChild(renderCardEl(g.item, g.serials.length, g.serials)));
+                } else {
+                    // All cards, each with its own serial number (newest first).
+                    sortCards(filtered).forEach(c => grid.appendChild(renderCardEl(c, 1, [c.serial])));
+                }
+            };
+
+            viewToggle.addEventListener('click', (e) => {
+                const btn = e.target.closest('button[data-view]');
+                if (!btn) return;
+                state.view = btn.dataset.view;
+                viewToggle.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b === btn));
+
+                if (state.view === 'unique') {
+                    // Serial sort only applies to the all-cards view; switch to count
+                    // (the natural default for quantity view) and hide the serial option.
+                    if (state.sortKey === 'serial') {
+                        state.sortKey = 'count';
+                        state.sortDir = 'desc';
+                        sortBy.value = 'count';
+                        sortDirBtn.innerHTML = 'Sort ▼';
+                    }
+                    serialSortOption.hidden = true;
+                } else {
+                    serialSortOption.hidden = false;
+                }
+                renderGrid();
+            });
+            filterSpecies.addEventListener('change', () => { state.species = filterSpecies.value; renderGrid(); });
+            filterClass.addEventListener('change', () => { state.cls = filterClass.value; renderGrid(); });
+            filterRarity.addEventListener('change', () => { state.rarity = filterRarity.value; renderGrid(); });
+            sortBy.addEventListener('change', () => { state.sortKey = sortBy.value; renderGrid(); });
+            sortDirBtn.addEventListener('click', () => {
+                state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+                sortDirBtn.innerHTML = state.sortDir === 'asc' ? 'Sort ▲' : 'Sort ▼';
+                renderGrid();
+            });
+            clearFiltersBtn.addEventListener('click', () => {
+                state.species = '';
+                state.cls = '';
+                state.rarity = '';
+                filterSpecies.value = '';
+                filterClass.value = '';
+                filterRarity.value = '';
+                renderGrid();
+            });
             renderSummary();
 
             if (wonCards.length === 0) {
                 summaryContainer.innerHTML = '';
                 grid.innerHTML = '<p class="status-message" style="grid-column: 1/-1;">No cards found for this account in the selected timeframe.</p>';
             } else {
-                // Reverse so newest are first
-                wonCards.forEach(mint => {
-                    const cardEl = document.createElement('div');
-                    cardEl.className = 'tribute-card';
-                    if (mint.status === 'none') {
-                        cardEl.innerHTML = `
-                            <div class="card-image-container pending-card-image">
-                                <span class="pending-icon">✦</span>
-                            </div>
-                            <div class="card-content">
-                                <div class="card-class">${mint.className} • ${mint.rarity || ''} • Awaiting Release</div>
-                                <h3 class="card-species pending-card-species">Card Not Released Yet</h3>
-                                <p class="card-attribution">Winner: @${mint.account}</p>
-                                <div class="card-meta">
-                                    <span style="font-size:0.75rem;">Serial: <strong style="color:var(--text-primary);">${mint.serial}</strong></span>
-                                    <span style="font-size:0.75rem;">${new Date(mint.timestamp + 'Z').toLocaleString()}</span>
-                                    <span class="verify-badge" title="Hash: ${mint.trx_id}">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                                        Verified
-                                    </span>
-                                </div>
-                            </div>
-                        `;
-                    } else {
-                        cardEl.innerHTML = `
-                            <div class="card-image-container">
-                                <img src="${mint.card.image_url}" alt="${mint.card.species}" class="card-image">
-                            </div>
-                            <div class="card-content">
-                                <div class="card-class">${mint.card.class} • ${mint.status === 'generic' ? (mint.rarity || mint.card.rarity) : mint.card.rarity}</div>
-                                <h3 class="card-species">${mint.card.species}</h3>
-                                ${mint.card.is_generic ? '<p style="color: var(--text-secondary); font-size: 0.8rem; font-style: italic; margin-top: 0.25rem;">A specific species will be released in the future.</p>' : ''}
-                                <p class="card-attribution" title="${beneficiaryTip(api, mint.status === 'generic' ? (mint.rarity || mint.card.rarity) : mint.card.rarity)}">Winner: @${mint.account} • Generation: ${mint.card.generation} • Photo by ${mint.card.photo_credit}</p>
-                                <div class="card-meta">
-                                    <span style="font-size:0.75rem;">Serial: <strong style="color:var(--text-primary);">${mint.serial}</strong></span>
-                                    <span style="font-size:0.75rem;">${new Date(mint.timestamp + 'Z').toLocaleString()}</span>
-                                    <span class="verify-badge" title="Hash: ${mint.trx_id}">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                                        Verified
-                                    </span>
-                                </div>
-                            </div>
-                        `;
-                    }
-                    grid.appendChild(cardEl);
-                });
+                viewToggle.style.display = 'flex';
+                searchFilters.style.display = 'flex';
+                renderGrid();
             }
 
             loading.style.display = 'none';

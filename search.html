@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Search Portfolio - animalCards</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=3">
+    <link rel="stylesheet" href="style.css?v=7">
+    <link rel="stylesheet" href="vaas.css?v=1">
 </head>
 <body>
     <div class="background-blobs">
@@ -36,6 +37,8 @@
                     <option value="86400000">Past 1 Day</option>
                     <option value="604800000">Past 7 Days</option>
                     <option value="2592000000">Past 30 Days</option>
+                    <option value="7776000000">Past 90 Days</option>
+                    <option value="31536000000">Past 1 Year</option>
                     <option value="0">All Time (Slow)</option>
                 </select>
 
@@ -53,8 +56,29 @@
             <h3 id="portfolio-header" style="margin-bottom: 1.5rem; font-family: 'Outfit'; font-size: 1.75rem;"></h3>
             <p id="portfolio-stats" style="color: var(--text-secondary); margin-bottom: 1.5rem;"></p>
 
-            <div id="portfolio-summary" style="margin-bottom: 2rem;">
+            <div id="portfolio-summary" style="margin-bottom: 1.5rem;">
                 <!-- Summary table populated via JS -->
+            </div>
+
+            <div class="controls-section" id="view-toggle" style="display: none; margin-bottom: 1.5rem;">
+                <span class="toolbar-label">View:</span>
+                <button type="button" class="view-btn active" data-view="all">All Cards</button>
+                <button type="button" class="view-btn" data-view="unique">Unique Cards</button>
+            </div>
+
+            <div class="controls-section" id="search-filters" style="display: none; flex-wrap: wrap; margin-bottom: 1.5rem;">
+                <select id="filter-species" class="time-select" data-all-label="All Species"></select>
+                <select id="filter-class" class="time-select" data-all-label="All Classes"></select>
+                <select id="filter-rarity" class="time-select" data-all-label="All Rarities"></select>
+                <select id="sort-by" class="time-select">
+                    <option value="serial" id="sort-option-serial">Sort: Serial</option>
+                    <option value="species">Sort: Species</option>
+                    <option value="class">Sort: Class</option>
+                    <option value="rarity">Sort: Rarity</option>
+                    <option value="count">Sort: Count</option>
+                </select>
+                <button type="button" id="sort-dir" class="btn btn-secondary">Sort ▼</button>
+                <button type="button" id="clear-filters" class="btn btn-secondary">Clear Filters</button>
             </div>
 
             <div class="cards-grid" id="portfolio-grid">
@@ -62,6 +86,12 @@
             </div>
         </div>
     </main>
+
+    <footer class="vaas-footer">
+        <div class="container">
+            <div id="vaas-mount"></div>
+        </div>
+    </footer>
 
     <footer class="site-footer">
         <div class="container footer-container">
@@ -76,7 +106,18 @@
         </div>
     </footer>
 
-    <script src="blockchain-api.js?v=15"></script>
-    <script src="search.js?v=23"></script>
+    <script src="blockchain-api.js?v=16"></script>
+    <script src="search.js?v=25"></script>
+    <script src="vaas.js?v=2"></script>
+    <script>
+        // Drop-in VAAS widget — adopts animalCards' glass design tokens.
+        VAAS.init({
+            theme: {
+                cardBg: 'var(--glass-bg)',
+                muted: 'var(--text-secondary)',
+                border: 'var(--glass-border)'
+            }
+        }).mount('#vaas-mount');
+    </script>
 </body>
 </html>
