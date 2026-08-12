@@ -450,7 +450,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             };
             const displayCards = wonCards.map(normalizeCard);
 
-            const toolbar = document.getElementById('search-toolbar');
+            const searchFilters = document.getElementById('search-filters');
             const viewToggle = document.getElementById('view-toggle');
             const filterSpecies = document.getElementById('filter-species');
             const filterClass = document.getElementById('filter-class');
@@ -584,7 +584,8 @@ const verifyBadge = (c) => `<span class="verify-badge" title="Hash: ${c.trx_id}"
                 summaryContainer.innerHTML = '';
                 grid.innerHTML = '<p class="status-message" style="grid-column: 1/-1;">No cards found for this account in the selected timeframe.</p>';
             } else {
-                toolbar.style.display = 'block';
+                viewToggle.style.display = 'flex';
+                searchFilters.style.display = 'flex';
                 renderGrid();
             }
 
