@@ -88,7 +88,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             //    uses. This is much faster for long time ranges.
             loadingStatus.textContent = 'Fetching burn history...';
             loadingProgress.textContent = '';
-            const history = await api.getAccountHistory('null', timeConstraint, earliestTimeMs);
+            const history = await api.getAccountHistory('null', timeConstraint, earliestTimeMs, (count, ts) => {
+                let msg = `Scanned ${count.toLocaleString()} history ops`;
+                if (ts) msg += ` — back to ${formatGMT(ts)}`;
+                loadingProgress.textContent = msg;
+            });
 
             // Track the searched account's transfers (for stats) and the per-block,
             // per-asset max burner (for winner determination). An exact tie for the
