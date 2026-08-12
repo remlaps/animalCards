@@ -326,7 +326,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const sortBy = document.getElementById('sort-by');
             const sortDirBtn = document.getElementById('sort-dir');
             const clearFiltersBtn = document.getElementById('clear-filters');
-            const state = { view: 'all', species: '', cls: '', rarity: '', sortKey: 'species', sortDir: 'asc' };
+            const serialSortOption = document.getElementById('sort-option-serial');
+            const state = { view: 'all', species: '', cls: '', rarity: '', sortKey: 'serial', sortDir: 'desc' };
 
             // Populate filter dropdowns from the cards actually present.
             const fillSelect = (select, values) => {
@@ -346,12 +347,25 @@ document.addEventListener('DOMContentLoaded', async () => {
                 (!state.cls || c.cls === state.cls) &&
                 (!state.rarity || c.rarity === state.rarity));
 
+            // Parse a card's serial ("BLOCK.SUFFIX") into sortable numeric parts.
+            const serialParts = (serial) => {
+                const s = String(serial ?? '');
+                const dot = s.indexOf('.');
+                const block = dot >= 0 ? parseInt(s.slice(0, dot), 10) : parseInt(s, 10);
+                const suffix = dot >= 0 ? parseInt(s.slice(dot + 1), 10) : 0;
+                return { block: isNaN(block) ? 0 : block, suffix: isNaN(suffix) ? 0 : suffix };
+            };
+
             // Compare two cards by the current sort key. Used for both the all-cards
             // view and (via item attributes) the unique view. Count is a group-level
             // value, so it is handled separately in renderGrid.
             const compareItems = (a, b) => {
                 let val;
-                if (state.sortKey === 'rarity') {
+                if (state.sortKey === 'serial') {
+                    const pa = serialParts(a.serial);
+                    const pb = serialParts(b.serial);
+                    val = (pa.block - pb.block) || (pa.suffix - pb.suffix);
+                } else if (state.sortKey === 'rarity') {
                     val = (rarityRankAll[a.rarity] ?? -1) - (rarityRankAll[b.rarity] ?? -1);
                 } else if (state.sortKey === 'class') {
                     val = (classRank[a.cls] ?? 999) - (classRank[b.cls] ?? 999) || String(a.cls).localeCompare(String(b.cls));
@@ -454,6 +468,20 @@ const verifyBadge = (c) => `<span class="verify-badge" title="Hash: ${c.trx_id}"
                 if (!btn) return;
                 state.view = btn.dataset.view;
                 viewToggle.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b === btn));
+
+                if (state.view === 'unique') {
+                    // Serial sort only applies to the all-cards view; switch to count
+                    // (the natural default for quantity view) and hide the serial option.
+                    if (state.sortKey === 'serial') {
+                        state.sortKey = 'count';
+                        state.sortDir = 'desc';
+                        sortBy.value = 'count';
+                        sortDirBtn.innerHTML = 'Sort ▼';
+                    }
+                    serialSortOption.hidden = true;
+                } else {
+                    serialSortOption.hidden = false;
+                }
                 renderGrid();
             });
             filterSpecies.addEventListener('change', () => { state.species = filterSpecies.value; renderGrid(); });
