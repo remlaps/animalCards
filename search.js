@@ -88,10 +88,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             //    uses. This is much faster for long time ranges.
             loadingStatus.textContent = 'Fetching burn history...';
             loadingProgress.textContent = '';
+            let lastMonthShown = null;
             const history = await api.getAccountHistory('null', timeConstraint, earliestTimeMs, (count, ts) => {
-                let msg = `Scanned ${count.toLocaleString()} history ops`;
-                if (ts) msg += ` — back to ${formatGMT(ts)}`;
-                loadingProgress.textContent = msg;
+                if (!ts) {
+                    // No timestamp yet (e.g. nothing scanned so far) — just show the count.
+                    loadingProgress.textContent = `Scanned ${count.toLocaleString()} history ops`;
+                    return;
+                }
+                // Redisplay only once per calendar month the scan frontier crosses.
+                const monthKey = ts.slice(0, 7); // "YYYY-MM" from the raw timestamp
+                if (monthKey !== lastMonthShown) {
+                    lastMonthShown = monthKey;
+                    loadingProgress.textContent = `Scanned ${count.toLocaleString()} history ops — back to ${formatGMT(ts)}`;
+                }
             });
 
             // Track the searched account's transfers (for stats) and the per-block,
