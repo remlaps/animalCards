@@ -20,7 +20,7 @@ rewards are resolved to a card defined in `cards-config.json`.
 ## Visibility as a Service (VAAS)
 
 Every page mounts the shared, themeable **VAAS** widget (developed separately in the
-[`vaas`](../vaas) repo). It polls the Steem chain in real time and rotates between
+[`vaas`](https://github.com/remlaps/vaas) repo). It polls the Steem chain in real time and rotates between
 two kinds of content:
 
 - **Null-beneficiary posts** — posts whose `comment_options` route a cut to the
