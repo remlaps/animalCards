@@ -13,6 +13,7 @@ rewards are resolved to a card defined in `cards-config.json`.
 | `leaderboard.html` / `leaderboard.js` | Top burners and the cards they won |
 | `blockchain-api.js` | STEEM API wrapper + the deterministic card-resolution algorithm |
 | `cards-config.json` | **The card catalogue — the only file you edit to add/change cards** |
+| `validate-cards.js` | Config sanity checker — run `node validate-cards.js` before changing cards |
 | `style.css` | Shared styling |
 
 ## How Cards Are Distributed (the short version)
@@ -39,11 +40,16 @@ is hashed with the block hash to produce a deterministic integer. The algorithm 
    scarcity**: more species exist at lower rarities (the slot counts), *and*
    lower-rarity slots are more likely to be chosen (the weighting).
 
-3. **Picks a card** within that rarity by sorting the class's released cards of that
-   rarity by `card_id` and using the slot index. If the slot index is beyond the
-   number of released cards, the class generic card wins. An empty slot still keeps
-   its rarity's weight, so unreleased species keep feeding the generic card until
-   you add them.
+3. **Picks the card** that fills the chosen slot at the winning block. Each card
+   declares the rarity slot it occupies (`slot`) and the block window during which it
+   is awarded (`start_block`/`end_block`, both inclusive; omit for "always active").
+   If no card is active for that slot at the winning block, the class's generic card
+   wins. An empty slot keeps its rarity's weight, so unfilled generations keep feeding
+   the generic card until a card is added.
+
+Because `slot` is the **stable identity** (not `card_id`), a species can be "replaced"
+by a new generation that reuses the same `slot` for a later block window — the old card
+is **never deleted**, so owners who won it keep it forever.
 
 Rarity is shown on the site as derived from the slot position.
 
@@ -72,10 +78,13 @@ Rarity is shown on the site as derived from the slot position.
   },
   "cards": [
     {
-      "card_id": 7,          // unique, sequential, NEVER REUSE or CHANGE
+      "card_id": 7,          // unique, never changed after release
       "species": "Turkey Vulture",
       "class": "Bird",
       "rarity": "Common",    // Common | Rare | Epic | Legendary | Mythic | Generic
+      "slot": 0,             // 0-based index within this rarity's slot band (0..15 Common)
+      "start_block": null,   // inclusive; null = active from the beginning
+      "end_block": null,     // inclusive; null = active forever
       "image_url": "https://...png",
       "is_generic": true,    // only for the per-class generic placeholder cards
       "generation": "unstable-test",
@@ -94,90 +103,114 @@ this one map — no code changes needed.
 
 | Field | Required | Notes |
 |-------|----------|-------|
-| `card_id` | ✅ | Unique integer. **See the determinism warning below.** |
+| `card_id` | ✅ | Unique integer. Never change or reuse it after a card is released. |
 | `species` | ✅ | Display name. |
 | `class` | ✅ | Must match one of the keys in `class_weights`. |
 | `rarity` | ✅ | One of `Common`, `Rare`, `Epic`, `Legendary`, `Mythic`, or `Generic`. |
+| `slot` | ✅ (non-generic) | 0-based index within the rarity's slot band (Common 0–15, Rare 0–7, Epic 0–3, Legendary 0–1, Mythic 0). The **stable identity** a card occupies. |
+| `start_block` | ⬜ | First awardable block (inclusive). Omit/null = active from the beginning. |
+| `end_block` | ⬜ | Last awardable block (inclusive). Omit/null = active forever. |
 | `image_url` | ✅ | Card image. |
-| `generation` | ✅ | Release batch label. |
+| `generation` | ✅ | Release batch label (e.g. `gen-1`, `gen-2`). |
 | `photo_credit` | ✅ | Photographer credit. |
 | `is_generic` | only on generic cards | `true` for the per-class placeholder card. |
 
 ### How the slot-to-card mapping works
 
-Within a class, cards of a given rarity are sorted by `card_id` and assigned to that
-rarity's slots **in order**. Example for the **Common** rarity (16 slots) with
-Bird cards `card_id` 7, 8, 11:
+A card's **`slot`** is its stable identity — the 0-based position within its rarity's
+fixed slot band (Common 0–15, Rare 0–7, Epic 0–3, Legendary 0–1, Mythic 0). At a given
+block, the slot resolves to the card whose `[start_block, end_block]` window contains
+that block. Current Bird **Common** cards:
 
-| Common slot | Card |
-|-------------|------|
-| 0 | card_id 7 |
-| 1 | card_id 8 |
-| 2 | card_id 11 |
-| 3–15 | *(empty → generic card)* |
+| Common slot | Card | Window |
+|-------------|------|--------|
+| 0 | Turkey Vulture | forever |
+| 1 | American Robin | forever |
+| 2 | Red-tailed Hawk | forever |
+| 3 | Gray Catbird | forever |
+| 4 | Northern Cardinal | forever |
+| 5 | Blue Jay | forever |
+| 6 | White-breasted Nuthatch | forever |
+| 7–15 | *(empty → generic card)* | — |
 
-Every slot — filled or empty — carries the same per-slot weight **within its
-rarity** (e.g. all 16 Common slots are weight 16). Adding a new Common species
-that fills a currently-empty Common slot does **not** change any other slot's
-weight or mapping, so past winners are undisturbed.
+Every slot — filled or empty — carries the same per-slot weight **within its rarity**
+(e.g. all 16 Common slots are weight 16). Changing one card's window never touches
+other slots, so unrelated past winners are undisturbed.
 
-### Adding a card
+### Adding a new species (fills an empty slot)
 
-**Always give the new card the next unused `card_id`** (the current maximum + 1).
-This appends it to the tail of its rarity's slot list, which only *fills a previously
-empty slot*. Every existing block resolution is left unchanged.
+Give it the next unused `card_id` and a `slot` that is currently empty in its rarity.
+It only *fills a previously empty slot*, leaving every existing card's `slot` and
+window untouched.
 
-Example: add a new Common Bird →
-`card_id: 14`. It takes Common slot 4 (previously generic). Slots 0–3 are untouched.
+### Replacing a species (new generation, same slot)
 
-### Removing a card
+**Never delete the old card.** Add a successor with the **same `rarity` + `slot`**, a
+new `card_id`, and a **contiguous** window that starts right after the old one ends:
 
-Remove the card's entire object. Cards with a higher `card_id` in the same rarity
-will shift down one slot, which **changes** the resolution for the blocks that hit
-those slots. This is expected and unavoidable — be deliberate.
+```jsonc
+{ "card_id": 8,  "species": "American Robin", "slot": 1, "start_block": null, "end_block": 26672700 },
+{ "card_id": 20, "species": "Say's Phoebe",   "slot": 1, "start_block": 26672701 }
+```
+
+Blocks ≤ 26,672,700 → Robin (owners keep it forever); blocks ≥ 26,672,701 → Say's
+Phoebe. Run `node validate-cards.js` to catch overlapping or gapped windows for a slot.
 
 ### Editing a card's display fields
 
-You may freely change `species`, `class` (to another class), `image_url`, `generation`,
-`photo_credit` — these do **not** affect determinism as long as `card_id` is preserved.
+You may freely change `species`, `image_url`, `generation`, `photo_credit` — these do
+**not** affect determinism. Do **not** change a released card's `card_id`, `class`,
+`rarity`, or `slot` (that remaps what past winning blocks resolve to), and do **not**
+narrow an existing window.
 
 ### Generic cards
 
 Each class should have exactly **one** generic placeholder card
-(`is_generic: true`, `rarity: "Generic"`). It is returned whenever a rarity slot is
-empty (no released card of that rarity yet). The rarity shown for it on the site is
-the slot's rarity.
+(`is_generic: true`, `rarity: "Generic"`). It is returned whenever a selected slot has
+no card active at the winning block. The rarity shown for it on the site is the slot's
+rarity.
 
 ---
 
 ## ⚠️ CRITICAL — Determinism Warning
 
-**Do NOT change, renumber, or reuse `card_id` values.**
+The deterministic mapping is driven by each card's **`slot` + block window**, not by
+`card_id` ordering. The following change the card awarded for a past block and are
+**permanently forbidden** once a card is released:
 
-The mapping from a slot to a specific card is based on sorting cards by `card_id`.
-If you change an existing card's `card_id`, every card after it in the sort order
-can shift to a different slot, which **changes the card awarded for past blocks**.
-This breaks the guarantee that past winners never change.
+- ❌ Change a released card's `card_id`, `class`, `rarity`, or `slot`.
+- ❌ Reuse a released card's `card_id` for a different card.
+- ❌ Delete a card entirely — it removes what past winners hold.
+- ❌ Narrow a card's window so a block it already resolved to moves to another card.
 
-In particular, **never** do any of these:
+**Safe ways to evolve the catalogue:**
 
-- ❌ Renumber a card (e.g. change `card_id` 7 → 1000).
-- ❌ Reuse a deleted card's `card_id` for a new card.
-- ❌ Insert a new card with a `card_id` lower than the current maximum.
-- ❌ Change a card's `card_id` to reorder it within its rarity.
-
-**The only safe way to add a card is to append it with the next unused `card_id`.**
-If you need to reorder which card wins which slot, add the new card with a fresh
-`card_id` and remove the old one, and accept that removals shift resolutions.
+- Add a new species into a currently-empty `slot` of its rarity, with the next unused
+  `card_id`.
+- Replace a species with a new generation: keep the old card intact, add a successor
+  with the same `rarity` + `slot` and a contiguous window that starts after the old
+  one's `end_block`. Run `node validate-cards.js` to confirm the windows are clean.
 
 ---
+
+## Validating the config
+
+Run `node validate-cards.js` from the repo root after *any* change to
+`cards-config.json`. It checks that `class_weights` sum to 100, `card_id`s are unique,
+rarities are valid, `slot`s are inside their rarity band, and no two cards share a
+`class + rarity + slot` with overlapping or non-contiguous generation windows. It exits
+non-zero on structural errors, making it easy to drop into CI.
 
 ## Rules of thumb
 
 - `class_weights` must always sum to **100**.
 - Give every new card a **fresh, monotonically increasing `card_id`**.
 - Keep exactly **one generic placeholder per class**.
+- Each non-generic card needs a `slot` inside its rarity's band and an unambiguous
+  block window.
+- **Never delete a card** and never remap a released card's `class`/`rarity`/`slot`/
+  `card_id`.
+- **Run `node validate-cards.js` after every change** to `cards-config.json`.
 - Rarity values are case-sensitive: `Common`, `Rare`, `Epic`, `Legendary`, `Mythic`, `Generic`.
-- Up to 31 released cards per class (16 Common + 8 Rare + 4 Epic + 2 Legendary + 1 Mythic).
-  More than 16 Common cards, for example, will push later Common cards beyond the
-  Common slot range and they will never be awarded.
+- A rarity can never exceed its fixed slot band (16 Common, 8 Rare, 4 Epic, 2 Legendary,
+  1 Mythic) **per generation**. Later generations may re-fill the same slots.

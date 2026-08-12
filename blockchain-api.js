@@ -72,14 +72,15 @@ class BlockchainAPI {
         // Resolve the card a BurnMax winner receives, deterministically.
     // Step 1: pick an animal class by weighted percentage (class_weights).
     // Step 2: pick a rarity slot from a fixed pool. The slot counts are
-    //         hard-coded so they never change when cards are added or
-    //         removed — Common gets the most slots, Mythic the fewest.
-    //         Inserting a new card with the next card_id only extends
-    //         the slot-to-card mapping at the tail, leaving every earlier
-    //         block resolution intact.
-    // Step 3: the slot index within the rarity range maps directly to a
-    //         released card (sorted by card_id). If the slot exceeds the
-    //         number of released cards, the class generic card wins.
+    //         hard-coded so they never change — Common gets the most slots,
+    //         Mythic the fewest. Each slot is weighted by its rarity
+    //         multiplier (16/8/4/2/1), giving species-level scarcity.
+    // Step 3: resolve the picked slot at the winning block. Each card
+    //         declares the rarity slot it occupies (`slot`) and its award
+    //         window ([start_block, end_block]); the card active at the
+    //         winning block for that slot wins, else the class generic.
+    //         Successor generations reuse the same slot with a later window,
+    //         so old cards are never deleted and past winners keep them.
     async resolveCardForBlock(serialNumber, blockHash) {
         const hashInt = await this.hashForSerial(serialNumber, blockHash);
 
@@ -170,34 +171,36 @@ class BlockchainAPI {
             return { status: 'none', className, rarity: selectedRarity, card: null };
         }
 
-        // Step 3 — Map the slot to a specific released card of the selected
-        // rarity. Cards are sorted by card_id so that appending a new card
-        // (with the next card_id) only extends the mapping at the tail.
-        const released = classCards
-            .filter(c => !c.is_generic && c.rarity === selectedRarity)
-            .sort((a, b) => a.card_id - b.card_id);
+        // Step 3 — Resolve the card for the slot at the winning block.
+        // Slots are stable identities: each card declares the rarity slot it
+        // occupies (`slot`, 0-based within that rarity's band). A card is only
+        // claimable for blocks inside its [start_block, end_block] window (both
+        // inclusive; null = unbounded, active forever). When a card is
+        // "replaced" by a new generation, the successor shares the same
+        // rarity+slot with a contiguous later window. The old card is never
+        // deleted, so owners who won it keep it forever.
+        const blockNum = parseInt(String(serialNumber), 10);
 
         const slotInRarity = slotPick - rarityRanges[selectedRarity].start;
 
-        if (released.length === 0) {
-            // No released cards yet for this class; generic wins.
-            if (generic) {
-                return { status: 'generic', className, rarity: selectedRarity, card: generic };
-            }
-            return { status: 'none', className, rarity: selectedRarity, card: null };
-        }
+        const active = classCards.find(c =>
+            !c.is_generic &&
+            c.rarity === selectedRarity &&
+            c.slot === slotInRarity &&
+            (c.start_block == null || blockNum >= c.start_block) &&
+            (c.end_block == null || blockNum <= c.end_block)
+        );
 
-        if (slotInRarity < released.length) {
-            const selected = released[slotInRarity];
+        if (active) {
             return {
-                status: selected.is_generic ? 'generic' : 'released',
+                status: 'released',
                 className,
                 rarity: selectedRarity,
-                card: selected
+                card: active
             };
         }
 
-        // Slot is beyond the number of released cards; generic wins.
+        // No released card active at this block for the slot; generic wins.
         if (generic) {
             return { status: 'generic', className, rarity: selectedRarity, card: generic };
         }

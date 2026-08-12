@@ -28,6 +28,7 @@
       "species": "Turkey Vulture",
       "class": "Bird",
       "rarity": "Common",
+      "slot": 0,
       "image_url": "https://i.postimg.cc/pLqBN7wc/Turkey-Vulture.png",
       "generation": "unstable-test",
       "photo_credit": "remlaps"
@@ -37,6 +38,7 @@
       "species": "American Robin",
       "class": "Bird",
       "rarity": "Common",
+      "slot": 1,
       "image_url": "https://i.postimg.cc/5tFd6wS4/American-Robin.png",
       "generation": "unstable-test",
       "photo_credit": "remlaps"
@@ -46,6 +48,7 @@
       "species": "American Bald Eagle",
       "class": "Bird",
       "rarity": "Legendary",
+      "slot": 0,
       "image_url": "https://i.postimg.cc/TYvmpyp0/Bald-Eagle.png",
       "generation": "unstable-test",
       "photo_credit": "remlaps"
@@ -55,6 +58,7 @@
       "species": "Common Grackle",
       "class": "Bird",
       "rarity": "Rare",
+      "slot": 0,
       "image_url": "https://i.postimg.cc/50fT4982/Common-Grackle.png",
       "generation": "unstable-test",
       "photo_credit": "remlaps"
@@ -64,6 +68,7 @@
       "species": "Red-tailed Hawk",
       "class": "Bird",
       "rarity": "Common",
+      "slot": 2,
       "image_url": "https://i.postimg.cc/qvQBvpL5/Red-Tailed-Hawk.png",
       "generation": "unstable-test",
       "photo_credit": "remlaps"
@@ -73,6 +78,7 @@
       "species": "Gray Catbird",
       "class": "Bird",
       "rarity": "Common",
+      "slot": 3,
       "image_url": "https://i.postimg.cc/zfy6hy3B/Gray-Catbird.png",
       "generation": "unstable-test",
       "photo_credit": "remlaps"
@@ -82,9 +88,40 @@
       "species": "California Condor",
       "class": "Bird",
       "rarity": "Mythic",
+      "slot": 0,
       "image_url": "https://i.postimg.cc/15j31qxP/California-Condor.png",
       "generation": "unstable-test",
       "photo_credit": "CC0 iNaturalist (#266653255)"
+    },
+    {
+      "card_id": 14,
+      "species": "Northern Cardinal",
+      "class": "Bird",
+      "rarity": "Common",
+      "slot": 4,
+      "image_url": "https://i.postimg.cc/bwjdL65f/Northern-Cardinal.png",
+      "generation": "unstable-test",
+      "photo_credit": "remlaps"
+    },
+    {
+      "card_id": 15,
+      "species": "Blue Jay",
+      "class": "Bird",
+      "rarity": "Common",
+      "slot": 5,
+      "image_url": "https://i.postimg.cc/GpT3vVFW/Blue-Jay.png",
+      "generation": "unstable-test",
+      "photo_credit": "remlaps"
+    },
+    {
+      "card_id": 16,
+      "species": "White-breasted Nuthatch",
+      "class": "Bird",
+      "rarity": "Common",
+      "slot": 6,
+      "image_url": "https://i.postimg.cc/9Xnxnkyj/White-breasted-Nuthatch.png",
+      "generation": "unstable-test",
+      "photo_credit": "remlaps"
     }
   ]
 }
