@@ -477,7 +477,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 (!state.cls || c.cls === state.cls) &&
                 (!state.rarity || c.rarity === state.rarity));
 
-            const sortCards = (arr) => [...arr].sort((a, b) => {
+            // Compare two cards by the current sort key. Used for both the all-cards
+            // view and (via item attributes) the unique view. Count is a group-level
+            // value, so it is handled separately in renderGrid.
+            const compareItems = (a, b) => {
                 let val;
                 if (state.sortKey === 'rarity') {
                     val = (rarityRankAll[a.rarity] ?? -1) - (rarityRankAll[b.rarity] ?? -1);
@@ -486,6 +489,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } else {
                     val = String(a.species ?? '').localeCompare(String(b.species ?? ''));
                 }
+                return val;
+            };
+            const sortCards = (arr) => [...arr].sort((a, b) => {
+                const val = compareItems(a, b);
                 return state.sortDir === 'asc' ? val : -val;
             });
 const verifyBadge = (c) => `<span class="verify-badge" title="Hash: ${c.trx_id}">
@@ -541,7 +548,7 @@ const verifyBadge = (c) => `<span class="verify-badge" title="Hash: ${c.trx_id}"
             };
 
             const renderGrid = () => {
-                const filtered = sortCards(getFilteredCards());
+                const filtered = getFilteredCards();
                 grid.innerHTML = '';
                 if (filtered.length === 0) {
                     grid.innerHTML = '<p class="status-message" style="grid-column: 1/-1;">No cards match the current filters.</p>';
@@ -555,10 +562,21 @@ const verifyBadge = (c) => `<span class="verify-badge" title="Hash: ${c.trx_id}"
                         if (!groups.has(key)) groups.set(key, { item: c, serials: [] });
                         groups.get(key).serials.push(c.serial);
                     }
-                    groups.forEach(g => grid.appendChild(renderCardEl(g.item, g.serials.length, g.serials)));
+                    const groupList = Array.from(groups.values());
+                    if (state.sortKey === 'count') {
+                        // Sort by the number of copies (count) of each unique card.
+                        const dir = state.sortDir === 'asc' ? 1 : -1;
+                        groupList.sort((a, b) => dir * (a.serials.length - b.serials.length));
+                    } else {
+                        groupList.sort((a, b) => {
+                            const val = compareItems(a.item, b.item);
+                            return state.sortDir === 'asc' ? val : -val;
+                        });
+                    }
+                    groupList.forEach(g => grid.appendChild(renderCardEl(g.item, g.serials.length, g.serials)));
                 } else {
                     // All cards, each with its own serial number (newest first).
-                    filtered.forEach(c => grid.appendChild(renderCardEl(c, 1, [c.serial])));
+                    sortCards(filtered).forEach(c => grid.appendChild(renderCardEl(c, 1, [c.serial])));
                 }
             };
 
