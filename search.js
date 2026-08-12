@@ -457,6 +457,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const filterRarity = document.getElementById('filter-rarity');
             const sortBy = document.getElementById('sort-by');
             const sortDirBtn = document.getElementById('sort-dir');
+            const clearFiltersBtn = document.getElementById('clear-filters');
             const state = { view: 'all', species: '', cls: '', rarity: '', sortKey: 'species', sortDir: 'asc' };
 
             // Populate filter dropdowns from the cards actually present.
@@ -594,6 +595,15 @@ const verifyBadge = (c) => `<span class="verify-badge" title="Hash: ${c.trx_id}"
             sortDirBtn.addEventListener('click', () => {
                 state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
                 sortDirBtn.innerHTML = state.sortDir === 'asc' ? 'Sort ▲' : 'Sort ▼';
+                renderGrid();
+            });
+            clearFiltersBtn.addEventListener('click', () => {
+                state.species = '';
+                state.cls = '';
+                state.rarity = '';
+                filterSpecies.value = '';
+                filterClass.value = '';
+                filterRarity.value = '';
                 renderGrid();
             });
             renderSummary();
