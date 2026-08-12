@@ -105,7 +105,7 @@ body {
     position: sticky;
     top: 0;
     z-index: 100;
-    padding: 1.25rem 0;
+    padding: 1.5rem 0;
 }
 
 /* Header & Nav */
@@ -183,8 +183,8 @@ body {
     border: none;
     background: transparent;
     box-shadow: none;
-    font-size: 0.8rem;
-    line-height: 1.3;
+    font-size: 1rem;
+    line-height: 1.35;
     border-radius: 999px;
     overflow: hidden;
 }
@@ -197,7 +197,7 @@ body {
 #vaas-mount .vaas-holder {
     min-height: 0;
     margin: 0;
-    padding: 3px 12px;
+    padding: 6px 16px;
     flex-direction: row;
     align-items: center;
     gap: 0;
@@ -208,7 +208,7 @@ body {
     /* keep the JS heat-signal border color for the pill outline */
 }
 #vaas-mount .vaas-scroll-wrap {
-    max-width: 220px;
+    max-width: 300px;
 }
 
 /* Hero Section */
