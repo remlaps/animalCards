@@ -15,6 +15,26 @@ rewards are resolved to a card defined in `cards-config.json`.
 | `cards-config.json` | **The card catalogue — the only file you edit to add/change cards** |
 | `validate-cards.js` | Config sanity checker — run `node validate-cards.js` before changing cards |
 | `style.css` | Shared styling |
+| `vaas.js` / `vaas.css` | Drop-in VAAS (Visibility as a Service) ticker — a themeable widget that rotates `@null` burn posts and promo/broadcast transfers. |
+
+## Visibility as a Service (VAAS)
+
+Every page mounts the shared, themeable **VAAS** widget (developed separately in the
+[`vaas`](../vaas) repo). It polls the Steem chain in real time and rotates between
+two kinds of content:
+
+- **Null-beneficiary posts** — posts whose `comment_options` route a cut to the
+  `null` account (authors "burning" a portion of rewards), shown only when the
+  author passes quality gates (rep > 45, followers > 20, median follower rep > 35).
+- **Promotional transfers / vanity broadcasts** — transfers to `null` with a
+  non-blank memo, age-weighted and SBD-normalized to STEEM.
+
+Selection uses a weighted, age-decayed random draw (weight halves ~every hour,
+items expire after ~1 day), refreshes every 30 blocks (~90 s), and the border
+heat-scale reflects the burn percentage. The widget adopts animalCards' glass
+design tokens via a small `theme` override passed to `VAAS.init()`. See the `vaas`
+repo's `README.md` for the full API and theming guide.
+
 
 ## How Cards Are Distributed (the short version)
 
