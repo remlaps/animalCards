@@ -24,6 +24,55 @@
       "photo_credit": "remlaps"
     },
     {
+      "card_id": 2,
+      "species": "Generic Fish",
+      "class": "Fish",
+      "rarity": "Generic",
+      "image_url": "https://i.postimg.cc/Njz4HVzq/Generic-Fish.png",
+      "is_generic": true,
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#482252453)"
+    },
+    { "card_id": 3,
+      "species": "Generic Mammal",
+      "class": "Mammal",
+      "rarity": "Generic",
+      "image_url": "https://i.postimg.cc/cLfdPyG4/Generic-Mammal.png",
+      "is_generic": true,
+      "generation": "unstable-test",
+      "photo_credit": "Gemini"
+    },
+    {
+      "card_id": 4,
+      "species": "Generic Reptile & Amphibian",
+      "class": "Reptile & Amphibian",
+      "rarity": "Generic",
+      "image_url": "https://i.postimg.cc/c172qxr9/Generic-Reptile-and-Amphibian.png",
+      "is_generic": true,
+      "generation": "unstable-test",
+      "photo_credit": "Gemini"
+    },
+    {
+      "card_id": 5,
+      "species": "Northern Mockingbird",
+      "class": "Bird",
+      "rarity": "Common",
+      "slot": 0,
+      "image_url": "https://i.postimg.cc/1X9q2v8M/Northern-Mockingbird.png",
+      "generation": "unstable-test",
+      "photo_credit": "remlaps"
+    },
+    {
+      "card_id": 6,
+      "species": "Red-tailed Hawk",
+      "class": "Bird",
+      "rarity": "Common",
+      "slot": 1,
+      "image_url": "https://i.postimg.cc/T1Pp87nX/Red-tailed-Hawk-Northern-Mockingbird.png",
+      "generation": "unstable-test",
+      "photo_credit": "remlaps"
+    },
+    {
       "card_id": 7,
       "species": "Turkey Vulture",
       "class": "Bird",
