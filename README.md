@@ -11,9 +11,11 @@ rewards are resolved to a card defined in `cards-config.json`.
 | `index.html` | Landing page |
 | `search.html` / `search.js` | Look up an account's earned cards |
 | `leaderboard.html` / `leaderboard.js` | Top burners and the cards they won |
-| `blockchain-api.js` | STEEM API wrapper + the deterministic card-resolution algorithm |
+| `blockchain-api.js` | STEEM API wrapper + network methods; delegates card resolution to `card-resolver.js` |
+| `card-resolver.js` | **The deterministic card-resolution algorithm** — single source of truth shared by the browser (`blockchain-api.js`) and the `resolve-card.js` CLI |
 | `cards-config.json` | **The card catalogue — the only file you edit to add/change cards** |
 | `validate-cards.js` | Config sanity checker — run `node validate-cards.js` before changing cards |
+| `resolve-card.js` | CLI to verify block/card assignments — run `node resolve-card.js <blockNumber>` |
 | `style.css` | Shared styling |
 | `vaas.js` / `vaas.css` | Drop-in VAAS (Visibility as a Service) ticker — a themeable widget that rotates `@null` burn posts and promo/broadcast transfers. |
 
@@ -72,6 +74,34 @@ by a new generation that reuses the same `slot` for a later block window — the
 is **never deleted**, so owners who won it keep it forever.
 
 Rarity is shown on the site as derived from the slot position.
+
+---
+
+## Verifying Block/Card Assignments (CLI)
+
+`node resolve-card.js <blockNumber>` reports the **slot**, **species**, and
+**rarity** connected to a block. A block number alone isn't enough to determine
+the card — the deterministic hash also depends on the winning burn's transaction
+id (used as the "block hash") and the asset (STEEM `.0` / SBD `.1`). The tool
+therefore either:
+
+- **Auto-fetches** that block's burn winners from the Steem chain (no extra
+  arguments needed), or
+- resolves **locally** when you pass the winner's transaction id with
+  `--trx-id <txid>` (optionally `--asset STEEM|SBD`, which defaults to STEEM).
+
+Examples:
+
+```sh
+node resolve-card.js 108735091                     # auto-fetch, both assets
+node resolve-card.js 108735091 --asset SBD         # auto-fetch, SBD only
+node resolve-card.js 108486823 --trx-id <txid>     # local, STEEM (no network)
+node resolve-card.js 108486823 --trx-id <txid> --json   # JSON output
+```
+
+Both the CLI and the site (`blockchain-api.js`) use the same `card-resolver.js`
+module, so they always agree. Auto-fetch paginates the `null` account history
+backward, so very old blocks may be slow.
 
 ---
 
