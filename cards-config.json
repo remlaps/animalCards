@@ -53,26 +53,6 @@
       "photo_credit": "Gemini"
     },
     {
-      "card_id": 5,
-      "species": "Northern Mockingbird",
-      "class": "Bird",
-      "rarity": "Common",
-      "slot": 0,
-      "image_url": "https://i.postimg.cc/1X9q2v8M/Northern-Mockingbird.png",
-      "generation": "unstable-test",
-      "photo_credit": "remlaps"
-    },
-    {
-      "card_id": 6,
-      "species": "Red-tailed Hawk",
-      "class": "Bird",
-      "rarity": "Common",
-      "slot": 1,
-      "image_url": "https://i.postimg.cc/T1Pp87nX/Red-tailed-Hawk-Northern-Mockingbird.png",
-      "generation": "unstable-test",
-      "photo_credit": "remlaps"
-    },
-    {
       "card_id": 7,
       "species": "Turkey Vulture",
       "class": "Bird",
