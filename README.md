@@ -32,10 +32,13 @@ two kinds of content:
   non-blank memo, age-weighted and SBD-normalized to STEEM.
 
 Selection uses a weighted, age-decayed random draw (weight halves ~every hour,
-items expire after ~1 day), refreshes every 30 blocks (~90 s), and the border
-heat-scale reflects the burn percentage. The widget adopts animalCards' glass
-design tokens via a small `theme` override passed to `VAAS.init()`. See the `vaas`
-repo's `README.md` for the full API and theming guide.
+items expire after ~1 day), rotates the displayed item on a ~90 s wall-clock
+cadence, and the border heat-scale reflects the burn percentage. All three pages
+mount the widget with `scope: 'origin'` so they share one persisted widget state
+— the ticker stays consistent when you navigate between Home, Leaderboard, and
+Portfolio Search. The widget adopts animalCards' glass design tokens via a small
+`theme` override passed to `VAAS.init()`. See the `vaas` repo's `README.md` for
+the full API and theming guide.
 
 
 ## How Cards Are Distributed (the short version)
