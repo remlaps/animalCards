@@ -96,10 +96,13 @@
     <script src="card-resolver.js?v=1"></script>
     <script src="blockchain-api.js?v=20"></script>
     <script src="leaderboard.js?v=12"></script>
-    <script src="vaas.js?v=3"></script>
+    <script src="vaas.js?v=4"></script>
     <script>
         // Drop-in VAAS widget — adopts animalCards' glass design tokens.
+        // scope: 'origin' shares one widget state across all animalCards pages
+        // so the ticker stays consistent when navigating between them.
         VAAS.init({
+            scope: 'origin',
             theme: {
                 cardBg: 'var(--glass-bg)',
                 muted: 'var(--text-secondary)',
