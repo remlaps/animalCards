@@ -166,6 +166,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const bData = blocksData[blockNum];
                 const found = [];
 
+                // Only fetch the block if this account won an asset in it. Grabbing the
+                // block once yields the authoritative header timestamp (account-history
+                // timestamps run 3s behind the real block time).
+                const accountWon = (bData.STEEM.winner === account) || (bData.SBD.winner === account);
+                let blockTimestamp = null;
+                if (accountWon) {
+                    try {
+                        const block = await api.getBlock(blockNum);
+                        if (block && block.timestamp) blockTimestamp = block.timestamp;
+                    } catch (e) {
+                        // Fall through to the account-history timestamp (+3s correction).
+                    }
+                }
+
+                // Fallback: history timestamps are consistently 3s behind block time.
+                const fallbackTimestamp = (slotTs) =>
+                    new Date(new Date(slotTs + 'Z').getTime() + 3000).toISOString().slice(0, 19);
+
                 for (const asset of ['STEEM', 'SBD']) {
                     const slot = bData[asset];
                     // Only the single max burner wins; a tie leaves winner null (no card).
@@ -182,7 +200,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             block: blockNum,
                             trx_id: trxId,
                             serial: serial,
-                            timestamp: slot.timestamp
+                            timestamp: blockTimestamp || fallbackTimestamp(slot.timestamp)
                         });
                     }
                 }
