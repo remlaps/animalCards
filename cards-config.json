@@ -19,7 +19,7 @@
     "schedule": [
       { "block": 100000000, "multiplier": 1.0 },
       { "block": 200000000, "multiplier": 2.0 },
-      { "block": 300000000, "multiplier": 4.0 }
+      { "block": 300000000, "multiplier": 4.0, "multipliers": { "Mythic": 8.0 }, "targets": { "Mythic": 6 } }
     ],
     "rarities": {
       "Common":    { "base_min_burn": 0.001, "target_per_window": 3028 },

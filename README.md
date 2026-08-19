@@ -98,14 +98,18 @@ Everything is deterministic and fully computable from the chain:
   changes (fully backward compatible). Set `enabled_block` to a future block to
   switch it on from that block **forward** — cards already issued are never touched.
 - **Base minimums** — each rarity has a `base_min_burn` floor (the never-below
-  minimum burn for cards of this rarity). Below it you cannot hold that rarity.
-- **Schedule multipliers** — the `schedule` array scales every rarity at
-  `{ block, multiplier }` milestones. Pure config, no network, trivial to verify.
-- **Demand multipliers (opt-in)** — each rarity has a `target_per_window`
-  (desired cards per window). When the caller supplies real historical award
-  counts, the multiplier compounds window-over-window like mining difficulty:
-  actual > target → the rarity gets pricier; actual < target → it drifts back
-  toward base. Clamped to `[1, ceiling_multiplier]`.
+  minimum burn for cards of this rarity), set once in the root `rarities` config.
+  Below it you cannot hold that rarity. After activation this is **immutable**.
+- **Schedule `multipliers`** — the `schedule` array scales a rarity at
+  `{ block, ... }` milestones via per-rarity `multipliers`, falling back to a
+  shared global `multiplier`. Pure config, no network, trivial to verify. To tune,
+  **append** new milestones with future blocks — never edit one whose block passed.
+- **Schedule `targets`** — the same array can adjust a rarity's cards-per-window
+  target over time via per-rarity `targets`, falling back to the root
+  `target_per_window`. Demand mode is opt-in: when a caller supplies real
+  historical award counts, the multiplier compounds window-over-window like
+  mining difficulty: actual > target → the rarity's minimum rises; actual < target
+  → it drifts back toward base. Clamped to `[1, ceiling_multiplier]`.
 - **Cascading slot** — when an award drops to a lower rarity, its slot within that
   rarity = `globalSlotPick % bandWidth` (deterministic; equals the original
   within-band slot for the resolved rarity).
@@ -182,7 +186,11 @@ backward, so very old blocks may be slow.
     "enabled_block": null,
     "ceiling_multiplier": 100,
     "window_blocks": 2016,
-    "schedule": [ { "block": 100000000, "multiplier": 1.0 }, { "block": 200000000, "multiplier": 2.0 } ],
+    "schedule": [
+  { "block": 100000000, "multiplier": 1.0 },
+  { "block": 200000000, "multiplier": 2.0 },
+  { "block": 300000000, "multiplier": 2.0, "multipliers": { "Mythic": 4.0 }, "targets": { "Mythic": 8 } }
+],
     "rarities": {
       "Common":    { "base_min_burn": 0.001, "target_per_window": 3028 },
       "Rare":      { "base_min_burn": 0.1,   "target_per_window": 757 },
@@ -305,6 +313,26 @@ The deterministic mapping is driven by each card's **`slot` + block window**, no
 - Replace a species with a new generation: keep the old card intact, add a successor
   with the same `rarity` + `slot` and a contiguous window that starts after the old
   one's `end_block`. Run `node validate-cards.js` to confirm the windows are clean.
+
+---
+
+### Rarity-adjusted difficulty (RABD) — immutability rules
+
+Once `rarity_difficulty.enabled_block` is set and that block has passed, every field that
+feeds the effective-minimum formula affects **past and future** lookups retroactively
+(the site resolves any block with the *current* config). Treat it like a released card's
+`slot`/`rarity`:
+
+| ❌ Forbidden after activation | ✅ Safe |
+|------------------------------|--------|
+| Change any `rarities.*.base_min_burn` | Append schedule milestones with `block > enabled_block` |
+| Change any `rarities.*.target_per_window` | Set per-rarity `targets` in new future milestones |
+| Change `ceiling_multiplier` or `window_blocks` | Set per-rarity `multipliers` in new future milestones |
+| Edit/remove a `schedule` entry whose `block` has passed | |
+| Reorder an existing `schedule` entry | |
+
+`validate-cards.js` warns when an active `enabled_block` is present, reminding you to
+only append future milestones.
 
 ---
 

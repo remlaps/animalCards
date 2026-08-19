@@ -142,13 +142,45 @@ if (rd) {
         } else {
             let prev = -Infinity;
             rd.schedule.forEach((m, i) => {
-                if (typeof m !== 'object' || m === null || !Number.isInteger(m.block) || typeof m.multiplier !== 'number' || m.multiplier < 0) {
-                    errors.push(`rarity_difficulty.schedule[${i}] must be { block: int, multiplier: number >= 0 }.`);
+                if (typeof m !== 'object' || m === null || !Number.isInteger(m.block) || m.block < 0) {
+                    errors.push(`rarity_difficulty.schedule[${i}] must be an object with an integer block >= 0.`);
                 } else {
                     if (m.block < prev) {
                         warnings.push(`rarity_difficulty.schedule is not sorted ascending at index ${i}.`);
                     }
                     prev = m.block;
+                }
+                // global multiplier (optional)
+                if (m.multiplier != null && (typeof m.multiplier !== 'number' || m.multiplier < 0)) {
+                    errors.push(`rarity_difficulty.schedule[${i}].multiplier must be a number >= 0.`);
+                }
+                // per-rarity multipliers
+                if (m.multipliers != null) {
+                    if (typeof m.multipliers !== 'object' || Array.isArray(m.multipliers)) {
+                        errors.push(`rarity_difficulty.schedule[${i}].multipliers must be an object keyed by rarity.`);
+                    } else {
+                        for (const [r, v] of Object.entries(m.multipliers)) {
+                            if (!VALID_RARITIES.has(r) || r === 'Generic') {
+                                errors.push(`rarity_difficulty.schedule[${i}].multipliers has unknown rarity "${r}".`);
+                            } else if (typeof v !== 'number' || v < 0) {
+                                errors.push(`rarity_difficulty.schedule[${i}].multipliers["${r}"] must be a number >= 0.`);
+                            }
+                        }
+                    }
+                }
+                // per-rarity targets
+                if (m.targets != null) {
+                    if (typeof m.targets !== 'object' || Array.isArray(m.targets)) {
+                        errors.push(`rarity_difficulty.schedule[${i}].targets must be an object keyed by rarity.`);
+                    } else {
+                        for (const [r, v] of Object.entries(m.targets)) {
+                            if (!VALID_RARITIES.has(r) || r === 'Generic') {
+                                errors.push(`rarity_difficulty.schedule[${i}].targets has unknown rarity "${r}".`);
+                            } else if (typeof v !== 'number' || v < 0 || !Number.isInteger(v)) {
+                                errors.push(`rarity_difficulty.schedule[${i}].targets["${r}"] must be a non-negative integer.`);
+                            }
+                        }
+                    }
                 }
             });
         }
@@ -165,6 +197,18 @@ if (rd) {
         if (typeof s.target_per_window !== 'number' || s.target_per_window < 0 || !Number.isInteger(s.target_per_window)) {
             errors.push(`rarity_difficulty.rarities["${r}"].target_per_window must be a non-negative integer.`);
         }
+    }
+    // Immutability: once enabled_block passes, every rarity_difficulty field at or
+    // before that block is locked (changing it retroactively alters past lookups).
+    // Only appending schedule milestones with block > enabled_block is safe.
+    if (rd.enabled_block != null && rd.enabled_block >= 0) {
+        const futureEntries = (rd.schedule || []).filter(s => s && s.block != null && s.block > rd.enabled_block);
+        warnings.push(
+            `rarity_difficulty is active from block ${rd.enabled_block}. After activation, ` +
+            'base_min_burn / target_per_window / multipliers / targets retroactively affect past ' +
+            `resolutions, so only APPEND schedule milestones with block > ${rd.enabled_block}. ` +
+            `Future milestones currently defined: ${futureEntries.length}.`
+        );
     }
 }
 
