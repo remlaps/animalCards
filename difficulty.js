@@ -25,7 +25,7 @@
  *      the multiplier compounds window-over-window like Bitcoin mining
  *      difficulty (anchored at 1.0 for the first window):
  *        mult[w] = clamp(mult[w-1] * actual[w-1] / target, 1, ceiling)
- *      - actual > target  → difficulty rises (rarity too cheap).
+ *      - actual > target  → difficulty rises (rarity over-supplied).
  *      - actual < target  → difficulty drifts back toward base.
  *      - counts unknown for a window (provider returns null) → keep prior value.
  *

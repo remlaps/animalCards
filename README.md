@@ -83,13 +83,13 @@ Rarity is shown on the site as derived from the slot position.
 
 ## Rarity-Adjusted Burn Difficulty (RABD)
 
-RABD lets each rarity be independently **"priced" by a minimum burn**, so scarce
+RABD lets each rarity be independently **gated by a minimum burn threshold**, so scarce
 cards stay scarce. When the winning burn is below its rarity's minimum, the award
 **cascades** down to the next rarity whose minimum it clears — a winner always gets
 *something* that matches what they paid. Only when the burn clears **no** rarity's
 minimum is the result a permanent generic. Combined this is the answer to the
 "too many cards from BurnMaxxing titles" problem: instead of every block+asset
-minting freely, each rarity has its own demand-tuned price.
+minting freely, each rarity has its own demand-tuned threshold.
 
 Everything is deterministic and fully computable from the chain:
 
@@ -98,7 +98,7 @@ Everything is deterministic and fully computable from the chain:
   changes (fully backward compatible). Set `enabled_block` to a future block to
   switch it on from that block **forward** — cards already issued are never touched.
 - **Base minimums** — each rarity has a `base_min_burn` floor (the never-below
-  price of one of its cards). Below it you cannot hold that rarity.
+  minimum burn for cards of this rarity). Below it you cannot hold that rarity.
 - **Schedule multipliers** — the `schedule` array scales every rarity at
   `{ block, multiplier }` milestones. Pure config, no network, trivial to verify.
 - **Demand multipliers (opt-in)** — each rarity has a `target_per_window`

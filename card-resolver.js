@@ -95,8 +95,8 @@
     // constraints (optional): { rarity_min_burn: {Common: n, ...}, winning_burn_amount: x }
     //   - rarity_min_burn  enables RABD (rarity-adjusted burn difficulty)
     //   - winning_burn_amount is the winning burn; when below the resolved
-    //     rarity's minimum the winner cascades to the next lower rarity they can
-    //     afford, or (if below every minimum) receives a permanent generic.
+    //     rarity's minimum the winner cascades to the next lower rarity their
+    //     burn qualifies for, or (if below every minimum) receives a permanent generic.
     // Returns { status, className, rarity, slot, slotPick, card, cascade, generic_reason }:
     //   status          'released' | 'generic' | 'none'
     //   className       the picked animal class

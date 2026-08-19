@@ -73,7 +73,7 @@ class BlockchainAPI {
         let constraints = null;
         // RABD: if rarity_difficulty is configured, pass the effective per-rarity
         // minimum burns + this block's winning burn amount so the resolver can
-        // cascade a below-threshold award down to an affordable rarity.
+        // cascade a below-threshold award down to a qualifying rarity.
         if (this.rawConfig && this.rawConfig.rarity_difficulty) {
             const blockNum = parseInt(String(serialNumber).split('.')[0], 10);
             constraints = {
