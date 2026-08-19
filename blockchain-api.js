@@ -17,6 +17,7 @@ class BlockchainAPI {
             this.classWeights = this.classOrder.map(c => config.class_weights[c]);
             this.classWeightsObj = config.class_weights || {};
             this.beneficiaries = config.beneficiaries || {};
+            this.rawConfig = config; // full config (used for rarity_difficulty / RABD)
         } catch (e) {
             console.error("Failed to load cards config", e);
         }
@@ -67,11 +68,31 @@ class BlockchainAPI {
         return CardResolver.hashForSerial(serialNumber, blockHash);
     }
 
-    async resolveCardForBlock(serialNumber, blockHash) {
+    async resolveCardForBlock(serialNumber, blockHash, opts) {
+        opts = opts || {};
+        let constraints = null;
+        // RABD: if rarity_difficulty is configured, pass the effective per-rarity
+        // minimum burns + this block's winning burn amount so the resolver can
+        // cascade a below-threshold award down to an affordable rarity.
+        if (this.rawConfig && this.rawConfig.rarity_difficulty) {
+            const blockNum = parseInt(String(serialNumber).split('.')[0], 10);
+            constraints = {
+                rarity_min_burn: this.getEffectiveMinBurns(blockNum, opts.countsProvider) || {},
+                winning_burn_amount: opts.winningBurnAmount
+            };
+        }
         return CardResolver.resolveCardForBlock(serialNumber, blockHash, {
             cards: this.cardsConfig,
             class_weights: this.classWeightsObj
-        });
+        }, constraints);
+    }
+
+    // Effective per-rarity minimum burns for a block (RABD). Delegates to the
+    // shared difficulty.js module. Returns the standard shape even when
+    // rarity_difficulty is absent/disabled (all zeroes → nothing is gated).
+    getEffectiveMinBurns(blockNum, countsProvider) {
+        if (!this.rawConfig) return null;
+        return CardDifficulty.effectiveMinBurns(blockNum, this.rawConfig, countsProvider);
     }
 
     // Fetch block data to verify winners in a specific block

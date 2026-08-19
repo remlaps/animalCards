@@ -124,6 +124,50 @@ function fmt(c) {
     return `${s}..${e}`;
 }
 
+// 6. rarity_difficulty (RABD) validation
+const rd = cfg.rarity_difficulty || null;
+if (rd) {
+    if (rd.enabled_block != null && !Number.isInteger(rd.enabled_block)) {
+        errors.push('rarity_difficulty.enabled_block must be an integer or null.');
+    }
+    if (rd.ceiling_multiplier != null && (typeof rd.ceiling_multiplier !== 'number' || rd.ceiling_multiplier < 1)) {
+        errors.push('rarity_difficulty.ceiling_multiplier must be a number >= 1.');
+    }
+    if (rd.window_blocks != null && (typeof rd.window_blocks !== 'number' || rd.window_blocks < 0 || !Number.isInteger(rd.window_blocks))) {
+        errors.push('rarity_difficulty.window_blocks must be a non-negative integer.');
+    }
+    if (rd.schedule != null) {
+        if (!Array.isArray(rd.schedule)) {
+            errors.push('rarity_difficulty.schedule must be an array.');
+        } else {
+            let prev = -Infinity;
+            rd.schedule.forEach((m, i) => {
+                if (typeof m !== 'object' || m === null || !Number.isInteger(m.block) || typeof m.multiplier !== 'number' || m.multiplier < 0) {
+                    errors.push(`rarity_difficulty.schedule[${i}] must be { block: int, multiplier: number >= 0 }.`);
+                } else {
+                    if (m.block < prev) {
+                        warnings.push(`rarity_difficulty.schedule is not sorted ascending at index ${i}.`);
+                    }
+                    prev = m.block;
+                }
+            });
+        }
+    }
+    const rar = rd.rarities || {};
+    for (const [r, s] of Object.entries(rar)) {
+        if (!VALID_RARITIES.has(r) || r === 'Generic') {
+            errors.push(`rarity_difficulty.rarities has unknown rarity "${r}".`);
+            continue;
+        }
+        if (typeof s.base_min_burn !== 'number' || s.base_min_burn < 0) {
+            errors.push(`rarity_difficulty.rarities["${r}"].base_min_burn must be a number >= 0.`);
+        }
+        if (typeof s.target_per_window !== 'number' || s.target_per_window < 0 || !Number.isInteger(s.target_per_window)) {
+            errors.push(`rarity_difficulty.rarities["${r}"].target_per_window must be a non-negative integer.`);
+        }
+    }
+}
+
 console.log('validate-cards.js');
 console.log(`cards: ${cards.length}`);
 if (warnings.length) {

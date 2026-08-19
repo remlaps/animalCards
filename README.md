@@ -16,6 +16,7 @@ rewards are resolved to a card defined in `cards-config.json`.
 | `cards-config.json` | **The card catalogue — the only file you edit to add/change cards** |
 | `validate-cards.js` | Config sanity checker — run `node validate-cards.js` before changing cards |
 | `resolve-card.js` | CLI to verify block/card assignments — run `node resolve-card.js <blockNumber>` |
+| `difficulty.js` | **RABD (rarity-adjusted burn difficulty)** — computes per-rarity minimum burns & cascade thresholds. Shared by the browser (`blockchain-api.js`) and `resolve-card.js` |
 | `style.css` | Shared styling |
 | `vaas.js` / `vaas.css` | Drop-in VAAS (Visibility as a Service) ticker — a themeable widget that rotates `@null` burn posts and promo/broadcast transfers. |
 
@@ -80,6 +81,53 @@ Rarity is shown on the site as derived from the slot position.
 
 ---
 
+## Rarity-Adjusted Burn Difficulty (RABD)
+
+RABD lets each rarity be independently **"priced" by a minimum burn**, so scarce
+cards stay scarce. When the winning burn is below its rarity's minimum, the award
+**cascades** down to the next rarity whose minimum it clears — a winner always gets
+*something* that matches what they paid. Only when the burn clears **no** rarity's
+minimum is the result a permanent generic. Combined this is the answer to the
+"too many cards from BurnMaxxing titles" problem: instead of every block+asset
+minting freely, each rarity has its own demand-tuned price.
+
+Everything is deterministic and fully computable from the chain:
+
+- **`rarity_difficulty` config** — an optional block in `cards-config.json`. When
+  absent, or when `enabled_block` is `null`, difficulty is **off** and nothing
+  changes (fully backward compatible). Set `enabled_block` to a future block to
+  switch it on from that block **forward** — cards already issued are never touched.
+- **Base minimums** — each rarity has a `base_min_burn` floor (the never-below
+  price of one of its cards). Below it you cannot hold that rarity.
+- **Schedule multipliers** — the `schedule` array scales every rarity at
+  `{ block, multiplier }` milestones. Pure config, no network, trivial to verify.
+- **Demand multipliers (opt-in)** — each rarity has a `target_per_window`
+  (desired cards per window). When the caller supplies real historical award
+  counts, the multiplier compounds window-over-window like mining difficulty:
+  actual > target → the rarity gets pricier; actual < target → it drifts back
+  toward base. Clamped to `[1, ceiling_multiplier]`.
+- **Cascading slot** — when an award drops to a lower rarity, its slot within that
+  rarity = `globalSlotPick % bandWidth` (deterministic; equals the original
+  within-band slot for the resolved rarity).
+
+The **effective minimum** for a rarity at a block is:
+
+```
+max( base_min_burn, min( base_min_burn × scheduleMultiplier × demandMultiplier,
+                         base_min_burn × ceiling_multiplier ) )
+```
+
+### Generic card reasons
+
+A generic card now carries a `generic_reason` so the UI can tell the two kinds apart:
+
+| `generic_reason` | Meaning |
+|------------------|---------|
+| `unreleased` | A species WILL fill this slot eventually — the card is a placeholder. |
+| `below_minimum` | The burn cleared no rarity's minimum — a species card is NOT on the horizon. Burn more to earn one. |
+
+---
+
 ## Verifying Block/Card Assignments (CLI)
 
 `node resolve-card.js <blockNumber>` reports the **slot**, **species**, and
@@ -128,6 +176,20 @@ backward, so very old blocks may be slow.
     "Epic": 4,
     "Legendary": 8,
     "Mythic": 16
+  },
+  "rarity_difficulty": {
+    // Optional RABD. enabled_block null = off (backward compatible).
+    "enabled_block": null,
+    "ceiling_multiplier": 100,
+    "window_blocks": 2016,
+    "schedule": [ { "block": 100000000, "multiplier": 1.0 }, { "block": 200000000, "multiplier": 2.0 } ],
+    "rarities": {
+      "Common":    { "base_min_burn": 0.001, "target_per_window": 3028 },
+      "Rare":      { "base_min_burn": 0.1,   "target_per_window": 757 },
+      "Epic":      { "base_min_burn": 1.0,   "target_per_window": 189 },
+      "Legendary": { "base_min_burn": 10.0,  "target_per_window": 47 },
+      "Mythic":    { "base_min_burn": 100.0, "target_per_window": 12 }
+    }
   },
   "cards": [
     {
@@ -267,3 +329,5 @@ non-zero on structural errors, making it easy to drop into CI.
 - Rarity values are case-sensitive: `Common`, `Rare`, `Epic`, `Legendary`, `Mythic`, `Generic`.
 - A rarity can never exceed its fixed slot band (16 Common, 8 Rare, 4 Epic, 2 Legendary,
   1 Mythic) **per generation**. Later generations may re-fill the same slots.
+- `rarity_difficulty` is **optional**; leave `enabled_block` null to keep it off. Set it
+  to a future block to enable RABD from that block forward — past cards are untouched.

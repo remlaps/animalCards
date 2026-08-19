@@ -172,7 +172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (slot.winner === account) {
                         const serial = `${blockNum}.${asset === 'STEEM' ? 0 : 1}`;
                         const trxId = slot.trx_id || '';
-                        const resolved = await api.resolveCardForBlock(serial, trxId);
+                        const resolved = await api.resolveCardForBlock(serial, trxId, { winningBurnAmount: slot.maxBurn });
                         found.push({
                             account: account,
                             status: resolved.status,

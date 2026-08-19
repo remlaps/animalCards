@@ -27,6 +27,7 @@
 const fs = require('fs');
 const path = require('path');
 const CardResolver = require('./card-resolver.js');
+const CardDifficulty = require('./difficulty.js');
 
 const STEEM_API_URL = 'https://api.steemit.com';
 const ASSETS = ['STEEM', 'SBD'];
@@ -159,12 +160,15 @@ function renderHuman(outputs, blockNum) {
         lines.push(`  slot (global 0-30) : ${o.slotPick ?? '-'}`);
         lines.push(`  species  : ${o.species === null || o.species === undefined ? '(none — card not released yet)' : o.species}`);
         if (o.card_id != null) lines.push(`  card_id  : ${o.card_id}`);
+        if (o.rarity_min_burn != null && o.rarity_min_burn > 0) lines.push(`  min burn : ${o.rarity_min_burn} (RABD)`);
+        if (o.cascade) lines.push(`  cascade  : ${o.cascade}`);
+        if (o.generic_reason) lines.push(`  generic  : ${o.generic_reason}`);
         if (o.note) lines.push(`  note     : ${o.note}`);
     }
     return lines.join('\n');
 }
 
-function buildOutput(asset, serial, trxId, winner, resolved, note) {
+function buildOutput(asset, serial, trxId, winner, resolved, note, minBurns) {
     const base = { asset, serial, status: note ? 'none' : resolved.status };
     if (resolved) {
         base.className = resolved.className;
@@ -174,6 +178,9 @@ function buildOutput(asset, serial, trxId, winner, resolved, note) {
         base.slotRange = slotRangeFor(resolved.rarity);
         base.species = resolved.card ? resolved.card.species : null;
         base.card_id = resolved.card ? resolved.card.card_id : null;
+        if (minBurns && minBurns[resolved.rarity] > 0) base.rarity_min_burn = minBurns[resolved.rarity];
+        if (resolved.cascade) base.cascade = resolved.cascade;
+        if (resolved.generic_reason) base.generic_reason = resolved.generic_reason;
     } else {
         base.rarity = '-';
         base.slot = '-';
@@ -202,6 +209,9 @@ async function main() {
         // Auto mode — fetch that block's burn winners from the chain.
         const winners = await fetchNullWinners(args.blockNum);
         const assets = args.asset ? [args.asset] : ASSETS;
+        // Effective per-rarity minimum burns for this block (RABD). All zeroes
+        // when rarity_difficulty is absent or disabled → nothing is gated.
+        const effBurns = CardDifficulty.effectiveMinBurns(args.blockNum, config);
         for (const asset of assets) {
             const w = winners[asset];
             if (!w.trx_id) {
@@ -210,8 +220,9 @@ async function main() {
                 continue;
             }
             const serial = serialFor(args.blockNum, asset);
-            const resolved = await CardResolver.resolveCardForBlock(serial, w.trx_id, config);
-            outputs.push(buildOutput(asset, serial, w.trx_id, w.winner, resolved));
+            const constraints = { rarity_min_burn: effBurns, winning_burn_amount: w.max };
+            const resolved = await CardResolver.resolveCardForBlock(serial, w.trx_id, config, constraints);
+            outputs.push(buildOutput(asset, serial, w.trx_id, w.winner, resolved, null, effBurns));
         }
     }
 

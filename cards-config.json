@@ -12,6 +12,23 @@
     "Legendary": 8,
     "Mythic": 16
   },
+"rarity_difficulty": {
+    "enabled_block": null,
+    "ceiling_multiplier": 100,
+    "window_blocks": 2016,
+    "schedule": [
+      { "block": 100000000, "multiplier": 1.0 },
+      { "block": 200000000, "multiplier": 2.0 },
+      { "block": 300000000, "multiplier": 4.0 }
+    ],
+    "rarities": {
+      "Common":    { "base_min_burn": 0.001, "target_per_window": 3028 },
+      "Rare":      { "base_min_burn": 0.1,   "target_per_window": 757 },
+      "Epic":      { "base_min_burn": 1.0,   "target_per_window": 189 },
+      "Legendary": { "base_min_burn": 10.0,  "target_per_window": 47 },
+      "Mythic":    { "base_min_burn": 100.0, "target_per_window": 12 }
+    }
+  },
   "cards": [
     {
       "card_id": 1,
