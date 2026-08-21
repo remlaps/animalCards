@@ -109,7 +109,8 @@ Everything is deterministic and fully computable from the chain:
   `target_per_window`. Demand mode is opt-in: when a caller supplies real
   historical award counts, the multiplier compounds window-over-window like
   mining difficulty: actual > target → the rarity's minimum rises; actual < target
-  → it drifts back toward base. Clamped to `[1, ceiling_multiplier]`.
+  → it drifts back toward base (floor of 1). The window size (`window_blocks`)
+  damps oscillation — longer windows mean fewer compounding steps per real time.
 - **Cascading slot** — when an award drops to a lower rarity, its slot within that
   rarity = `globalSlotPick % bandWidth` (deterministic; equals the original
   within-band slot for the resolved rarity).
@@ -117,8 +118,7 @@ Everything is deterministic and fully computable from the chain:
 The **effective minimum** for a rarity at a block is:
 
 ```
-max( base_min_burn, min( base_min_burn × scheduleMultiplier × demandMultiplier,
-                         base_min_burn × ceiling_multiplier ) )
+max( base_min_burn, base_min_burn × scheduleMultiplier × demandMultiplier )
 ```
 
 ### Generic card reasons
@@ -184,19 +184,18 @@ backward, so very old blocks may be slow.
   "rarity_difficulty": {
     // Optional RABD. enabled_block null = off (backward compatible).
     "enabled_block": null,
-    "ceiling_multiplier": 100,
-    "window_blocks": 2016,
+    "window_blocks": 201600,
     "schedule": [
   { "block": 100000000, "multiplier": 1.0 },
   { "block": 200000000, "multiplier": 2.0 },
-  { "block": 300000000, "multiplier": 2.0, "multipliers": { "Mythic": 4.0 }, "targets": { "Mythic": 8 } }
+  { "block": 300000000, "multiplier": 2.0, "multipliers": { "Mythic": 4.0 }, "targets": { "Mythic": 1000 } }
 ],
     "rarities": {
-      "Common":    { "base_min_burn": 0.001, "target_per_window": 3028 },
-      "Rare":      { "base_min_burn": 0.1,   "target_per_window": 757 },
-      "Epic":      { "base_min_burn": 1.0,   "target_per_window": 189 },
-      "Legendary": { "base_min_burn": 10.0,  "target_per_window": 47 },
-      "Mythic":    { "base_min_burn": 100.0, "target_per_window": 12 }
+      "Common":    { "base_min_burn": 0.001, "target_per_window": 60800 },
+      "Rare":      { "base_min_burn": 0.002, "target_per_window": 27000 },
+      "Epic":      { "base_min_burn": 0.004, "target_per_window": 9000 },
+      "Legendary": { "base_min_burn": 0.008, "target_per_window": 3000 },
+      "Mythic":    { "base_min_burn": 0.016, "target_per_window": 1000 }
     }
   },
   "cards": [
@@ -327,7 +326,7 @@ feeds the effective-minimum formula affects **past and future** lookups retroact
 |------------------------------|--------|
 | Change any `rarities.*.base_min_burn` | Append schedule milestones with `block > enabled_block` |
 | Change any `rarities.*.target_per_window` | Set per-rarity `targets` in new future milestones |
-| Change `ceiling_multiplier` or `window_blocks` | Set per-rarity `multipliers` in new future milestones |
+| Change `window_blocks` | Set per-rarity `multipliers` in new future milestones |
 | Edit/remove a `schedule` entry whose `block` has passed | |
 | Reorder an existing `schedule` entry | |
 

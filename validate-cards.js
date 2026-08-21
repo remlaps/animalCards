@@ -130,11 +130,8 @@ if (rd) {
     if (rd.enabled_block != null && !Number.isInteger(rd.enabled_block)) {
         errors.push('rarity_difficulty.enabled_block must be an integer or null.');
     }
-    if (rd.ceiling_multiplier != null && (typeof rd.ceiling_multiplier !== 'number' || rd.ceiling_multiplier < 1)) {
-        errors.push('rarity_difficulty.ceiling_multiplier must be a number >= 1.');
-    }
-    if (rd.window_blocks != null && (typeof rd.window_blocks !== 'number' || rd.window_blocks < 0 || !Number.isInteger(rd.window_blocks))) {
-        errors.push('rarity_difficulty.window_blocks must be a non-negative integer.');
+    if (rd.window_blocks != null && (typeof rd.window_blocks !== 'number' || rd.window_blocks <= 0 || !Number.isInteger(rd.window_blocks))) {
+        errors.push('rarity_difficulty.window_blocks must be a positive integer.');
     }
     if (rd.schedule != null) {
         if (!Array.isArray(rd.schedule)) {
@@ -205,7 +202,7 @@ if (rd) {
         const futureEntries = (rd.schedule || []).filter(s => s && s.block != null && s.block > rd.enabled_block);
         warnings.push(
             `rarity_difficulty is active from block ${rd.enabled_block}. After activation, ` +
-            'base_min_burn / target_per_window / multipliers / targets retroactively affect past ' +
+            'base_min_burn / target_per_window / window_blocks retroactively affect past ' +
             `resolutions, so only APPEND schedule milestones with block > ${rd.enabled_block}. ` +
             `Future milestones currently defined: ${futureEntries.length}.`
         );

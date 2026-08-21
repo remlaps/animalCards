@@ -14,19 +14,18 @@
   },
 "rarity_difficulty": {
     "enabled_block": null,
-    "ceiling_multiplier": 100,
-    "window_blocks": 2016,
+    "window_blocks": 201600,
     "schedule": [
       { "block": 100000000, "multiplier": 1.0 },
       { "block": 200000000, "multiplier": 2.0 },
-      { "block": 300000000, "multiplier": 4.0, "multipliers": { "Mythic": 8.0 }, "targets": { "Mythic": 6 } }
+      { "block": 300000000, "multiplier": 4.0, "multipliers": { "Mythic": 8.0 }, "targets": { "Mythic": 1000 } }
     ],
     "rarities": {
-      "Common":    { "base_min_burn": 0.001, "target_per_window": 3028 },
-      "Rare":      { "base_min_burn": 0.1,   "target_per_window": 757 },
-      "Epic":      { "base_min_burn": 1.0,   "target_per_window": 189 },
-      "Legendary": { "base_min_burn": 10.0,  "target_per_window": 47 },
-      "Mythic":    { "base_min_burn": 100.0, "target_per_window": 12 }
+      "Common":    { "base_min_burn": 0.001, "target_per_window": 60800 },
+      "Rare":      { "base_min_burn": 0.002, "target_per_window": 27000 },
+      "Epic":      { "base_min_burn": 0.004, "target_per_window": 9000 },
+      "Legendary": { "base_min_burn": 0.008, "target_per_window": 3000 },
+      "Mythic":    { "base_min_burn": 0.016, "target_per_window": 1000 }
     }
   },
   "cards": [

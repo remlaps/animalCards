@@ -25,7 +25,7 @@ Branch: `rarity-difficulty-scarcity` (master untouched)
 ## Immutability contract
 
 Once `enabled_block` passes, everything in `rarity_difficulty` is locked (retroactive):
-- ❌ change `rarities.*.base_min_burn`, `target_per_window`, `ceiling_multiplier`, `window_blocks`
+- ❌ change `rarities.*.base_min_burn`, `target_per_window`, `window_blocks`
 - ❌ edit/remove/reorder a `schedule` entry whose `block` has passed
 - ✅ APPEND new schedule milestones with future blocks (`multipliers` / `targets`)
   — this is the ONLY safe tuning knob after activation
@@ -34,7 +34,7 @@ Once `enabled_block` passes, everything in `rarity_difficulty` is locked (retroa
 
 1. Find current (or near-future) Steem block number.
 2. Set `enabled_block` to that block in `cards-config.json`.
-3. Optionally keep all `base_min_burn` at 0.001 and schedule at 1.0 →
+3. Optionally keep all `base_min_burn` at 0.001 and `schedule` at 1.0 →
    zero behavioral change, framework is live.
 4. Raise values / append milestones incrementally — no further `enabled_block` flip needed.
 
@@ -46,7 +46,8 @@ Once `enabled_block` passes, everything in `rarity_difficulty` is locked (retroa
   - `resolve-card.js` (CLI): per-window aggregates from `fetchNullWinners` for diagnostics.
   - `search.js`: per-account — probably skip.
 - [ ] **Tune `target_per_window`** — once demand mode is wired, these matter.
-      Current defaults (per ~1.7h window): C: 3028, R: 757, E: 189, L: 47, M: 12.
+      Current defaults (per 7-day window): C: 60800, R: 27000, E: 9000, L: 3000, M: 1000.
+      Sum = 100800 = 50% of 201600 blocks/window.
 - [ ] **Adjust `schedule` milestones** — placeholder values (100M/200M/300M).
       Replace with real block targets and per-rarity numbers.
 - [ ] **Frontend `generic_reason`** — card tiles still show the old
@@ -64,5 +65,4 @@ Once `enabled_block` passes, everything in `rarity_difficulty` is locked (retroa
 | `schedule[].multiplier` | Global multiplier milestone (append-only after activation) |
 | `schedule[].multipliers.{r}` | Per-rarity multiplier milestone |
 | `schedule[].targets.{r}` | Per-rarity target milestone |
-| `ceiling_multiplier` | Hard cap: effective never exceeds base × this (immutable) |
-| `window_blocks` | Demand-adjustment epoch size, 2016 = ~1.7h (immutable) |
+| `window_blocks` | Demand-adjustment epoch size, 201600 = ~7 days (immutable) |

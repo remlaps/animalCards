@@ -26,14 +26,13 @@
  *      When the caller supplies historical award counts via a `countsProvider`,
  *      the multiplier compounds window-over-window like Bitcoin mining
  *      difficulty (anchored at 1.0 for the first window):
- *        mult[w] = clamp(mult[w-1] * actual[w-1] / target, 1, ceiling)
+ *        mult[w] = max(1, mult[w-1] * actual[w-1] / target)
  *      - actual > target  → difficulty rises (rarity over-supplied).
  *      - actual < target  → difficulty drifts back toward base.
  *      - counts unknown for a window (provider returns null) → keep prior value.
  *
  * Invariants (never violated):
  *   - The effective minimum NEVER drops below `base_min_burn`.
- *   - The effective minimum NEVER exceeds `base_min_burn * ceiling_multiplier`.
  *   - Before `enabled_block` the effective minimum is 0 for EVERY rarity, so
  *     difficulty is off and no card that was issued before the switch is ever
  *     retroactively changed. ("Don't take away cards already issued.")
@@ -62,7 +61,6 @@
         var rd = (config && config.rarity_difficulty) || {};
         var out = {
             enabled_block: rd.enabled_block == null ? null : Number(rd.enabled_block),
-            ceiling_multiplier: Number(rd.ceiling_multiplier) || 1,
             window_blocks: Number(rd.window_blocks) || 0,
             schedule: [],
             rarities: {}
@@ -144,12 +142,13 @@
     // the window containing blockNum. countsProvider(windowIndex) returns an
     // object { Common: n, ... } of ACTUAL species awards in that window, or null
     // when unknown (keep prior multiplier). Each previous window uses the target
-    // in effect at the START of that window (deterministic). Clamps to [1, ceiling].
+    // in effect at the START of that window (deterministic). Floor is 1 (no
+    // discount below base burn), ceiling is unbounded — the window size itself
+    // damps oscillation.
     function demandMultiplier(conf, rarity, blockNum, countsProvider) {
         var win = conf.window_blocks;
         if (!win) return 1;
         var mult = 1;
-        var ceil = conf.ceiling_multiplier;
         var maxWindow = Math.floor(blockNum / win);
         for (var w = 1; w <= maxWindow; w++) {
             var counts = countsProvider ? (countsProvider(w - 1) || null) : null;
@@ -157,7 +156,7 @@
             var target = effectiveTarget(conf, rarity, (w - 1) * win);
             if (!target) continue; // no target in effect for that window yet
             var actual = Number(counts[rarity]);
-            mult = Math.max(1, Math.min(ceil, mult * (actual / target)));
+            mult = Math.max(1, mult * (actual / target));
         }
         return mult;
     }
@@ -173,7 +172,7 @@
         var eff = base
             * scheduleMultiplier(conf, blockNum, rarity)
             * demandMultiplier(conf, rarity, blockNum, countsProvider);
-        return Math.max(base, Math.min(base * conf.ceiling_multiplier, eff));
+        return Math.max(base, eff);
     }
 
     // Effective minimum burn for one rarity (auto-normalizes config).
