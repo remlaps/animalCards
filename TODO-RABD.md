@@ -34,9 +34,13 @@ Once `enabled_block` passes, everything in `rarity_difficulty` is locked (retroa
 
 1. Find current (or near-future) Steem block number.
 2. Set `enabled_block` to that block in `cards-config.json`.
-3. Optionally keep all `base_min_burn` at 0.001 and `schedule` at 1.0 →
-   zero behavioral change, framework is live.
-4. Raise values / append milestones incrementally — no further `enabled_block` flip needed.
+3. Root `base_min_burn` is already 0.001 for every rarity and `schedule`
+   multiplier starts at 1.0 → zero behavioral change, framework is live.
+4. Append a schedule milestone with per-rarity `base_min_burns` to establish
+   the tiered spread (Rare 0.002 / Epic 0.004 / Legendary 0.008 / Mythic 0.016).
+5. Adjust difficulty independently via later milestones' `multiplier` /
+   `multipliers` — tiers survive a reset to 1.0 because the floor comes from
+   `base_min_burns`, not the multiplier.
 
 ## Remaining / Future
 
@@ -65,4 +69,5 @@ Once `enabled_block` passes, everything in `rarity_difficulty` is locked (retroa
 | `schedule[].multiplier` | Global multiplier milestone (append-only after activation) |
 | `schedule[].multipliers.{r}` | Per-rarity multiplier milestone |
 | `schedule[].targets.{r}` | Per-rarity target milestone |
+| `schedule[].base_min_burns.{r}` | Per-rarity tiered-floor override (append-only after activation) |
 | `window_blocks` | Demand-adjustment epoch size, 201600 = ~7 days (immutable) |

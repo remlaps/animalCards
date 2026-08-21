@@ -310,5 +310,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     timeFilter.addEventListener('change', loadLeaderboard);
+    renderDifficultyDashboard();
     loadLeaderboard();
 });

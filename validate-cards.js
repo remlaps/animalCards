@@ -179,6 +179,20 @@ if (rd) {
                         }
                     }
                 }
+                // per-rarity base_min_burns (tiered floor override)
+                if (m.base_min_burns != null) {
+                    if (typeof m.base_min_burns !== 'object' || Array.isArray(m.base_min_burns)) {
+                        errors.push(`rarity_difficulty.schedule[${i}].base_min_burns must be an object keyed by rarity.`);
+                    } else {
+                        for (const [r, v] of Object.entries(m.base_min_burns)) {
+                            if (!VALID_RARITIES.has(r) || r === 'Generic') {
+                                errors.push(`rarity_difficulty.schedule[${i}].base_min_burns has unknown rarity "${r}".`);
+                            } else if (typeof v !== 'number' || v < 0) {
+                                errors.push(`rarity_difficulty.schedule[${i}].base_min_burns["${r}"] must be a number >= 0.`);
+                            }
+                        }
+                    }
+                }
             });
         }
     }

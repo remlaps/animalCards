@@ -100,10 +100,17 @@ Everything is deterministic and fully computable from the chain:
 - **Base minimums** — each rarity has a `base_min_burn` floor (the never-below
   minimum burn for cards of this rarity), set once in the root `rarities` config.
   Below it you cannot hold that rarity. After activation this is **immutable**.
+- **Schedule `base_min_burns`** — the schedule can also raise a rarity's tiered
+  floor via per-rarity `base_min_burns`, falling back to the root
+  `base_min_burn`. This is the **tiered-pricing knob**: it separates rarity cost
+  tiers from the difficulty multipliers, so tiers survive a difficulty reset to
+  1.0. Append-only after activation, like everything else in the schedule.
 - **Schedule `multipliers`** — the `schedule` array scales a rarity at
   `{ block, ... }` milestones via per-rarity `multipliers`, falling back to a
   shared global `multiplier`. Pure config, no network, trivial to verify. To tune,
   **append** new milestones with future blocks — never edit one whose block passed.
+  This is the **difficulty knob**: it scales the tiered floor up or down without
+  changing the ratio between rarities.
 - **Schedule `targets`** — the same array can adjust a rarity's cards-per-window
   target over time via per-rarity `targets`, falling back to the root
   `target_per_window`. Demand mode is opt-in: when a caller supplies real
@@ -118,8 +125,11 @@ Everything is deterministic and fully computable from the chain:
 The **effective minimum** for a rarity at a block is:
 
 ```
-max( base_min_burn, base_min_burn × scheduleMultiplier × demandMultiplier )
+max( floor, floor × scheduleMultiplier × demandMultiplier )
 ```
+
+where `floor` = the most recent schedule milestone's `base_min_burns[rarity]`,
+falling back to root `rarities[rarity].base_min_burn`.
 
 ### Generic card reasons
 
@@ -188,14 +198,15 @@ backward, so very old blocks may be slow.
     "schedule": [
   { "block": 100000000, "multiplier": 1.0 },
   { "block": 200000000, "multiplier": 2.0 },
-  { "block": 300000000, "multiplier": 2.0, "multipliers": { "Mythic": 4.0 }, "targets": { "Mythic": 1000 } }
+  { "block": 300000000, "multiplier": 2.0, "multipliers": { "Mythic": 4.0 }, "targets": { "Mythic": 1000 } },
+  { "block": 400000000, "base_min_burns": { "Rare": 0.002, "Epic": 0.004, "Legendary": 0.008, "Mythic": 0.016 } }
 ],
     "rarities": {
       "Common":    { "base_min_burn": 0.001, "target_per_window": 60800 },
-      "Rare":      { "base_min_burn": 0.002, "target_per_window": 27000 },
-      "Epic":      { "base_min_burn": 0.004, "target_per_window": 9000 },
-      "Legendary": { "base_min_burn": 0.008, "target_per_window": 3000 },
-      "Mythic":    { "base_min_burn": 0.016, "target_per_window": 1000 }
+      "Rare":      { "base_min_burn": 0.001, "target_per_window": 27000 },
+      "Epic":      { "base_min_burn": 0.001, "target_per_window": 9000 },
+      "Legendary": { "base_min_burn": 0.001, "target_per_window": 3000 },
+      "Mythic":    { "base_min_burn": 0.001, "target_per_window": 1000 }
     }
   },
   "cards": [

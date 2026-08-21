@@ -57,6 +57,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Default to the user's input if coming from another page with a query param? Optional.
 
+    renderDifficultyDashboard();
+
     searchForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         

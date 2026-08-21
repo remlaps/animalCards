@@ -14,12 +14,17 @@
  *
  *   1. SCHEDULE (deterministic, enforced)
  *      A monotonic list of block milestones. Each may carry a global `multiplier`,
- *      per-rarity `multipliers { rarity: n }`, and per-rarity `targets { rarity: n }`.
+ *      per-rarity `multipliers { rarity: n }`, per-rarity `targets { rarity: n }`,
+ *      and per-rarity `base_min_burns { rarity: n }` (tiered floor override).
  *      For a rarity the most recent milestone that defines it wins; per-rarity beats
  *      the global multiplier; missing per-rarity target falls back to the immutable
- *      root `rarities[rarity].target_per_window`. Example:
- *        { "block": 300000000, "multipliers": { "Mythic": 4.0 }, "targets": { "Mythic": 10 } }
- *      → Mythic is 4x base and targets 10 cards/window from that block on.
+ *      root `rarities[rarity].target_per_window`; missing per-rarity
+ *      `base_min_burns[rarity]` falls back to root `rarities[rarity].base_min_burn`.
+ *      Example:
+ *        { "block": 300000000, "base_min_burns": { "Mythic": 0.016 },
+ *          "multipliers": { "Mythic": 4.0 }, "targets": { "Mythic": 10 } }
+ *      → Mythic floor is 0.016 (tiered pricing), scaled 4x by difficulty,
+ *        targeting 10 cards/window from that block on.
  *
  *   2. DEMAND (deterministic from chain history, OPT-IN)
  *      Each rarity has its own `target_per_window` (desired cards per window).
@@ -68,7 +73,7 @@
         var sched = Array.isArray(rd.schedule) ? rd.schedule : [];
         out.schedule = sched
             .map(function (m) {
-                var mk = null, tg = null;
+                var mk = null, tg = null, fb = null;
                 if (m.multipliers && typeof m.multipliers === 'object') {
                     mk = {};
                     VALID_RARITIES.forEach(function (r) {
@@ -81,16 +86,23 @@
                         if (m.targets[r] != null) tg[r] = Number(m.targets[r]);
                     });
                 }
+                if (m.base_min_burns && typeof m.base_min_burns === 'object') {
+                    fb = {};
+                    VALID_RARITIES.forEach(function (r) {
+                        if (m.base_min_burns[r] != null) fb[r] = Number(m.base_min_burns[r]);
+                    });
+                }
                 return {
                     block: Number(m.block),
                     multiplier: m.multiplier == null ? null : Number(m.multiplier),
                     multipliers: mk,
-                    targets: tg
+                    targets: tg,
+                    base_min_burns: fb
                 };
             })
             .filter(function (m) {
                 return Number.isFinite(m.block) &&
-                    (m.multiplier != null || m.multipliers || m.targets);
+                    (m.multiplier != null || m.multipliers || m.targets || m.base_min_burns);
             })
             .sort(function (a, b) { return a.block - b.block; });
         var rar = rd.rarities || {};
@@ -104,16 +116,21 @@
         return out;
     }
 
-    // Largest schedule milestone at or below blockNum. For a rarity, the per-rarity
-    // multiplier from the most recent milestone that defines one wins; otherwise
-    // fall back to the most recent global `multiplier`. Values below 1 are
-    // ignored (base burn is the permanent floor). Deterministic.
+    // Largest schedule milestone in effect at a block. Multiplier milestones act
+    // on demand-window granularity: a milestone's multiplier applies only from
+    // the NEXT window boundary at or after its block (`ceil(block / window) *
+    // window`), so the current (not-yet-complete) window keeps the previous
+    // multiplier — "first adjustment shows base min; only multiply after a full
+    // interval". With `window_blocks` = 0 milestones apply immediately.
     function scheduleMultiplier(conf, blockNum, rarity) {
+        var win = conf.window_blocks || 0;
         var lastGlobal = 1;
         var lastPer = null;
         for (var i = 0; i < conf.schedule.length; i++) {
             var m = conf.schedule[i];
-            if (blockNum < m.block) break; // sorted ascending; stop at first future
+            var effBlock = m.block;
+            if (win > 0) effBlock = Math.ceil(m.block / win) * win;
+            if (blockNum < effBlock) break; // sorted ascending; not yet in effect
             if (m.multiplier != null && m.multiplier >= 1) lastGlobal = m.multiplier;
             if (m.multipliers && m.multipliers[rarity] != null && m.multipliers[rarity] >= 1) {
                 lastPer = m.multipliers[rarity];
@@ -133,6 +150,24 @@
             if (blockNum < m.block) break;
             if (m.targets && m.targets[rarity] != null) {
                 lastPer = m.targets[rarity];
+            }
+        }
+        return lastPer != null ? lastPer : (rootT || 0);
+    }
+
+    // Per-rarity tiered floor at a block: the most recent schedule milestone's
+    // `base_min_burns[rarity]` if defined, else the root
+    // `rarities[rarity].base_min_burn`. This is the tiered-pricing knob —
+    // independent of the difficulty multipliers, so tiers survive a
+    // difficulty reset to 1.0.
+    function scheduleFloor(conf, rarity, blockNum) {
+        var rootT = conf.rarities[rarity] ? conf.rarities[rarity].base_min_burn : 0;
+        var lastPer = null;
+        for (var i = 0; i < conf.schedule.length; i++) {
+            var m = conf.schedule[i];
+            if (blockNum < m.block) break;
+            if (m.base_min_burns && m.base_min_burns[rarity] != null) {
+                lastPer = m.base_min_burns[rarity];
             }
         }
         return lastPer != null ? lastPer : (rootT || 0);
@@ -164,10 +199,10 @@
     // Effective minimum burn for one rarity at blockNum. `conf` must already be
     // normalized. Returns 0 when disabled or base is 0 (resolver ignores it).
     function minBurnFor(conf, rarity, blockNum, countsProvider) {
-        var s = conf.rarities[rarity];
-        if (!s) return 0;
-        var base = s.base_min_burn || 0;
-        if (base <= 0) return 0;
+        // Tiered floor: most-recent schedule `base_min_burns[rarity]` wins,
+        // else fall back to root `rarities[rarity].base_min_burn`.
+        var base = scheduleFloor(conf, rarity, blockNum);
+        if (!base || base <= 0) return 0;
         if (conf.enabled_block == null || blockNum < conf.enabled_block) return 0;
         var eff = base
             * scheduleMultiplier(conf, blockNum, rarity)
@@ -194,6 +229,7 @@
         VALID_RARITIES: VALID_RARITIES,
         normalize: normalize,
         scheduleMultiplier: scheduleMultiplier,
+        scheduleFloor: scheduleFloor,
         effectiveTarget: effectiveTarget,
         demandMultiplier: demandMultiplier,
         effectiveMinBurn: effectiveMinBurn,
