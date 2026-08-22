@@ -1,0 +1,324 @@
+{
+  "version": 1,
+  "description": "Baseline snapshots for cards-config.json. Regenerate with: node test-cards.js --update-snapshots",
+  "generated_at": "2026-08-22T13:13:37.504Z",
+  "card_count": 15,
+  "snapshot_cases": [
+    {
+      "serialNumber": "100000.0",
+      "blockHash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "expected": {
+        "status": "generic",
+        "className": "Mammal",
+        "rarity": "Common",
+        "slot": 1,
+        "slotPick": 1,
+        "species": "Generic Mammal",
+        "card_id": 3,
+        "generic_reason": "unreleased"
+      }
+    },
+    {
+      "serialNumber": "100000.1",
+      "blockHash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "expected": {
+        "status": "generic",
+        "className": "Mammal",
+        "rarity": "Common",
+        "slot": 7,
+        "slotPick": 7,
+        "species": "Generic Mammal",
+        "card_id": 3,
+        "generic_reason": "unreleased"
+      }
+    },
+    {
+      "serialNumber": "500000.0",
+      "blockHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expected": {
+        "status": "released",
+        "className": "Bird",
+        "rarity": "Rare",
+        "slot": 0,
+        "slotPick": 9,
+        "species": "Common Grackle",
+        "card_id": 10,
+        "generic_reason": null
+      }
+    },
+    {
+      "serialNumber": "500000.1",
+      "blockHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "expected": {
+        "status": "released",
+        "className": "Bird",
+        "rarity": "Common",
+        "slot": 2,
+        "slotPick": 2,
+        "species": "Red-tailed Hawk",
+        "card_id": 11,
+        "generic_reason": null
+      }
+    },
+    {
+      "serialNumber": "1000000.0",
+      "blockHash": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+      "expected": {
+        "status": "released",
+        "className": "Bird",
+        "rarity": "Common",
+        "slot": 1,
+        "slotPick": 1,
+        "species": "American Robin",
+        "card_id": 8,
+        "generic_reason": null
+      }
+    },
+    {
+      "serialNumber": "1000000.1",
+      "blockHash": "cafebabecafebabecafebabecafebabecafebabecafebabecafebabecafebabe",
+      "expected": {
+        "status": "released",
+        "className": "Bird",
+        "rarity": "Common",
+        "slot": 2,
+        "slotPick": 2,
+        "species": "Red-tailed Hawk",
+        "card_id": 11,
+        "generic_reason": null
+      }
+    },
+    {
+      "serialNumber": "2000000.0",
+      "blockHash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "expected": {
+        "status": "released",
+        "className": "Bird",
+        "rarity": "Rare",
+        "slot": 0,
+        "slotPick": 9,
+        "species": "Common Grackle",
+        "card_id": 10,
+        "generic_reason": null
+      }
+    },
+    {
+      "serialNumber": "2000000.1",
+      "blockHash": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+      "expected": {
+        "status": "released",
+        "className": "Bird",
+        "rarity": "Common",
+        "slot": 3,
+        "slotPick": 3,
+        "species": "Gray Catbird",
+        "card_id": 12,
+        "generic_reason": null
+      }
+    },
+    {
+      "serialNumber": "5000000.0",
+      "blockHash": "1111111111111111111111111111111111111111111111111111111111111111",
+      "expected": {
+        "status": "generic",
+        "className": "Reptile & Amphibian",
+        "rarity": "Common",
+        "slot": 1,
+        "slotPick": 1,
+        "species": "Generic Reptile & Amphibian",
+        "card_id": 4,
+        "generic_reason": "unreleased"
+      }
+    },
+    {
+      "serialNumber": "5000000.1",
+      "blockHash": "2222222222222222222222222222222222222222222222222222222222222222",
+      "expected": {
+        "status": "generic",
+        "className": "Reptile & Amphibian",
+        "rarity": "Common",
+        "slot": 4,
+        "slotPick": 4,
+        "species": "Generic Reptile & Amphibian",
+        "card_id": 4,
+        "generic_reason": "unreleased"
+      }
+    },
+    {
+      "serialNumber": "9999999.0",
+      "blockHash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "expected": {
+        "status": "generic",
+        "className": "Mammal",
+        "rarity": "Common",
+        "slot": 1,
+        "slotPick": 1,
+        "species": "Generic Mammal",
+        "card_id": 3,
+        "generic_reason": "unreleased"
+      }
+    },
+    {
+      "serialNumber": "9999999.1",
+      "blockHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "expected": {
+        "status": "generic",
+        "className": "Reptile & Amphibian",
+        "rarity": "Common",
+        "slot": 1,
+        "slotPick": 1,
+        "species": "Generic Reptile & Amphibian",
+        "card_id": 4,
+        "generic_reason": "unreleased"
+      }
+    }
+  ],
+  "card_fingerprints": {
+    "1": {
+      "species": "Generic Bird",
+      "class": "Bird",
+      "rarity": "Generic",
+      "generation": "unstable-test",
+      "is_generic": true,
+      "start_block": null,
+      "end_block": null
+    },
+    "2": {
+      "species": "Generic Fish",
+      "class": "Fish",
+      "rarity": "Generic",
+      "generation": "unstable-test",
+      "is_generic": true,
+      "start_block": null,
+      "end_block": null
+    },
+    "3": {
+      "species": "Generic Mammal",
+      "class": "Mammal",
+      "rarity": "Generic",
+      "generation": "unstable-test",
+      "is_generic": true,
+      "start_block": null,
+      "end_block": null
+    },
+    "4": {
+      "species": "Generic Reptile & Amphibian",
+      "class": "Reptile & Amphibian",
+      "rarity": "Generic",
+      "generation": "unstable-test",
+      "is_generic": true,
+      "start_block": null,
+      "end_block": null
+    },
+    "7": {
+      "species": "Turkey Vulture",
+      "class": "Bird",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 0,
+      "start_block": null,
+      "end_block": null
+    },
+    "8": {
+      "species": "American Robin",
+      "class": "Bird",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 1,
+      "start_block": null,
+      "end_block": null
+    },
+    "9": {
+      "species": "American Bald Eagle",
+      "class": "Bird",
+      "rarity": "Legendary",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 0,
+      "start_block": null,
+      "end_block": null
+    },
+    "10": {
+      "species": "Common Grackle",
+      "class": "Bird",
+      "rarity": "Rare",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 0,
+      "start_block": null,
+      "end_block": null
+    },
+    "11": {
+      "species": "Red-tailed Hawk",
+      "class": "Bird",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 2,
+      "start_block": null,
+      "end_block": null
+    },
+    "12": {
+      "species": "Gray Catbird",
+      "class": "Bird",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 3,
+      "start_block": null,
+      "end_block": null
+    },
+    "13": {
+      "species": "California Condor",
+      "class": "Bird",
+      "rarity": "Mythic",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 0,
+      "start_block": null,
+      "end_block": null
+    },
+    "14": {
+      "species": "Northern Cardinal",
+      "class": "Bird",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 4,
+      "start_block": null,
+      "end_block": null
+    },
+    "15": {
+      "species": "Blue Jay",
+      "class": "Bird",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 5,
+      "start_block": null,
+      "end_block": null
+    },
+    "16": {
+      "species": "White-breasted Nuthatch",
+      "class": "Bird",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 6,
+      "start_block": null,
+      "end_block": null
+    },
+    "17": {
+      "species": "Black Vulture",
+      "class": "Bird",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 7,
+      "start_block": null,
+      "end_block": null
+    }
+  }
+}

@@ -25,12 +25,47 @@
     }
 }(typeof self !== 'undefined' ? self : this, function (nodeCrypto) {
 
-    // Fixed slot counts and per-slot weights — must never change after release.
-    const RARITY_SLOT_COUNTS = { Common: 16, Rare: 8, Epic: 4, Legendary: 2, Mythic: 1 };
+    // Default slot counts and per-slot weights
+    const DEFAULT_RARITY_SLOT_COUNTS = { Common: 16, Rare: 8, Epic: 4, Legendary: 2, Mythic: 1 };
     const RARITY_WEIGHT = { Common: 16, Rare: 8, Epic: 4, Legendary: 2, Mythic: 1 };
+    const VALID_RARITIES = ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic'];
 
     // Highest → lowest rarity ranking used by the RABD cascade (see below).
     const CASCADE_ORDER = ['Mythic', 'Legendary', 'Epic', 'Rare', 'Common'];
+
+    // ---------------------------------------------------------------------------
+    // Slot layout selection — picks the active rarity-slot counts for a given block.
+    // slotLayouts is an array of { block, Common, Rare, Epic, Legendary, Mythic }
+    // sorted by block ascending.  The entry with the highest block ≤ blockNum wins.
+    // When slotLayouts is absent/empty, DEFAULT_RARITY_SLOT_COUNTS is used.
+    // ---------------------------------------------------------------------------
+    function getSlotLayoutForBlock(slotLayouts, blockNum) {
+        if (!Array.isArray(slotLayouts) || slotLayouts.length === 0) {
+            return DEFAULT_RARITY_SLOT_COUNTS;
+        }
+        // Must be sorted ascending by block
+        var best = null;
+        for (var i = 0; i < slotLayouts.length; i++) {
+            var entry = slotLayouts[i];
+            if (entry.block != null && entry.block <= blockNum) {
+                best = entry;
+            } else {
+                break; // entries are sorted, so no later entry will match either
+            }
+        }
+        if (!best) return DEFAULT_RARITY_SLOT_COUNTS;
+        // Build a RARITY_SLOT_COUNTS-shaped object from the entry
+        var out = {};
+        for (var r = 0; r < VALID_RARITIES.length; r++) {
+            var rarity = VALID_RARITIES[r];
+            if (typeof best[rarity] === 'number' && best[rarity] >= 1) {
+                out[rarity] = best[rarity];
+            } else {
+                out[rarity] = DEFAULT_RARITY_SLOT_COUNTS[rarity];
+            }
+        }
+        return out;
+    }
 
     // Given the originally-resolved rarity + global slotPick + optional RABD
     // constraints, return the effective (rarity, slot) the winner actually
@@ -39,13 +74,14 @@
     //   - cascaded slot = slotPick % bandWidth — deterministic; equals the
     //     original slotInRarity for the original rarity, and a valid in-band slot
     //     for any lower rarity.
-    function cascadeRarity(selectedRarity, slotPick, constraints) {
+    function cascadeRarity(selectedRarity, slotPick, constraints, slotCounts) {
+        slotCounts = slotCounts || DEFAULT_RARITY_SLOT_COUNTS;
         const minBurns = (constraints && constraints.rarity_min_burn) || null;
         const burn = constraints && constraints.winning_burn_amount;
 
         const keep = (r) => ({
             rarity: r,
-            slot: slotPick % RARITY_SLOT_COUNTS[r],
+            slot: slotPick % slotCounts[r],
             cascaded: false,
             note: null
         });
@@ -69,7 +105,7 @@
             if (burn >= (minBurns[r] || 0)) {
                 return {
                     rarity: r,
-                    slot: slotPick % RARITY_SLOT_COUNTS[r],
+                    slot: slotPick % slotCounts[r],
                     cascaded: true,
                     note: `Cascaded ${startHigh} → ${r} (burn ${burn} < ${startHigh} min ${minBurns[startHigh]})`
                 };
@@ -115,6 +151,11 @@
         const classOrder = Object.keys(classWeightsObj);
         const hashInt = await hashForSerial(serialNumber, blockHash);
 
+        // Step 0 — Select the active slot layout for this block (block 0 layout
+        // covers all past blocks; later layouts apply only to blocks ≥ their block).
+        const blockNum = parseInt(String(serialNumber), 10);
+        const slotCounts = getSlotLayoutForBlock(config.slot_layouts, blockNum);
+
         // Step 1 — Class allocation over 0..99 (weights must sum to 100).
         const offset = Number(hashInt % 100n);
         let className = null;
@@ -140,13 +181,14 @@
         // Common: 16, Rare: 8, Epic: 4, Legendary: 2, Mythic: 1 (slot counts).
         // Each slot is then weighted by its rarity multiplier (16/8/4/2/1).
         // Total weight = 16*16 + 8*8 + 4*4 + 2*2 + 1*1 = 341.
-        const rarityOrder = Object.keys(RARITY_SLOT_COUNTS);
+        const rarityOrder = Object.keys(slotCounts);
         const rarityRanges = {};
         const slotWeights = []; // one entry (the rarity multiplier) per slot
         let totalSlots = 0;
         let totalWeight = 0;
-        for (const r of rarityOrder) {
-            const count = RARITY_SLOT_COUNTS[r];
+        for (let ri = 0; ri < rarityOrder.length; ri++) {
+            const r = rarityOrder[ri];
+            const count = slotCounts[r];
             rarityRanges[r] = { start: totalSlots, end: totalSlots + count };
             for (let i = 0; i < count; i++) {
                 slotWeights.push(RARITY_WEIGHT[r]);
@@ -178,7 +220,7 @@
         // drop to the next lower rarity whose threshold the burn clears. If the
         // burn clears no threshold at all, cascadeRarity returns null and the
         // winner receives a permanent generic (generic_reason 'below_minimum').
-        const eff = cascadeRarity(selectedRarity, slotPick, constraints);
+        const eff = cascadeRarity(selectedRarity, slotPick, constraints, slotCounts);
         const effRarity = eff ? eff.rarity : null;
         const effSlot = eff ? eff.slot : null;
         const genericReason = eff ? 'unreleased' : 'below_minimum';
@@ -189,7 +231,6 @@
         }
 
         // Step 3 — Resolve the card for the effective slot at the winning block.
-        const blockNum = parseInt(String(serialNumber), 10);
 
         const active = classCards.find(c =>
             !c.is_generic &&
@@ -220,6 +261,6 @@
         return { status: 'none', className, rarity: effRarity, slot: effSlot, slotPick, card: null, generic_reason: genericReason, cascade: eff ? eff.note : null };
     }
 
-    return { hashForSerial, resolveCardForBlock, RARITY_SLOT_COUNTS, RARITY_WEIGHT };
+    return { hashForSerial, resolveCardForBlock, getSlotLayoutForBlock, DEFAULT_RARITY_SLOT_COUNTS, RARITY_WEIGHT };
 }));
 
