@@ -57,6 +57,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Default to the user's input if coming from another page with a query param? Optional.
 
+    renderDifficultyDashboard();
+
     searchForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -190,7 +192,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (slot.winner === account) {
                         const serial = `${blockNum}.${asset === 'STEEM' ? 0 : 1}`;
                         const trxId = slot.trx_id || '';
-                        const resolved = await api.resolveCardForBlock(serial, trxId);
+                        const resolved = await api.resolveCardForBlock(serial, trxId, { winningBurnAmount: slot.maxBurn });
                         found.push({
                             account: account,
                             status: resolved.status,

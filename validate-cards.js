@@ -124,6 +124,84 @@ function fmt(c) {
     return `${s}..${e}`;
 }
 
+// 6. rarity_difficulty (RABD) validation
+const rd = cfg.rarity_difficulty || null;
+if (rd) {
+    if (rd.enabled_block != null && !Number.isInteger(rd.enabled_block)) {
+        errors.push('rarity_difficulty.enabled_block must be an integer or null.');
+    }
+    if (rd.schedule != null) {
+        if (!Array.isArray(rd.schedule)) {
+            errors.push('rarity_difficulty.schedule must be an array.');
+        } else {
+            let prev = -Infinity;
+            rd.schedule.forEach((m, i) => {
+                if (typeof m !== 'object' || m === null || !Number.isInteger(m.block) || m.block < 0) {
+                    errors.push(`rarity_difficulty.schedule[${i}] must be an object with an integer block >= 0.`);
+                } else {
+                    if (m.block < prev) {
+                        warnings.push(`rarity_difficulty.schedule is not sorted ascending at index ${i}.`);
+                    }
+                    prev = m.block;
+                }
+                // per-rarity base_min_burns_steem (tiered floor override, STEEM)
+                if (m.base_min_burns_steem != null) {
+                    if (typeof m.base_min_burns_steem !== 'object' || Array.isArray(m.base_min_burns_steem)) {
+                        errors.push(`rarity_difficulty.schedule[${i}].base_min_burns_steem must be an object keyed by rarity.`);
+                    } else {
+                        for (const [r, v] of Object.entries(m.base_min_burns_steem)) {
+                            if (!VALID_RARITIES.has(r) || r === 'Generic') {
+                                errors.push(`rarity_difficulty.schedule[${i}].base_min_burns_steem has unknown rarity "${r}".`);
+                            } else if (typeof v !== 'number' || v < 0) {
+                                errors.push(`rarity_difficulty.schedule[${i}].base_min_burns_steem["${r}"] must be a number >= 0.`);
+                            }
+                        }
+                    }
+                }
+                // per-rarity base_min_burns_sbd (tiered floor override, SBD)
+                if (m.base_min_burns_sbd != null) {
+                    if (typeof m.base_min_burns_sbd !== 'object' || Array.isArray(m.base_min_burns_sbd)) {
+                        errors.push(`rarity_difficulty.schedule[${i}].base_min_burns_sbd must be an object keyed by rarity.`);
+                    } else {
+                        for (const [r, v] of Object.entries(m.base_min_burns_sbd)) {
+                            if (!VALID_RARITIES.has(r) || r === 'Generic') {
+                                errors.push(`rarity_difficulty.schedule[${i}].base_min_burns_sbd has unknown rarity "${r}".`);
+                            } else if (typeof v !== 'number' || v < 0) {
+                                errors.push(`rarity_difficulty.schedule[${i}].base_min_burns_sbd["${r}"] must be a number >= 0.`);
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+    const rar = rd.rarities || {};
+    for (const [r, s] of Object.entries(rar)) {
+        if (!VALID_RARITIES.has(r) || r === 'Generic') {
+            errors.push(`rarity_difficulty.rarities has unknown rarity "${r}".`);
+            continue;
+        }
+        if (typeof s.base_min_burn_steem !== 'number' || s.base_min_burn_steem < 0) {
+            errors.push(`rarity_difficulty.rarities["${r}"].base_min_burn_steem must be a number >= 0.`);
+        }
+        if (s.base_min_burn_sbd != null && (typeof s.base_min_burn_sbd !== 'number' || s.base_min_burn_sbd < 0)) {
+            errors.push(`rarity_difficulty.rarities["${r}"].base_min_burn_sbd must be a number >= 0 or omitted.`);
+        }
+    }
+    // Immutability: once enabled_block passes, every rarity_difficulty field at or
+    // before that block is locked (changing it retroactively alters past lookups).
+    // Only appending schedule milestones with block > enabled_block is safe.
+    if (rd.enabled_block != null && rd.enabled_block >= 0) {
+        const futureEntries = (rd.schedule || []).filter(s => s && s.block != null && s.block > rd.enabled_block);
+        warnings.push(
+            `rarity_difficulty is active from block ${rd.enabled_block}. After activation, ` +
+            'base_min_burn_steem / base_min_burn_sbd / schedule milestones retroactively affect past ' +
+            `resolutions, so only APPEND schedule milestones with block > ${rd.enabled_block}. ` +
+            `Future milestones currently defined: ${futureEntries.length}.`
+        );
+    }
+}
+
 console.log('validate-cards.js');
 console.log(`cards: ${cards.length}`);
 if (warnings.length) {

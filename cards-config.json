@@ -12,6 +12,22 @@
     "Legendary": 8,
     "Mythic": 16
   },
+"rarity_difficulty": {
+    "enabled_block": 108954600,
+    "schedule": [
+      { "block": 108954600,
+        "base_min_burns_steem": { "Common": 0.001, "Rare": 0.001, "Epic": 0.001, "Legendary": 0.001, "Mythic": 0.001 },
+        "base_min_burns_sbd": { "Common": 0.001, "Rare": 0.001, "Epic": 0.001, "Legendary": 0.001, "Mythic": 0.001 }
+      }
+    ],
+    "rarities": {
+      "Common":    { "base_min_burn_steem": 0.001, "base_min_burn_sbd": 0.001 },
+      "Rare":      { "base_min_burn_steem": 0.001, "base_min_burn_sbd": 0.001 },
+      "Epic":      { "base_min_burn_steem": 0.001, "base_min_burn_sbd": 0.001 },
+      "Legendary": { "base_min_burn_steem": 0.001, "base_min_burn_sbd": 0.001 },
+      "Mythic":    { "base_min_burn_steem": 0.001, "base_min_burn_sbd": 0.001 }
+    }
+  },
   "cards": [
     {
       "card_id": 1,

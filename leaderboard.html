@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Leaderboard - animalCards</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=7">
+    <link rel="stylesheet" href="style.css?v=12">
     <link rel="stylesheet" href="vaas.css?v=1">
 </head>
 <body>
@@ -27,6 +27,11 @@
     </header>
 
     <main class="container">
+        <div class="page-layout">
+            <aside id="difficulty-dashboard" class="difficulty-dashboard difficulty-sidebar">
+                <!-- Populated via JS -->
+            </aside>
+            <div class="page-content">
         <div class="page-header">
             <h2 class="page-title">Top Burners Leaderboard</h2>
             <div class="controls-section">
@@ -72,6 +77,8 @@
                 <!-- Populated via JS -->
             </div>
         </div>
+            </div>
+        </div>
     </main>
 
     <footer class="vaas-footer">
@@ -94,8 +101,9 @@
     </footer>
 
     <script src="card-resolver.js?v=1"></script>
-    <script src="blockchain-api.js?v=20"></script>
-    <script src="leaderboard.js?v=12"></script>
+<script src="difficulty.js?v=6"></script>
+    <script src="blockchain-api.js?v=31"></script>
+    <script src="leaderboard.js?v=14"></script>
     <script src="vaas.js?v=4"></script>
     <script>
         // Drop-in VAAS widget — adopts animalCards' glass design tokens.

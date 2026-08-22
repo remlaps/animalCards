@@ -16,6 +16,7 @@ rewards are resolved to a card defined in `cards-config.json`.
 | `cards-config.json` | **The card catalogue — the only file you edit to add/change cards** |
 | `validate-cards.js` | Config sanity checker — run `node validate-cards.js` before changing cards |
 | `resolve-card.js` | CLI to verify block/card assignments — run `node resolve-card.js <blockNumber>` |
+| `difficulty.js` | **RABD (rarity-adjusted burn difficulty)** — computes per-rarity minimum burns & cascade thresholds. Shared by the browser (`blockchain-api.js`) and `resolve-card.js` |
 | `style.css` | Shared styling |
 | `vaas.js` / `vaas.css` | Drop-in VAAS (Visibility as a Service) ticker — a themeable widget that rotates `@null` burn posts and promo/broadcast transfers. |
 
@@ -80,6 +81,57 @@ Rarity is shown on the site as derived from the slot position.
 
 ---
 
+## Rarity-Adjusted Burn Difficulty (RABD)
+
+RABD lets each rarity be independently **gated by a minimum burn threshold**, so scarce
+cards stay scarce. When the winning burn is below its rarity's minimum, the award
+**cascades** down to the next rarity whose minimum it clears — a winner always gets
+*something* that matches what they paid. Only when the burn clears **no** rarity's
+minimum is the result a permanent generic. Combined this is the answer to the
+"too many cards from BurnMaxxing titles" problem: instead of every block+asset
+minting freely, each rarity has its own demand-tuned threshold.
+
+Everything is deterministic and fully computable from the chain:
+
+- **`rarity_difficulty` config** — an optional block in `cards-config.json`. When
+  absent, or when `enabled_block` is `null`, minimum gating is **off** and nothing
+  changes (fully backward compatible). Set `enabled_block` to a future block to
+  switch it on from that block **forward** — cards already issued are never touched.
+- **Base minimums** — each rarity has `base_min_burn_steem` and `base_min_burn_sbd` floors
+  (the never-below minimum burn for cards of this rarity), set once in the root
+  `rarities` config. Below them you cannot hold that rarity. After activation
+  these are **immutable**.
+- **Schedule `base_min_burns`** — the schedule can raise a rarity's tiered floor
+  for both assets via per-rarity `base_min_burns_steem` and `base_min_burns_sbd`,
+  falling back to the root values. Once activated, this is the **only** per-rarity
+  tuning knob. Append-only after activation — always add new milestones, never
+  edit past ones.
+- **Cascading slot** — when an award drops to a lower rarity, its slot within that
+  rarity = `globalSlotPick % bandWidth` (deterministic; equals the original
+  within-band slot for the resolved rarity).
+
+The **effective minimum** for a rarity at a block is:
+
+```
+scheduleFloor(conf, rarity, blockNum)
+```
+
+where `scheduleFloor` returns the most recent schedule milestone's
+`base_min_burns_steem[rarity]` / `base_min_burns_sbd[rarity]`, falling back to
+root `rarities[rarity].base_min_burn_steem` / `base_min_burn_sbd`.
+Returns 0 when `enabled_block` is null or the block is before it.
+
+### Generic card reasons
+
+A generic card now carries a `generic_reason` so the UI can tell the two kinds apart:
+
+| `generic_reason` | Meaning |
+|------------------|---------|
+| `unreleased` | A species WILL fill this slot eventually — the card is a placeholder. |
+| `below_minimum` | The burn cleared no rarity's minimum — a species card is NOT on the horizon. Burn more to earn one. |
+
+---
+
 ## Verifying Block/Card Assignments (CLI)
 
 `node resolve-card.js <blockNumber>` reports the **slot**, **species**, and
@@ -128,6 +180,20 @@ backward, so very old blocks may be slow.
     "Epic": 4,
     "Legendary": 8,
     "Mythic": 16
+  },
+  "rarity_difficulty": {
+    // Optional minimum-burn gating. enabled_block null = off (backward compatible).
+    "enabled_block": null,
+    "schedule": [
+  { "block": 400000000, "base_min_burns_steem": { "Rare": 0.002, "Epic": 0.004, "Legendary": 0.008, "Mythic": 0.016 }, "base_min_burns_sbd": { "Rare": 0.002, "Epic": 0.004, "Legendary": 0.008, "Mythic": 0.016 } }
+],
+    "rarities": {
+      "Common":    { "base_min_burn_steem": 0.001, "base_min_burn_sbd": 0.001 },
+      "Rare":      { "base_min_burn_steem": 0.001, "base_min_burn_sbd": 0.001 },
+      "Epic":      { "base_min_burn_steem": 0.001, "base_min_burn_sbd": 0.001 },
+      "Legendary": { "base_min_burn_steem": 0.001, "base_min_burn_sbd": 0.001 },
+      "Mythic":    { "base_min_burn_steem": 0.001, "base_min_burn_sbd": 0.001 }
+    }
   },
   "cards": [
     {
@@ -246,6 +312,24 @@ The deterministic mapping is driven by each card's **`slot` + block window**, no
 
 ---
 
+### Rarity-adjusted difficulty (RABD) — immutability rules
+
+Once `rarity_difficulty.enabled_block` is set and that block has passed, every field that
+feeds the effective-minimum formula affects **past and future** lookups retroactively
+(the site resolves any block with the *current* config). Treat it like a released card's
+`slot`/`rarity`:
+
+| ❌ Forbidden after activation | ✅ Safe |
+|------------------------------|--------|
+| Change any `rarities.*.base_min_burn_steem` or `base_min_burn_sbd` | Append schedule milestones with `block > enabled_block` |
+| Edit/remove a `schedule` entry whose `block` has passed | |
+| Reorder an existing `schedule` entry | |
+
+`validate-cards.js` warns when an active `enabled_block` is present, reminding you to
+only append future milestones.
+
+---
+
 ## Validating the config
 
 Run `node validate-cards.js` from the repo root after *any* change to
@@ -267,3 +351,5 @@ non-zero on structural errors, making it easy to drop into CI.
 - Rarity values are case-sensitive: `Common`, `Rare`, `Epic`, `Legendary`, `Mythic`, `Generic`.
 - A rarity can never exceed its fixed slot band (16 Common, 8 Rare, 4 Epic, 2 Legendary,
   1 Mythic) **per generation**. Later generations may re-fill the same slots.
+- `rarity_difficulty` is **optional**; leave `enabled_block` null to keep it off. Set it
+  to a future block to enable RABD from that block forward — past cards are untouched.

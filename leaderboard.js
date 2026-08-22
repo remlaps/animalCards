@@ -87,13 +87,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const bData = blocksData[blockNum];
 
                 const winners = [
-                    { asset: 'STEEM', winner: bData.STEEM.winner, trx_id: bData.STEEM.trx_id, serial: `${blockNum}.0` },
-                    { asset: 'SBD', winner: bData.SBD.winner, trx_id: bData.SBD.trx_id, serial: `${blockNum}.1` }
+                    { asset: 'STEEM', winner: bData.STEEM.winner, trx_id: bData.STEEM.trx_id, serial: `${blockNum}.0`, amount: bData.STEEM.maxBurn },
+                    { asset: 'SBD', winner: bData.SBD.winner, trx_id: bData.SBD.trx_id, serial: `${blockNum}.1`, amount: bData.SBD.maxBurn }
                 ];
 
                 for (const w of winners) {
                     if (!w.winner) continue;
-                    const resolved = await api.resolveCardForBlock(w.serial, w.trx_id);
+                    const resolved = await api.resolveCardForBlock(w.serial, w.trx_id, { winningBurnAmount: w.amount });
                     const mint = {
                         account: w.winner,
                         status: resolved.status,
@@ -310,5 +310,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     timeFilter.addEventListener('change', loadLeaderboard);
+    renderDifficultyDashboard();
     loadLeaderboard();
 });
