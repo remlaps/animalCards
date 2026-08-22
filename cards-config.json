@@ -13,7 +13,7 @@
     "Mythic": 16
   },
 "slot_layouts": [
-    { "block": 0, "Common": 16, "Rare": 8, "Epic": 4, "Legendary": 2, "Mythic": 1 }
+    { "block": 0, "Common": 8, "Rare": 3, "Epic": 2, "Legendary": 2, "Mythic": 1 }
   ],
   "rarity_difficulty": {
     "enabled_block": 108954600,
