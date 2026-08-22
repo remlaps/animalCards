@@ -11,6 +11,7 @@
         .deck-header { text-align: center; margin: 2.5rem 0 1.5rem; }
         .deck-header h2 { font-family: 'Outfit', sans-serif; font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
         .deck-header p { color: var(--text-secondary); font-size: 1.05rem; }
+        .deck-summary { text-align: center; color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem; }
         .deck-legend { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; margin-bottom: 1.5rem; }
         .deck-legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--text-secondary); }
         .deck-legend-swatch { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; }
@@ -28,11 +29,11 @@
         .cell-card.generic { color: var(--text-secondary); font-style: italic; }
         .cell-species { font-weight: 600; font-size: 0.82rem; }
         .cell-in-slot { font-size: 0.72rem; color: var(--text-secondary); }
-        .rarity-Common  { background: rgba(148,163,184,0.2); }
-        .rarity-Rare    { background: rgba(59,130,246,0.15); }
-        .rarity-Epic    { background: rgba(139,92,246,0.15); }
-        .rarity-Legendary { background: rgba(245,158,11,0.15); }
-        .rarity-Mythic  { background: rgba(239,68,68,0.15); }
+        .rarity-Common  { background: rgba(148,163,184,0.35); }
+        .rarity-Rare    { background: rgba(59,130,246,0.25); }
+        .rarity-Epic    { background: rgba(139,92,246,0.25); }
+        .rarity-Legendary { background: rgba(245,158,11,0.25); }
+        .rarity-Mythic  { background: rgba(239,68,68,0.25); }
         .badge-Common    { background: #64748b; color: #fff; }
         .badge-Rare      { background: #3b82f6; color: #fff; }
         .badge-Epic      { background: #8b5cf6; color: #fff; }
@@ -45,7 +46,6 @@
         .swatch-Legendary { background: #f59e0b; }
         .swatch-Mythic    { background: #ef4444; }
         .empty-cell { color: rgba(148,163,184,0.3); font-size: 0.75rem; }
-        .deck-summary { text-align: center; color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 3rem; }
         @media (max-width: 768px) {
             .deck-header h2 { font-size: 1.5rem; }
             .deck-table { font-size: 0.72rem; }
@@ -75,8 +75,9 @@
     <main class="container">
         <div class="deck-header">
             <h2>Live Card Deck</h2>
-            <p>The complete grid of every species and generic card, organized by global slot (0–31) and class.</p>
+            <p>The complete grid of every species and generic card, organized by global slot (0&ndash;31) and class.</p>
         </div>
+        <div id="deck-summary" class="deck-summary"></div>
         <div id="deck-legend" class="deck-legend"></div>
         <div id="deck-table-container" class="deck-table-container">
             <div class="loader-container">
@@ -84,9 +85,7 @@
                 <p>Loading card deck...</p>
             </div>
         </div>
-        <div id="deck-summary" class="deck-summary"></div>
-    </main>
-    <footer class="site-footer">
+<footer class="site-footer">
         <div class="container footer-container">
             <span>animalCards</span>
             <span>&bull;</span>
@@ -130,28 +129,36 @@
                 for (let gs = 0; gs < TOTAL_SLOTS; gs++) {
                     const rarity = gsRarity(gs);
                     const inSlot = gsInSlot(gs);
+                    // Rarity class on the row for band tinting
                     html += '<tr class="band-' + rarity.toLowerCase() + '">';
-                    html += '<td><span class="slot-label">' + gs + '</span> <span class="slot-rarity-badge badge-' + rarity + '">' + rarity + '</span> <span class="cell-in-slot">#' + inSlot + '</span></td>';
+                    // Global slot column with rarity badge
+                    html += '<td class="rarity-' + rarity + '"><span class="slot-label">' + gs + '</span> <span class="slot-rarity-badge badge-' + rarity + '">' + rarity + '</span> <span class="cell-in-slot">#' + inSlot + '</span></td>';
                     for (const cls of classes) {
                         const key = cls + '|' + rarity + '|' + inSlot;
                         const card = cardIndex[key];
                         const generic = genericsByClass[cls];
+                        // Apply rarity tint to all cells, including generics and empty
+                        html += '<td class="rarity-' + rarity + '">';
                         if (card) {
                             releasedCount++;
-                            html += '<td class="rarity-' + rarity + '"><div class="cell-card released"><div class="cell-species">' + card.species + '</div><div><span class="slot-rarity-badge badge-' + rarity + '">' + rarity + '</span> <span class="cell-in-slot">slot #' + inSlot + '</span></div></div></td>';
+                            html += '<div class="cell-card released"><div class="cell-species">' + card.species + '</div><div><span class="slot-rarity-badge badge-' + rarity + '">' + rarity + '</span> <span class="cell-in-slot">slot #' + inSlot + '</span></div></div>';
                         } else if (generic) {
-                            html += '<td><div class="cell-card generic"><div class="cell-species">' + generic.species + '</div><div><span class="slot-rarity-badge badge-Generic">GENERIC</span> <span class="cell-in-slot">slot #' + inSlot + '</span></div></div></td>';
+                            html += '<div class="cell-card generic"><div class="cell-species">' + generic.species + '</div><div><span class="slot-rarity-badge badge-Generic">GENERIC</span> <span class="cell-in-slot">slot #' + inSlot + '</span></div></div>';
                         } else {
-                            html += '<td><div class="empty-cell">&mdash;</div></td>';
+                            html += '<div class="empty-cell">&mdash;</div>';
                         }
+                        html += '</td>';
                     }
                     html += '</tr>';
                 }
                 html += '</tbody></table>';
                 document.getElementById('deck-table-container').innerHTML = html;
-                document.getElementById('deck-legend').innerHTML = RARITY_NAMES.map(function(r) {
-                    return '<span class="deck-legend-item"><span class="deck-legend-swatch swatch-' + r + '"></span>' + r + '</span>';
-                }).join('') + '<span class="deck-legend-item"><span class="deck-legend-swatch swatch-Generic"></span>Generic</span>';
+                var legendHtml = '';
+                for (var i = 0; i < RARITY_NAMES.length; i++) {
+                    legendHtml += '<span class="deck-legend-item"><span class="deck-legend-swatch swatch-' + RARITY_NAMES[i] + '"></span>' + RARITY_NAMES[i] + '</span>';
+                }
+                legendHtml += '<span class="deck-legend-item"><span class="deck-legend-swatch swatch-Generic"></span>Generic</span>';
+                document.getElementById('deck-legend').innerHTML = legendHtml;
                 document.getElementById('deck-summary').textContent = releasedCount + ' species cards + ' + genericCount + ' generic placeholders across ' + classes.length + ' classes | ' + TOTAL_SLOTS + ' global slots | Loaded: ' + new Date().toLocaleString();
             } catch (e) {
                 document.getElementById('deck-table-container').innerHTML = '<div class="glass-panel" style="padding:2rem;text-align:center;color:#ef4444;"><p>Failed to load card deck: ' + e.message + '</p></div>';
@@ -161,3 +168,4 @@
     </script>
 </body>
 </html>
+    </main>
