@@ -1,7 +1,7 @@
 {
   "version": 1,
   "description": "Baseline snapshots for cards-config.json. Regenerate with: node test-cards.js --update-snapshots",
-  "generated_at": "2026-08-22T12:29:43.729Z",
+  "generated_at": "2026-08-22T13:13:37.504Z",
   "card_count": 15,
   "snapshot_cases": [
     {
@@ -11,8 +11,8 @@
         "status": "generic",
         "className": "Mammal",
         "rarity": "Common",
-        "slot": 6,
-        "slotPick": 6,
+        "slot": 1,
+        "slotPick": 1,
         "species": "Generic Mammal",
         "card_id": 3,
         "generic_reason": "unreleased"
@@ -25,8 +25,8 @@
         "status": "generic",
         "className": "Mammal",
         "rarity": "Common",
-        "slot": 10,
-        "slotPick": 10,
+        "slot": 7,
+        "slotPick": 7,
         "species": "Generic Mammal",
         "card_id": 3,
         "generic_reason": "unreleased"
@@ -40,7 +40,7 @@
         "className": "Bird",
         "rarity": "Rare",
         "slot": 0,
-        "slotPick": 16,
+        "slotPick": 9,
         "species": "Common Grackle",
         "card_id": 10,
         "generic_reason": null
@@ -50,42 +50,42 @@
       "serialNumber": "500000.1",
       "blockHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       "expected": {
-        "status": "generic",
+        "status": "released",
         "className": "Bird",
         "rarity": "Common",
-        "slot": 9,
-        "slotPick": 9,
-        "species": "Generic Bird",
-        "card_id": 1,
-        "generic_reason": "unreleased"
+        "slot": 2,
+        "slotPick": 2,
+        "species": "Red-tailed Hawk",
+        "card_id": 11,
+        "generic_reason": null
       }
     },
     {
       "serialNumber": "1000000.0",
       "blockHash": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
       "expected": {
-        "status": "generic",
+        "status": "released",
         "className": "Bird",
         "rarity": "Common",
-        "slot": 10,
-        "slotPick": 10,
-        "species": "Generic Bird",
-        "card_id": 1,
-        "generic_reason": "unreleased"
+        "slot": 1,
+        "slotPick": 1,
+        "species": "American Robin",
+        "card_id": 8,
+        "generic_reason": null
       }
     },
     {
       "serialNumber": "1000000.1",
       "blockHash": "cafebabecafebabecafebabecafebabecafebabecafebabecafebabecafebabe",
       "expected": {
-        "status": "generic",
+        "status": "released",
         "className": "Bird",
-        "rarity": "Rare",
-        "slot": 4,
-        "slotPick": 20,
-        "species": "Generic Bird",
-        "card_id": 1,
-        "generic_reason": "unreleased"
+        "rarity": "Common",
+        "slot": 2,
+        "slotPick": 2,
+        "species": "Red-tailed Hawk",
+        "card_id": 11,
+        "generic_reason": null
       }
     },
     {
@@ -94,11 +94,11 @@
       "expected": {
         "status": "released",
         "className": "Bird",
-        "rarity": "Common",
+        "rarity": "Rare",
         "slot": 0,
-        "slotPick": 0,
-        "species": "Turkey Vulture",
-        "card_id": 7,
+        "slotPick": 9,
+        "species": "Common Grackle",
+        "card_id": 10,
         "generic_reason": null
       }
     },
@@ -106,14 +106,14 @@
       "serialNumber": "2000000.1",
       "blockHash": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
       "expected": {
-        "status": "generic",
+        "status": "released",
         "className": "Bird",
-        "rarity": "Rare",
-        "slot": 6,
-        "slotPick": 22,
-        "species": "Generic Bird",
-        "card_id": 1,
-        "generic_reason": "unreleased"
+        "rarity": "Common",
+        "slot": 3,
+        "slotPick": 3,
+        "species": "Gray Catbird",
+        "card_id": 12,
+        "generic_reason": null
       }
     },
     {
@@ -123,8 +123,8 @@
         "status": "generic",
         "className": "Reptile & Amphibian",
         "rarity": "Common",
-        "slot": 11,
-        "slotPick": 11,
+        "slot": 1,
+        "slotPick": 1,
         "species": "Generic Reptile & Amphibian",
         "card_id": 4,
         "generic_reason": "unreleased"
@@ -137,8 +137,8 @@
         "status": "generic",
         "className": "Reptile & Amphibian",
         "rarity": "Common",
-        "slot": 2,
-        "slotPick": 2,
+        "slot": 4,
+        "slotPick": 4,
         "species": "Generic Reptile & Amphibian",
         "card_id": 4,
         "generic_reason": "unreleased"
@@ -151,8 +151,8 @@
         "status": "generic",
         "className": "Mammal",
         "rarity": "Common",
-        "slot": 9,
-        "slotPick": 9,
+        "slot": 1,
+        "slotPick": 1,
         "species": "Generic Mammal",
         "card_id": 3,
         "generic_reason": "unreleased"
@@ -164,9 +164,9 @@
       "expected": {
         "status": "generic",
         "className": "Reptile & Amphibian",
-        "rarity": "Rare",
-        "slot": 0,
-        "slotPick": 16,
+        "rarity": "Common",
+        "slot": 1,
+        "slotPick": 1,
         "species": "Generic Reptile & Amphibian",
         "card_id": 4,
         "generic_reason": "unreleased"
