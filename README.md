@@ -94,30 +94,18 @@ minting freely, each rarity has its own demand-tuned threshold.
 Everything is deterministic and fully computable from the chain:
 
 - **`rarity_difficulty` config** — an optional block in `cards-config.json`. When
-  absent, or when `enabled_block` is `null`, difficulty is **off** and nothing
+  absent, or when `enabled_block` is `null`, minimum gating is **off** and nothing
   changes (fully backward compatible). Set `enabled_block` to a future block to
   switch it on from that block **forward** — cards already issued are never touched.
-- **Base minimums** — each rarity has a `base_min_burn` floor (the never-below
-  minimum burn for cards of this rarity), set once in the root `rarities` config.
-  Below it you cannot hold that rarity. After activation this is **immutable**.
-- **Schedule `base_min_burns`** — the schedule can also raise a rarity's tiered
-  floor via per-rarity `base_min_burns`, falling back to the root
-  `base_min_burn`. This is the **tiered-pricing knob**: it separates rarity cost
-  tiers from the difficulty multipliers, so tiers survive a difficulty reset to
-  1.0. Append-only after activation, like everything else in the schedule.
-- **Schedule `multipliers`** — the `schedule` array scales a rarity at
-  `{ block, ... }` milestones via per-rarity `multipliers`, falling back to a
-  shared global `multiplier`. Pure config, no network, trivial to verify. To tune,
-  **append** new milestones with future blocks — never edit one whose block passed.
-  This is the **difficulty knob**: it scales the tiered floor up or down without
-  changing the ratio between rarities.
-- **Schedule `targets`** — the same array can adjust a rarity's cards-per-window
-  target over time via per-rarity `targets`, falling back to the root
-  `target_per_window`. Demand mode is opt-in: when a caller supplies real
-  historical award counts, the multiplier compounds window-over-window like
-  mining difficulty: actual > target → the rarity's minimum rises; actual < target
-  → it drifts back toward base (floor of 1). The window size (`window_blocks`)
-  damps oscillation — longer windows mean fewer compounding steps per real time.
+- **Base minimums** — each rarity has `base_min_burn_steem` and `base_min_burn_sbd` floors
+  (the never-below minimum burn for cards of this rarity), set once in the root
+  `rarities` config. Below them you cannot hold that rarity. After activation
+  these are **immutable**.
+- **Schedule `base_min_burns`** — the schedule can raise a rarity's tiered floor
+  for both assets via per-rarity `base_min_burns_steem` and `base_min_burns_sbd`,
+  falling back to the root values. Once activated, this is the **only** per-rarity
+  tuning knob. Append-only after activation — always add new milestones, never
+  edit past ones.
 - **Cascading slot** — when an award drops to a lower rarity, its slot within that
   rarity = `globalSlotPick % bandWidth` (deterministic; equals the original
   within-band slot for the resolved rarity).
@@ -125,11 +113,13 @@ Everything is deterministic and fully computable from the chain:
 The **effective minimum** for a rarity at a block is:
 
 ```
-max( floor, floor × scheduleMultiplier × demandMultiplier )
+scheduleFloor(conf, rarity, blockNum)
 ```
 
-where `floor` = the most recent schedule milestone's `base_min_burns[rarity]`,
-falling back to root `rarities[rarity].base_min_burn`.
+where `scheduleFloor` returns the most recent schedule milestone's
+`base_min_burns_steem[rarity]` / `base_min_burns_sbd[rarity]`, falling back to
+root `rarities[rarity].base_min_burn_steem` / `base_min_burn_sbd`.
+Returns 0 when `enabled_block` is null or the block is before it.
 
 ### Generic card reasons
 
@@ -192,21 +182,17 @@ backward, so very old blocks may be slow.
     "Mythic": 16
   },
   "rarity_difficulty": {
-    // Optional RABD. enabled_block null = off (backward compatible).
+    // Optional minimum-burn gating. enabled_block null = off (backward compatible).
     "enabled_block": null,
-    "window_blocks": 201600,
     "schedule": [
-  { "block": 100000000, "multiplier": 1.0 },
-  { "block": 200000000, "multiplier": 2.0 },
-  { "block": 300000000, "multiplier": 2.0, "multipliers": { "Mythic": 4.0 }, "targets": { "Mythic": 1000 } },
-  { "block": 400000000, "base_min_burns": { "Rare": 0.002, "Epic": 0.004, "Legendary": 0.008, "Mythic": 0.016 } }
+  { "block": 400000000, "base_min_burns_steem": { "Rare": 0.002, "Epic": 0.004, "Legendary": 0.008, "Mythic": 0.016 }, "base_min_burns_sbd": { "Rare": 0.002, "Epic": 0.004, "Legendary": 0.008, "Mythic": 0.016 } }
 ],
     "rarities": {
-      "Common":    { "base_min_burn": 0.001, "target_per_window": 60800 },
-      "Rare":      { "base_min_burn": 0.001, "target_per_window": 27000 },
-      "Epic":      { "base_min_burn": 0.001, "target_per_window": 9000 },
-      "Legendary": { "base_min_burn": 0.001, "target_per_window": 3000 },
-      "Mythic":    { "base_min_burn": 0.001, "target_per_window": 1000 }
+      "Common":    { "base_min_burn_steem": 0.001, "base_min_burn_sbd": 0.001 },
+      "Rare":      { "base_min_burn_steem": 0.001, "base_min_burn_sbd": 0.001 },
+      "Epic":      { "base_min_burn_steem": 0.001, "base_min_burn_sbd": 0.001 },
+      "Legendary": { "base_min_burn_steem": 0.001, "base_min_burn_sbd": 0.001 },
+      "Mythic":    { "base_min_burn_steem": 0.001, "base_min_burn_sbd": 0.001 }
     }
   },
   "cards": [
@@ -335,9 +321,7 @@ feeds the effective-minimum formula affects **past and future** lookups retroact
 
 | ❌ Forbidden after activation | ✅ Safe |
 |------------------------------|--------|
-| Change any `rarities.*.base_min_burn` | Append schedule milestones with `block > enabled_block` |
-| Change any `rarities.*.target_per_window` | Set per-rarity `targets` in new future milestones |
-| Change `window_blocks` | Set per-rarity `multipliers` in new future milestones |
+| Change any `rarities.*.base_min_burn_steem` or `base_min_burn_sbd` | Append schedule milestones with `block > enabled_block` |
 | Edit/remove a `schedule` entry whose `block` has passed | |
 | Reorder an existing `schedule` entry | |
 

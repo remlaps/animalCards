@@ -74,10 +74,17 @@ class BlockchainAPI {
         // RABD: if rarity_difficulty is configured, pass the effective per-rarity
         // minimum burns + this block's winning burn amount so the resolver can
         // cascade a below-threshold award down to a qualifying rarity.
+        // The serial number suffix (".0" = STEEM, ".1" = SBD) selects which
+        // asset's minimums apply.
         if (this.rawConfig && this.rawConfig.rarity_difficulty) {
             const blockNum = parseInt(String(serialNumber).split('.')[0], 10);
+            const parts = String(serialNumber).split('.');
+            const isSbd = parts.length > 1 && parts[1] === '1';
+            const minBurns = isSbd
+                ? (this.getEffectiveMinBurnsSBD(blockNum) || {})
+                : (this.getEffectiveMinBurns(blockNum) || {});
             constraints = {
-                rarity_min_burn: this.getEffectiveMinBurns(blockNum, opts.countsProvider) || {},
+                rarity_min_burn: minBurns,
                 winning_burn_amount: opts.winningBurnAmount
             };
         }
@@ -90,13 +97,15 @@ class BlockchainAPI {
     // Effective per-rarity minimum burns for a block (RABD). Delegates to the
     // shared difficulty.js module. Returns the standard shape even when
     // rarity_difficulty is absent/disabled (all zeroes → nothing is gated).
-    getEffectiveMinBurns(blockNum, countsProvider) {
+    getEffectiveMinBurns(blockNum) {
         if (!this.rawConfig) return null;
-        return CardDifficulty.effectiveMinBurns(blockNum, this.rawConfig, countsProvider);
+        return CardDifficulty.effectiveMinBurns(blockNum, this.rawConfig);
     }
-    getEffectiveMinBurns(blockNum, countsProvider) {
+
+    // Same but for SBD asset minimums.
+    getEffectiveMinBurnsSBD(blockNum) {
         if (!this.rawConfig) return null;
-        return CardDifficulty.effectiveMinBurns(blockNum, this.rawConfig, countsProvider);
+        return CardDifficulty.effectiveMinBurnsSBD(blockNum, this.rawConfig);
     }
 
     // Current chain head block via dynamic global properties.
@@ -106,75 +115,37 @@ class BlockchainAPI {
     }
 
     // Everything a difficulty-dashboard UI needs for one block: per-rarity
-    // effective minimum burns and the block at which difficulty next actually
-    // changes. "Next adjustment" is the earliest of (a) the next schedule
-    // milestone that alters effective minimums, and (b) the next demand-window
-    // boundary — the latter only when a >1 difficulty multiplier is currently
-    // in force (with a flat 1.0 difficulty the window boundary changes nothing,
-    // and with countsProvider unwired no demand multiplier is computed anyway).
-    // Returns null when rarity_difficulty is absent from the config.
+    // effective minimum burns and the block at which a floor-adjustment
+    // schedule milestone kicks in. Returns null when rarity_difficulty is absent.
     getDifficultyDashboard(blockNum) {
         const rd = this.rawConfig && this.rawConfig.rarity_difficulty;
         if (!rd) return null;
         const conf = CardDifficulty.normalize(this.rawConfig);
-        const enabled = rd.enabled_block != null;
-        const minBurns = this.getEffectiveMinBurns(blockNum) || {};
-        const windowBlocks = Number(rd.window_blocks) || 0;
-        const nextWindow = windowBlocks > 0
-            ? Math.ceil(blockNum / windowBlocks) * windowBlocks
-            : null;
-
-        const rarities = CardDifficulty.VALID_RARITIES
-            || ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic'];
-
-        // Any rarity currently scaled by a difficulty multiplier > 1?
-        const multiplierActive = enabled && rarities.some(r =>
-            (CardDifficulty.scheduleMultiplier(conf, blockNum, r) || 1) > 1
-        );
-
-        // The earliest future block at which the effective minimums actually
-        // change. Multiplier milestones apply at their window boundary
-        // (`ceil(block/window)*window`) — so even a milestone whose raw block is
-        // already past counts if its anchored boundary is still ahead.
-        // base_min_burns floors apply at the milestone block itself. Window
-        // boundaries also matter once a >1 multiplier is already in force
-        // (that is when demand re-adjusts).
-        let nextAdjustmentBlock = null;
-        if (enabled) {
-            const candidates = [];
-            if (multiplierActive && nextWindow != null) candidates.push(nextWindow);
-
-            const win = windowBlocks;
-            for (const m of conf.schedule) {
-                let pts = [];
-                if (m.multiplier != null || m.multipliers) {
-                    const b = win > 0 ? Math.ceil(m.block / win) * win : m.block;
-                    if (b > blockNum) pts.push(b);
-                }
-                if (m.base_min_burns && m.block > blockNum) pts.push(m.block); // floors immediate
-                if (m.targets && !(m.multiplier != null || m.multipliers) && m.block > blockNum) pts.push(m.block);
-                for (const b of new Set(pts)) {
-                    const before = CardDifficulty.effectiveMinBurns(Math.max(blockNum, b - 1), this.rawConfig);
-                    const after = CardDifficulty.effectiveMinBurns(b, this.rawConfig);
-                    const changed = rarities.some(r2 => (after[r2] || 0) !== (before[r2] || 0));
-                    if (changed) { candidates.push(b); break; }
-                }
-            }
-            if (candidates.length) nextAdjustmentBlock = Math.min(...candidates);
+        // Earliest future schedule milestone that actually changes floors for
+        // either asset (STEEM or SBD). Checks both base_min_burns and
+        // base_min_burns_sbd, so a milestone that only touches SBD is found.
+        let nextFloorBlock = null;
+        const currentSteem = this.getEffectiveMinBurns(blockNum) || {};
+        const currentSbd = this.getEffectiveMinBurnsSBD(blockNum) || {};
+        for (const m of conf.schedule) {
+            if (m.block <= blockNum) continue;
+            if (!m.base_min_burns_steem && !m.base_min_burns_sbd) continue;
+            const afterSteem = CardDifficulty.effectiveMinBurns(m.block, this.rawConfig);
+            const afterSbd = CardDifficulty.effectiveMinBurnsSBD(m.block, this.rawConfig);
+            const changed = Object.keys(currentSteem).some(
+                r => (afterSteem[r] || 0) !== (currentSteem[r] || 0)
+                  || (afterSbd[r] || 0) !== (currentSbd[r] || 0)
+            );
+            if (changed) { nextFloorBlock = m.block; break; }
         }
-
         return {
-            enabled: enabled,
+            enabled: rd.enabled_block != null,
             enabledBlock: rd.enabled_block,
             currentBlock: blockNum,
-            minBurns: minBurns,
-            windowBlocks: windowBlocks,
-            multiplierActive: multiplierActive,
-            nextWindowBlock: nextWindow,
-            nextAdjustmentBlock: nextAdjustmentBlock,
-            blocksRemaining: nextAdjustmentBlock != null
-                ? Math.max(0, nextAdjustmentBlock - blockNum)
-                : null
+            minBurnsSteem: currentSteem,
+            minBurnsSbd: currentSbd,
+            nextFloorBlock: nextFloorBlock,
+            blocksRemaining: nextFloorBlock != null ? Math.max(0, nextFloorBlock - blockNum) : null
         };
     }
 
@@ -261,45 +232,39 @@ async function renderDifficultyDashboard() {
         const info = api.getDifficultyDashboard(currentBlock);
         if (!info) { hide(); return; }
 
-        // "3d 2h" / "5h 10m" / "~12m" / "~8y 3d" from a block count (Steem ~3s/block)
+        const rarities = ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic'];
+        const fmt = v => Number(v).toFixed(3).replace(/\.?0+$/, '') || '0';
         const fmtDuration = blocks => {
             const s = blocks * 3;
-            const y = Math.floor(s / 31536000);
-            const d = Math.floor((s % 31536000) / 86400);
+            const d = Math.floor(s / 86400);
             const h = Math.floor((s % 86400) / 3600);
             const m = Math.floor((s % 3600) / 60);
-            if (y > 0) return `~${y}y ${d}d`;
             if (d > 0) return `~${d}d ${h}h`;
             if (h > 0) return `~${h}h ${m}m`;
             return `~${m}m`;
         };
-        const fmt = v => Number(v).toFixed(3).replace(/\.?0+$/, '') || '0';
+        const fmtRange = (s, sb) => `${fmt(s)} / ${fmt(sb)}`;
 
-        const rarities = ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic'];
-
-        // Header: title left, current block right
-        const head = `
-            <div class="dash-head">
-                <span class="dash-title">Burn Difficulty</span>
-                <span class="dash-block">⛓ <b>#${currentBlock.toLocaleString()}</b></span>
+        const head = `<div class="dash-head">
+                <span class="dash-title">Burn Minimums</span>
             </div>`;
 
-        // Body: slim vertical table (name-left / value-right, aligned as a grid)
         let body;
         if (!info.enabled) {
             body = `<p class="dash-note">not yet activated</p>`;
         } else {
-            body = `<div class="dash-table">` + rarities.map(r =>
+            body = `<div class="dash-table">` +
+                `<span class="dash-colhead" style="grid-column: 2 / -1; text-align: right;">STEEM / SBD</span>` +
+                rarities.map(r =>
                 `<i class="dash-dot" data-r="${r.toLowerCase()}"></i>` +
                 `<span class="dash-name">${r}</span>` +
-                `<span class="dash-val">${fmt(info.minBurns[r] || 0)}</span>`
+                `<span class="dash-val">${fmtRange(info.minBurnsSteem[r], info.minBurnsSbd[r])}</span>`
             ).join('') + `</div>`;
         }
 
-        // Footer: next adjustment — only when one is actually scheduled
-        const foot = info.nextAdjustmentBlock != null
-            ? `<div class="dash-foot">Next adjustment
-                    <b>#${info.nextAdjustmentBlock.toLocaleString()}</b>
+        const foot = info.nextFloorBlock != null
+            ? `<div class="dash-foot">Next floor adjustment
+                    <b>#${info.nextFloorBlock.toLocaleString()}</b>
                     <span class="dash-in">· ${fmtDuration(info.blocksRemaining)}</span></div>`
             : '';
 

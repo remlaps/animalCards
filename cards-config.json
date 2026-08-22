@@ -13,20 +13,19 @@
     "Mythic": 16
   },
 "rarity_difficulty": {
-    "enabled_block": 108893423,
-    "window_blocks": 201600,
+    "enabled_block": 108954600,
     "schedule": [
-      { "block": 108893423, "multiplier": 2.0 },
-      { "block": 200000000, "multiplier": 2.0 },
-      { "block": 300000000, "multiplier": 4.0, "multipliers": { "Mythic": 8.0 }, "targets": { "Mythic": 1000 } },
-      { "block": 400000000, "base_min_burns": { "Rare": 0.002, "Epic": 0.004, "Legendary": 0.008, "Mythic": 0.016 } }
+      { "block": 108954600,
+        "base_min_burns_steem": { "Common": 0.001, "Rare": 0.001, "Epic": 0.001, "Legendary": 0.001, "Mythic": 0.001 },
+        "base_min_burns_sbd": { "Common": 0.001, "Rare": 0.001, "Epic": 0.001, "Legendary": 0.001, "Mythic": 0.001 }
+      }
     ],
     "rarities": {
-      "Common":    { "base_min_burn": 0.001, "target_per_window": 60800 },
-      "Rare":      { "base_min_burn": 0.001, "target_per_window": 27000 },
-      "Epic":      { "base_min_burn": 0.001, "target_per_window": 9000 },
-      "Legendary": { "base_min_burn": 0.001, "target_per_window": 3000 },
-      "Mythic":    { "base_min_burn": 0.001, "target_per_window": 1000 }
+      "Common":    { "base_min_burn_steem": 0.001, "base_min_burn_sbd": 0.001 },
+      "Rare":      { "base_min_burn_steem": 0.001, "base_min_burn_sbd": 0.001 },
+      "Epic":      { "base_min_burn_steem": 0.001, "base_min_burn_sbd": 0.001 },
+      "Legendary": { "base_min_burn_steem": 0.001, "base_min_burn_sbd": 0.001 },
+      "Mythic":    { "base_min_burn_steem": 0.001, "base_min_burn_sbd": 0.001 }
     }
   },
   "cards": [
