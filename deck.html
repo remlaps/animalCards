@@ -118,23 +118,41 @@
             }
         }).mount('#vaas-mount');
 
-        const RARITY_RANGES = [
-            { rarity: 'Common', start: 0, end: 16 },
-            { rarity: 'Rare', start: 16, end: 24 },
-            { rarity: 'Epic', start: 24, end: 28 },
-            { rarity: 'Legendary', start: 28, end: 30 },
-            { rarity: 'Mythic', start: 30, end: 31 }
-        ];
-        const TOTAL_SLOTS = 31;
         const RARITY_NAMES = ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic'];
-        function gsRarity(gs) { for (const r of RARITY_RANGES) { if (gs >= r.start && gs < r.end) return r.rarity; } return null; }
-        function gsInSlot(gs) { for (const r of RARITY_RANGES) { if (gs >= r.start && gs < r.end) return gs - r.start; } return null; }
+        const RARITY_WEIGHT = { Common: 16, Rare: 8, Epic: 4, Legendary: 2, Mythic: 1 };
+
+        // Build RARITY_RANGES from a slot_layouts entry (or default 31-slot layout)
+        function buildRanges(layout) {
+            var ranges = [];
+            var start = 0;
+            for (var i = 0; i < RARITY_NAMES.length; i++) {
+                var r = RARITY_NAMES[i];
+                var count = (layout && layout[r] != null) ? layout[r] : 16;
+                if (i === 0) count = 16; // keep Common default if missing
+                ranges.push({ rarity: r, start: start, end: start + count });
+                start += count;
+            }
+            return ranges;
+        }
+
+        function gsRarity(ranges, gs) { for (var r of ranges) { if (gs >= r.start && gs < r.end) return r.rarity; } return null; }
+        function gsInSlot(ranges, gs) { for (var r of ranges) { if (gs >= r.start && gs < r.end) return gs - r.start; } return null; }
+
         async function loadDeck() {
             try {
                 const res = await fetch('cards-config.json?v=' + Date.now());
                 const config = await res.json();
                 const classes = Object.keys(config.class_weights || {});
                 const cards = config.cards || [];
+
+                // Pick the last slot_layouts entry (highest block number) for display
+                var layout = null;
+                if (Array.isArray(config.slot_layouts) && config.slot_layouts.length > 0) {
+                    layout = config.slot_layouts[config.slot_layouts.length - 1];
+                }
+                const ranges = buildRanges(layout);
+                const totalSlots = ranges.reduce(function(acc, r) { return acc + (r.end - r.start); }, 0);
+
                 const cardIndex = {};
                 const genericsByClass = {};
                 for (const c of cards) {
@@ -146,18 +164,16 @@
                 let html = '<table class="deck-table"><thead><tr><th>Global Slot</th>';
                 for (const cls of classes) html += '<th>' + cls + '</th>';
                 html += '</tr></thead><tbody>';
-                for (let gs = 0; gs < TOTAL_SLOTS; gs++) {
-                    const rarity = gsRarity(gs);
-                    const inSlot = gsInSlot(gs);
-                    // Rarity class on the row for band tinting
+                for (let gs = 0; gs < totalSlots; gs++) {
+                    const rarity = gsRarity(ranges, gs);
+                    if (!rarity) continue;
+                    const inSlot = gsInSlot(ranges, gs);
                     html += '<tr class="band-' + rarity.toLowerCase() + '">';
-                    // Global slot column with rarity badge
                     html += '<td class="rarity-' + rarity + '"><span class="slot-label">' + gs + '</span> <span class="slot-rarity-badge badge-' + rarity + '">' + rarity + '</span> <span class="cell-in-slot">#' + inSlot + '</span></td>';
                     for (const cls of classes) {
                         const key = cls + '|' + rarity + '|' + inSlot;
                         const card = cardIndex[key];
                         const generic = genericsByClass[cls];
-                        // Apply rarity tint to all cells, including generics and empty
                         html += '<td class="rarity-' + rarity + '">';
                         if (card) {
                             releasedCount++;
@@ -179,7 +195,7 @@
                 }
                 legendHtml += '<span class="deck-legend-item"><span class="deck-legend-swatch swatch-Generic"></span>Generic</span>';
                 document.getElementById('deck-legend').innerHTML = legendHtml;
-                document.getElementById('deck-summary').textContent = releasedCount + ' species cards + ' + genericCount + ' generic placeholders across ' + classes.length + ' classes | ' + TOTAL_SLOTS + ' global slots | Loaded: ' + new Date().toLocaleString();
+                document.getElementById('deck-summary').textContent = releasedCount + ' species cards + ' + genericCount + ' generic placeholders across ' + classes.length + ' classes | ' + totalSlots + ' global slots | Layout: ' + (layout && layout.block != null ? 'block ' + layout.block : 'default') + ' | Loaded: ' + new Date().toLocaleString();
             } catch (e) {
                 document.getElementById('deck-table-container').innerHTML = '<div class="glass-panel" style="padding:2rem;text-align:center;color:#ef4444;"><p>Failed to load card deck: ' + e.message + '</p></div>';
             }

@@ -81,7 +81,7 @@ function serialFor(blockNum, asset) {
 
 // 0-based slot band (e.g. "0-7") for a rarity, from the shared config constant.
 function slotRangeFor(rarity) {
-    const count = CardResolver.RARITY_SLOT_COUNTS[rarity];
+    const count = CardResolver.DEFAULT_RARITY_SLOT_COUNTS[rarity];
     return count == null ? '-' : `0-${count - 1}`;
 }
 

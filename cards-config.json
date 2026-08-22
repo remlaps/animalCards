@@ -12,7 +12,10 @@
     "Legendary": 8,
     "Mythic": 16
   },
-"rarity_difficulty": {
+"slot_layouts": [
+    { "block": 0, "Common": 16, "Rare": 8, "Epic": 4, "Legendary": 2, "Mythic": 1 }
+  ],
+  "rarity_difficulty": {
     "enabled_block": 108954600,
     "schedule": [
       { "block": 108954600,

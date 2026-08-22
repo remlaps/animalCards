@@ -90,7 +90,8 @@ class BlockchainAPI {
         }
         return CardResolver.resolveCardForBlock(serialNumber, blockHash, {
             cards: this.cardsConfig,
-            class_weights: this.classWeightsObj
+            class_weights: this.classWeightsObj,
+            slot_layouts: this.rawConfig ? this.rawConfig.slot_layouts : null
         }, constraints);
     }
 

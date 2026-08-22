@@ -202,6 +202,46 @@ if (rd) {
     }
 }
 
+// 7. slot_layouts validation
+const slotLayouts = cfg.slot_layouts || [];
+if (!Array.isArray(slotLayouts)) {
+    errors.push('slot_layouts must be an array.');
+} else if (slotLayouts.length > 0) {
+    let prevBlock = -Infinity;
+    slotLayouts.forEach((layout, i) => {
+        if (typeof layout !== 'object' || layout === null) {
+            errors.push(`slot_layouts[${i}] must be an object.`);
+            return;
+        }
+        if (layout.block != null && !Number.isInteger(layout.block)) {
+            errors.push(`slot_layouts[${i}].block must be an integer.`);
+        }
+        if (i === 0 && (layout.block == null || layout.block !== 0)) {
+            errors.push(`slot_layouts[0] must have block === 0 (earliest layout at genesis).`);
+        }
+        if (i > 0 && layout.block != null && layout.block <= prevBlock) {
+            errors.push(`slot_layouts[${i}] block ${layout.block} is not > previous block ${prevBlock}.`);
+        }
+        if (layout.block != null) prevBlock = layout.block;
+        // Validate each rarity slot count
+        ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic'].forEach(function(r) {
+            if (layout[r] != null) {
+                if (!Number.isInteger(layout[r]) || layout[r] < 1) {
+                    errors.push(`slot_layouts[${i}].${r} must be a positive integer, got ${layout[r]}.`);
+                }
+            } else {
+                errors.push(`slot_layouts[${i}].${r} is missing.`);
+            }
+        });
+    });
+    // Warn about immutability: once a layout's block has passed, the entry is locked.
+    // Only appending new layouts with future blocks is safe.
+    warnings.push(
+        `slot_layouts defined with ${slotLayouts.length} entry(s). After block 0, each ` +
+        'slot_layouts entry is immutable — past blocks depend on it. Only APPEND new entries with future block numbers.'
+    );
+}
+
 console.log('validate-cards.js');
 console.log(`cards: ${cards.length}`);
 if (warnings.length) {

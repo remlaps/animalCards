@@ -379,4 +379,3 @@ async function main() {
 }
 
 main().catch(function (err) { console.error('Fatal: ' + (err.message || String(err))); process.exit(1); });
-var VALID_RARITIES = new Set(['Generic', ...Object.keys(RARITY_SLOT_COUNTS)]);
