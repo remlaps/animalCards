@@ -128,7 +128,6 @@
             for (var i = 0; i < RARITY_NAMES.length; i++) {
                 var r = RARITY_NAMES[i];
                 var count = (layout && layout[r] != null) ? layout[r] : 16;
-                if (i === 0) count = 16; // keep Common default if missing
                 ranges.push({ rarity: r, start: start, end: start + count });
                 start += count;
             }
