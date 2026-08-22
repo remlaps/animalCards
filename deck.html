@@ -30,6 +30,7 @@
         .cell-card.generic { color: var(--text-secondary); font-style: italic; }
         .cell-species { font-weight: 600; font-size: 0.82rem; }
         .cell-in-slot { font-size: 0.72rem; color: var(--text-secondary); }
+        .cell-generation { font-size: 0.68rem; color: var(--text-secondary); margin-bottom: 1px; }
         .rarity-Common  { background: rgba(148,163,184,0.35); }
         .rarity-Rare    { background: rgba(59,130,246,0.25); }
         .rarity-Epic    { background: rgba(139,92,246,0.25); }
@@ -160,9 +161,9 @@
                         html += '<td class="rarity-' + rarity + '">';
                         if (card) {
                             releasedCount++;
-                            html += '<div class="cell-card released"><div class="cell-species">' + card.species + '</div><div><span class="slot-rarity-badge badge-' + rarity + '">' + rarity + '</span> <span class="cell-in-slot">slot #' + inSlot + '</span></div></div>';
+                            html += '<div class="cell-card released"><div class="cell-species">' + card.species + '</div><div class="cell-generation">' + card.generation + '</div><div><span class="slot-rarity-badge badge-' + rarity + '">' + rarity + '</span> <span class="cell-in-slot">slot #' + inSlot + '</span></div></div>';
                         } else if (generic) {
-                            html += '<div class="cell-card generic"><div class="cell-species">' + generic.species + '</div><div><span class="slot-rarity-badge badge-Generic">GENERIC</span> <span class="cell-in-slot">slot #' + inSlot + '</span></div></div>';
+                            html += '<div class="cell-card generic"><div class="cell-species">' + generic.species + '</div><div class="cell-generation">' + generic.generation + '</div><div><span class="slot-rarity-badge badge-Generic">GENERIC</span> <span class="cell-in-slot">slot #' + inSlot + '</span></div></div>';
                         } else {
                             html += '<div class="empty-cell">&mdash;</div>';
                         }
