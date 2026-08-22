@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Live animalCards deck grid.">
+    <title>Card Deck - animalCards</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=12">
+    <style>
+        .deck-header { text-align: center; margin: 2.5rem 0 1.5rem; }
+        .deck-header h2 { font-family: 'Outfit', sans-serif; font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .deck-header p { color: var(--text-secondary); font-size: 1.05rem; }
+        .deck-legend { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; margin-bottom: 1.5rem; }
+        .deck-legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--text-secondary); }
+        .deck-legend-swatch { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; }
+        .deck-table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 2rem; border-radius: 16px; }
+        .deck-table { width: 100%; min-width: 900px; border-collapse: separate; border-spacing: 0; background: var(--glass-bg); backdrop-filter: blur(12px); border: 1px solid var(--glass-border); border-radius: 16px; overflow: hidden; font-size: 0.82rem; }
+        .deck-table th { background: rgba(59,130,246,0.15); padding: 0.75rem 0.6rem; font-family: 'Outfit', sans-serif; font-weight: 600; text-align: center; border-bottom: 2px solid var(--glass-border); white-space: nowrap; }
+        .deck-table th:first-child { text-align: center; min-width: 70px; }
+        .deck-table td { padding: 0.5rem 0.4rem; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; line-height: 1.3; }
+        .deck-table tr:last-child td { border-bottom: none; }
+        .deck-table tr:hover td { background: rgba(255,255,255,0.03); }
+        .slot-label { font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap; }
+        .slot-rarity-badge { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+        .cell-card { padding: 0.2rem 0; }
+        .cell-card.released { color: var(--text-primary); }
+        .cell-card.generic { color: var(--text-secondary); font-style: italic; }
+        .cell-species { font-weight: 600; font-size: 0.82rem; }
+        .cell-in-slot { font-size: 0.72rem; color: var(--text-secondary); }
+        .rarity-Common  { background: rgba(148,163,184,0.2); }
+        .rarity-Rare    { background: rgba(59,130,246,0.15); }
+        .rarity-Epic    { background: rgba(139,92,246,0.15); }
+        .rarity-Legendary { background: rgba(245,158,11,0.15); }
+        .rarity-Mythic  { background: rgba(239,68,68,0.15); }
+        .badge-Common    { background: #64748b; color: #fff; }
+        .badge-Rare      { background: #3b82f6; color: #fff; }
+        .badge-Epic      { background: #8b5cf6; color: #fff; }
+        .badge-Legendary { background: #f59e0b; color: #1e293b; }
+        .badge-Mythic    { background: #ef4444; color: #fff; }
+        .badge-Generic   { background: #475569; color: #94a3b8; }
+        .swatch-Common    { background: #64748b; }
+        .swatch-Rare      { background: #3b82f6; }
+        .swatch-Epic      { background: #8b5cf6; }
+        .swatch-Legendary { background: #f59e0b; }
+        .swatch-Mythic    { background: #ef4444; }
+        .empty-cell { color: rgba(148,163,184,0.3); font-size: 0.75rem; }
+        .deck-summary { text-align: center; color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 3rem; }
+        @media (max-width: 768px) {
+            .deck-header h2 { font-size: 1.5rem; }
+            .deck-table { font-size: 0.72rem; }
+            .deck-table th, .deck-table td { padding: 0.4rem 0.3rem; }
+            .slot-label { font-size: 0.75rem; }
+            .cell-species { font-size: 0.72rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+    <header class="glass-header">
+        <div class="container header-container">
+            <h1 class="logo">animal<span>Cards</span></h1>
+            <nav class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="leaderboard.html">Leaderboard</a>
+                <a href="search.html">Portfolio Search</a>
+                <a href="deck.html" class="active">Card Deck</a>
+            </nav>
+        </div>
+    </header>
+    <main class="container">
+        <div class="deck-header">
+            <h2>Live Card Deck</h2>
+            <p>The complete grid of every species and generic card, organized by global slot (0–31) and class.</p>
+        </div>
+        <div id="deck-legend" class="deck-legend"></div>
+        <div id="deck-table-container" class="deck-table-container">
+            <div class="loader-container">
+                <div class="spinner"></div>
+                <p>Loading card deck...</p>
+            </div>
+        </div>
+        <div id="deck-summary" class="deck-summary"></div>
+    </main>
+    <footer class="site-footer">
+        <div class="container footer-container">
+            <span>animalCards</span>
+            <span>&bull;</span>
+            <a href="https://github.com/remlaps/animalCards" target="_blank" rel="noopener noreferrer">
+                <svg class="footer-github-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.5-.3-5.1-1.2-5.1-5.5 0-1.2.4-2.2 1.1-3-.1-.3-.5-1.4.1-2.9 0 0 .9-.3 3 1.1a10 10 0 0 1 5.5 0c2.1-1.4 3-1.1 3-1.1.6 1.5.2 2.6.1 2.9.7.8 1.1 1.8 1.1 3 0 4.3-2.6 5.2-5.1 5.5.4.3.8 1 .8 2.1v3c0 .3.2.7.8.6A11.5 11.5 0 0 0 23.5 12C23.5 5.7 18.3.5 12 .5z"/>
+                </svg>
+                GitHub
+            </a>
+        </div>
+    </footer>
+    <script>
+        const RARITY_RANGES = [
+            { rarity: 'Common', start: 0, end: 16 },
+            { rarity: 'Rare', start: 16, end: 24 },
+            { rarity: 'Epic', start: 24, end: 28 },
+            { rarity: 'Legendary', start: 28, end: 30 },
+            { rarity: 'Mythic', start: 30, end: 31 }
+        ];
+        const TOTAL_SLOTS = 31;
+        const RARITY_NAMES = ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic'];
+        function gsRarity(gs) { for (const r of RARITY_RANGES) { if (gs >= r.start && gs < r.end) return r.rarity; } return null; }
+        function gsInSlot(gs) { for (const r of RARITY_RANGES) { if (gs >= r.start && gs < r.end) return gs - r.start; } return null; }
+        async function loadDeck() {
+            try {
+                const res = await fetch('cards-config.json?v=' + Date.now());
+                const config = await res.json();
+                const classes = Object.keys(config.class_weights || {});
+                const cards = config.cards || [];
+                const cardIndex = {};
+                const genericsByClass = {};
+                for (const c of cards) {
+                    if (c.is_generic) { genericsByClass[c.class] = c; }
+                    else { cardIndex[c.class + '|' + c.rarity + '|' + c.slot] = c; }
+                }
+                let releasedCount = 0;
+                let genericCount = Object.keys(genericsByClass).length;
+                let html = '<table class="deck-table"><thead><tr><th>Global Slot</th>';
+                for (const cls of classes) html += '<th>' + cls + '</th>';
+                html += '</tr></thead><tbody>';
+                for (let gs = 0; gs < TOTAL_SLOTS; gs++) {
+                    const rarity = gsRarity(gs);
+                    const inSlot = gsInSlot(gs);
+                    html += '<tr class="band-' + rarity.toLowerCase() + '">';
+                    html += '<td><span class="slot-label">' + gs + '</span> <span class="slot-rarity-badge badge-' + rarity + '">' + rarity + '</span> <span class="cell-in-slot">#' + inSlot + '</span></td>';
+                    for (const cls of classes) {
+                        const key = cls + '|' + rarity + '|' + inSlot;
+                        const card = cardIndex[key];
+                        const generic = genericsByClass[cls];
+                        if (card) {
+                            releasedCount++;
+                            html += '<td class="rarity-' + rarity + '"><div class="cell-card released"><div class="cell-species">' + card.species + '</div><div><span class="slot-rarity-badge badge-' + rarity + '">' + rarity + '</span> <span class="cell-in-slot">slot #' + inSlot + '</span></div></div></td>';
+                        } else if (generic) {
+                            html += '<td><div class="cell-card generic"><div class="cell-species">' + generic.species + '</div><div><span class="slot-rarity-badge badge-Generic">GENERIC</span> <span class="cell-in-slot">slot #' + inSlot + '</span></div></div></td>';
+                        } else {
+                            html += '<td><div class="empty-cell">&mdash;</div></td>';
+                        }
+                    }
+                    html += '</tr>';
+                }
+                html += '</tbody></table>';
+                document.getElementById('deck-table-container').innerHTML = html;
+                document.getElementById('deck-legend').innerHTML = RARITY_NAMES.map(function(r) {
+                    return '<span class="deck-legend-item"><span class="deck-legend-swatch swatch-' + r + '"></span>' + r + '</span>';
+                }).join('') + '<span class="deck-legend-item"><span class="deck-legend-swatch swatch-Generic"></span>Generic</span>';
+                document.getElementById('deck-summary').textContent = releasedCount + ' species cards + ' + genericCount + ' generic placeholders across ' + classes.length + ' classes | ' + TOTAL_SLOTS + ' global slots | Loaded: ' + new Date().toLocaleString();
+            } catch (e) {
+                document.getElementById('deck-table-container').innerHTML = '<div class="glass-panel" style="padding:2rem;text-align:center;color:#ef4444;"><p>Failed to load card deck: ' + e.message + '</p></div>';
+            }
+        }
+        loadDeck();
+    </script>
+</body>
+</html>
