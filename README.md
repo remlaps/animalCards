@@ -54,7 +54,7 @@ is hashed with the block hash to produce a deterministic integer. The algorithm 
    |--------|-------|
    | Common | 16 |
    | Rare | 8 |
-   | Epic | 4 |
+   | Epic ≤ | 4 |
    | Legendary | 2 |
    | Mythic | 1 |
    | **Total** | **31** |
@@ -101,11 +101,17 @@ Everything is deterministic and fully computable from the chain:
   (the never-below minimum burn for cards of this rarity), set once in the root
   `rarities` config. Below them you cannot hold that rarity. After activation
   these are **immutable**.
+  The minimum burn values must be **non-decreasing** from Common to Mythic for each
+  asset: Common ≤ Rare ≤ Epic ≤ Legendary ≤ Mythic. Equal values across tiers are
+  allowed. Setting a lower tier higher than an upper tier causes nonsensical cascade
+  results — the validator (`validate-cards.js`) rejects non-monotonic configs as errors.
 - **Schedule `base_min_burns`** — the schedule can raise a rarity's tiered floor
   for both assets via per-rarity `base_min_burns_steem` and `base_min_burns_sbd`,
   falling back to the root values. Once activated, this is the **only** per-rarity
   tuning knob. Append-only after activation — always add new milestones, never
-  edit past ones.
+edit past ones.
+  The **effective** minimums at any block (milestone values merged with root
+  defaults) must also be non-decreasing across rarity tiers.
 - **Cascading slot** — when an award drops to a lower rarity, its slot within that
   rarity = `globalSlotPick % bandWidth` (deterministic; equals the original
   within-band slot for the resolved rarity).

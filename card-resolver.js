@@ -71,6 +71,8 @@
     // constraints, return the effective (rarity, slot) the winner actually
     // receives, or null when the burn clears no rarity's minimum at all.
     //   - no constraints / no difficulty / no finite burn → keep original rarity.
+    //   - constraints.tie = true → downgrade one rarity tier (e.g. Rare → Common)
+    //     after the normal cascade, so tied accounts get a lower card.
     //   - cascaded slot = slotPick % bandWidth — deterministic; equals the
     //     original slotInRarity for the original rarity, and a valid in-band slot
     //     for any lower rarity.
@@ -78,6 +80,7 @@
         slotCounts = slotCounts || DEFAULT_RARITY_SLOT_COUNTS;
         const minBurns = (constraints && constraints.rarity_min_burn) || null;
         const burn = constraints && constraints.winning_burn_amount;
+        const isTie = constraints && constraints.tie;
 
         const keep = (r) => ({
             rarity: r,
@@ -86,34 +89,53 @@
             note: null
         });
 
+        // Downgrade one rarity tier (used for ties). Returns null when already
+        // at Common or the input is null.
+        const downgradeOne = (result) => {
+            if (!result) return null;
+            const idx = CASCADE_ORDER.indexOf(result.rarity);
+            if (idx === -1 || idx + 1 >= CASCADE_ORDER.length) return null;
+            const down = CASCADE_ORDER[idx + 1];
+            return {
+                rarity: down,
+                slot: slotPick % slotCounts[down],
+                cascaded: true,
+                note: `Tie downgrade: ${result.rarity} → ${down}`
+            };
+        };
+
         // No difficulty at all → resolution is exactly as it was before RABD.
-        if (!minBurns) return keep(selectedRarity);
+        if (!minBurns) return isTie ? downgradeOne(keep(selectedRarity)) : keep(selectedRarity);
         // Unknown/absent burn amount → can't discriminate; be conservative and
         // keep the original rarity (same as having no difficulty applied).
-        if (!Number.isFinite(burn)) return keep(selectedRarity);
+        if (!Number.isFinite(burn)) return isTie ? downgradeOne(keep(selectedRarity)) : keep(selectedRarity);
 
         let from = CASCADE_ORDER.indexOf(selectedRarity);
         if (from === -1) from = CASCADE_ORDER.length - 1; // Generic/'none' → start at Common
         const startHigh = CASCADE_ORDER[from];
 
         // Fast path: the burn already clears the resolved rarity's minimum.
-        if (burn >= (minBurns[startHigh] || 0)) return keep(startHigh);
+        if (burn >= (minBurns[startHigh] || 0)) {
+            const result = keep(startHigh);
+            return isTie ? downgradeOne(result) : result;
+        }
 
         // Walk down the cascade until the burn clears a rarity's minimum.
         for (let i = from + 1; i < CASCADE_ORDER.length; i++) {
             const r = CASCADE_ORDER[i];
             if (burn >= (minBurns[r] || 0)) {
-                return {
+                const result = {
                     rarity: r,
                     slot: slotPick % slotCounts[r],
                     cascaded: true,
                     note: `Cascaded ${startHigh} → ${r} (burn ${burn} < ${startHigh} min ${minBurns[startHigh]})`
                 };
+                return isTie ? downgradeOne(result) : result;
             }
         }
 
         // Burn clears nothing — not even Common. Permanent generic below_minimum.
-        return null;
+        return isTie ? null : null; // null is unchanged either way
     }
 
     // Compute the deterministic SHA-256 hash integer for a serial + block hash.

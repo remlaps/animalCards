@@ -88,6 +88,11 @@ class BlockchainAPI {
                 winning_burn_amount: opts.winningBurnAmount
             };
         }
+        // Always apply the tie flag if present (works with or without RABD).
+        if (opts.tie) {
+            if (!constraints) constraints = {};
+            constraints.tie = true;
+        }
         return CardResolver.resolveCardForBlock(serialNumber, blockHash, {
             cards: this.cardsConfig,
             class_weights: this.classWeightsObj,

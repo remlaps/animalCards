@@ -87,12 +87,14 @@ function slotRangeFor(rarity) {
 
 // Auto-fetch the winning burn for a block, per asset.
 // Mirrors leaderboard.js: the single largest transfer to `null` in that block
-// wins; an exact tie for the top amount yields no winner. Paginates the `null`
-// account history newest-first and stops once it passes the target block.
+// Fetch all transfers to `null` in a given block and return the top burn(s) per
+// asset. An exact tie for the top amount yields multiple winners, each receiving a
+// downgraded card (see cascadeRarity's `tie` flag). Paginates the `null` account
+// history newest-first and stops once it passes the target block.
 async function fetchNullWinners(blockNum) {
     const winners = {
-        STEEM: { max: -Infinity, winner: null, trx_id: null },
-        SBD: { max: -Infinity, winner: null, trx_id: null }
+        STEEM: { max: -Infinity, winners: [] },
+        SBD: { max: -Infinity, winners: [] }
     };
     let start = -1;
     let limit = 100; // condenser_api caps get_account_history limit at 100
@@ -124,10 +126,11 @@ async function fetchNullWinners(blockNum) {
             const asset = parts[1];
             const val = parseFloat(parts[0]);
             if (val > winners[asset].max) {
-                winners[asset] = { max: val, winner: params.from, trx_id: item.trx_id };
+                winners[asset] = { max: val, winners: [{ account: params.from, trx_id: item.trx_id }] };
             } else if (val === winners[asset].max) {
-                // Exact tie for the top burn → no one wins this block+asset.
-                winners[asset] = { max: val, winner: null, trx_id: null };
+                // Exact tie for the top burn → both (all) tied accounts
+                // win a downgraded card.
+                winners[asset].winners.push({ account: params.from, trx_id: item.trx_id });
             }
         }
 
@@ -214,15 +217,18 @@ async function main() {
         const effBurns = CardDifficulty.effectiveMinBurns(args.blockNum, config);
         for (const asset of assets) {
             const w = winners[asset];
-            if (!w.trx_id) {
-                const note = Number.isFinite(w.max) ? 'tie for top burn → no unique winner' : 'no burn to null in this block';
+            if (w.winners.length === 0) {
+                const note = Number.isFinite(w.max) ? 'no burn to null in this block' : 'no burn to null in this block';
                 outputs.push(buildOutput(asset, serialFor(args.blockNum, asset), null, null, null, note));
                 continue;
             }
-            const serial = serialFor(args.blockNum, asset);
-            const constraints = { rarity_min_burn: effBurns, winning_burn_amount: w.max };
-            const resolved = await CardResolver.resolveCardForBlock(serial, w.trx_id, config, constraints);
-            outputs.push(buildOutput(asset, serial, w.trx_id, w.winner, resolved, null, effBurns));
+            const isTie = w.winners.length > 1;
+            for (const we of w.winners) {
+                const serial = serialFor(args.blockNum, asset);
+                const constraints = { rarity_min_burn: effBurns, winning_burn_amount: w.max, tie: isTie };
+                const resolved = await CardResolver.resolveCardForBlock(serial, we.trx_id, config, constraints);
+                outputs.push(buildOutput(asset, serial, we.trx_id, we.account, resolved, null, effBurns));
+            }
         }
     }
 

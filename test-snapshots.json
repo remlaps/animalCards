@@ -1,21 +1,21 @@
 {
   "version": 1,
   "description": "Baseline snapshots for cards-config.json. Regenerate with: node test-cards.js --update-snapshots",
-  "generated_at": "2026-08-22T13:13:37.504Z",
-  "card_count": 15,
+  "generated_at": "2026-08-23T20:48:03.852Z",
+  "card_count": 19,
   "snapshot_cases": [
     {
       "serialNumber": "100000.0",
       "blockHash": "0000000000000000000000000000000000000000000000000000000000000000",
       "expected": {
-        "status": "generic",
+        "status": "released",
         "className": "Mammal",
         "rarity": "Common",
         "slot": 1,
         "slotPick": 1,
-        "species": "Generic Mammal",
-        "card_id": 3,
-        "generic_reason": "unreleased"
+        "species": "White-tailed Deer",
+        "card_id": 19,
+        "generic_reason": null
       }
     },
     {
@@ -148,14 +148,14 @@
       "serialNumber": "9999999.0",
       "blockHash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
       "expected": {
-        "status": "generic",
+        "status": "released",
         "className": "Mammal",
         "rarity": "Common",
         "slot": 1,
         "slotPick": 1,
-        "species": "Generic Mammal",
-        "card_id": 3,
-        "generic_reason": "unreleased"
+        "species": "White-tailed Deer",
+        "card_id": 19,
+        "generic_reason": null
       }
     },
     {
@@ -317,6 +317,46 @@
       "generation": "unstable-test",
       "is_generic": false,
       "slot": 7,
+      "start_block": null,
+      "end_block": null
+    },
+    "18": {
+      "species": "European Rabbit (Domestic)",
+      "class": "Mammal",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 0,
+      "start_block": null,
+      "end_block": null
+    },
+    "19": {
+      "species": "White-tailed Deer",
+      "class": "Mammal",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 1,
+      "start_block": null,
+      "end_block": null
+    },
+    "20": {
+      "species": "American Red Squirrel",
+      "class": "Mammal",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 2,
+      "start_block": null,
+      "end_block": null
+    },
+    "21": {
+      "species": "American Goldfinch",
+      "class": "Bird",
+      "rarity": "Rare",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 1,
       "start_block": null,
       "end_block": null
     }

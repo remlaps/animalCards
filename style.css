@@ -530,6 +530,20 @@ body {
     letter-spacing: 1px;
 }
 
+.leaderboard-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s;
+}
+
+.leaderboard-table th.sortable:hover {
+    color: var(--text-primary);
+}
+
+.leaderboard-table th.sort-active {
+    color: var(--accent-color, #d4a76a);
+}
+
 .leaderboard-table tr {
     border-bottom: 1px solid var(--glass-border);
     transition: background 0.3s;

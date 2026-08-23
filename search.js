@@ -134,20 +134,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 if (!blocksData[item.block]) {
                     blocksData[item.block] = {
-                        STEEM: { maxBurn: 0, winner: null, trx_id: null, timestamp: item.timestamp },
-                        SBD: { maxBurn: 0, winner: null, trx_id: null, timestamp: item.timestamp }
+                        STEEM: { maxBurn: 0, winners: [], timestamp: item.timestamp },
+                        SBD: { maxBurn: 0, winners: [], timestamp: item.timestamp }
                     };
                 }
                 const slot = blocksData[item.block][asset];
                 if (val > slot.maxBurn) {
                     slot.maxBurn = val;
-                    slot.winner = from;
-                    slot.trx_id = item.trx_id;
-                    slot.timestamp = item.timestamp;
+                    slot.winners = [{ account: from, trx_id: item.trx_id, timestamp: item.timestamp }];
                 } else if (val === slot.maxBurn) {
-                    // Exact tie for the top burn -> no one wins this block+asset.
-                    slot.winner = null;
-                    slot.trx_id = null;
+                    // Exact tie for the top burn → both (all) tied accounts
+                    // win a downgraded card.
+                    slot.winners.push({ account: from, trx_id: item.trx_id, timestamp: item.timestamp });
                 }
             }
 
@@ -171,7 +169,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Only fetch the block if this account won an asset in it. Grabbing the
                 // block once yields the authoritative header timestamp (account-history
                 // timestamps run 3s behind the real block time).
-                const accountWon = (bData.STEEM.winner === account) || (bData.SBD.winner === account);
+                const accountWon = bData.STEEM.winners.some(we => we.account === account) || bData.SBD.winners.some(we => we.account === account);
                 let blockTimestamp = null;
                 if (accountWon) {
                     try {
@@ -188,11 +186,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 for (const asset of ['STEEM', 'SBD']) {
                     const slot = bData[asset];
-                    // Only the single max burner wins; a tie leaves winner null (no card).
-                    if (slot.winner === account) {
+                    // Find this account's winning entry (if any) in the winners array.
+                    const winEntry = slot.winners.find(we => we.account === account);
+                    if (winEntry) {
+                        const isTie = slot.winners.length > 1;
                         const serial = `${blockNum}.${asset === 'STEEM' ? 0 : 1}`;
-                        const trxId = slot.trx_id || '';
-                        const resolved = await api.resolveCardForBlock(serial, trxId, { winningBurnAmount: slot.maxBurn });
+                        const resolved = await api.resolveCardForBlock(serial, winEntry.trx_id, { winningBurnAmount: slot.maxBurn, tie: isTie });
                         found.push({
                             account: account,
                             status: resolved.status,
@@ -200,7 +199,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             rarity: resolved.rarity,
                             card: resolved.card,
                             block: blockNum,
-                            trx_id: trxId,
+                            trx_id: winEntry.trx_id,
                             serial: serial,
                             timestamp: blockTimestamp || fallbackTimestamp(slot.timestamp)
                         });
