@@ -59,21 +59,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     if (!blocksData[item.block]) {
                         blocksData[item.block] = {
-                            STEEM: { maxBurn: 0, winner: null },
-                            SBD: { maxBurn: 0, winner: null },
-                            trx_id: item.trx_id
+                            STEEM: { maxBurn: 0, winners: [] },
+                            SBD: { maxBurn: 0, winners: [] }
                         };
                     }
 
                     if (val > blocksData[item.block][asset].maxBurn) {
                         blocksData[item.block][asset].maxBurn = val;
-                        blocksData[item.block][asset].winner = from;
-                        // Use the trx_id of the winning transaction for the deterministic hash
-                        blocksData[item.block][asset].trx_id = item.trx_id;
+                        blocksData[item.block][asset].winners = [{ account: from, trx_id: item.trx_id }];
                     } else if (val === blocksData[item.block][asset].maxBurn) {
-                        // Exact tie for the top burn → no one wins this block+asset.
-                        blocksData[item.block][asset].winner = null;
-                        blocksData[item.block][asset].trx_id = null;
+                        // Exact tie for the top burn → both (all) tied accounts
+                        // win a downgraded card.
+                        blocksData[item.block][asset].winners.push({ account: from, trx_id: item.trx_id });
                     }
                 }
             }
@@ -86,27 +83,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             for (const blockNum of blockNums) {
                 const bData = blocksData[blockNum];
 
-                const winners = [
-                    { asset: 'STEEM', winner: bData.STEEM.winner, trx_id: bData.STEEM.trx_id, serial: `${blockNum}.0`, amount: bData.STEEM.maxBurn },
-                    { asset: 'SBD', winner: bData.SBD.winner, trx_id: bData.SBD.trx_id, serial: `${blockNum}.1`, amount: bData.SBD.maxBurn }
+                const assets = [
+                    { asset: 'STEEM', serial: `${blockNum}.0`, data: bData.STEEM },
+                    { asset: 'SBD', serial: `${blockNum}.1`, data: bData.SBD }
                 ];
 
-                for (const w of winners) {
-                    if (!w.winner) continue;
-                    const resolved = await api.resolveCardForBlock(w.serial, w.trx_id, { winningBurnAmount: w.amount });
-                    const mint = {
-                        account: w.winner,
-                        status: resolved.status,
-                        className: resolved.className,
-                        rarity: resolved.rarity,
-                        card: resolved.card,
-                        block: blockNum,
-                        trx_id: w.trx_id,
-                        serial: w.serial,
-                        asset: w.asset
-                    };
-                    if (!winsByAccount[mint.account]) winsByAccount[mint.account] = [];
-                    winsByAccount[mint.account].push(mint);
+                for (const a of assets) {
+                    const isTie = a.data.winners.length > 1;
+                    for (const w of a.data.winners) {
+                        const resolved = await api.resolveCardForBlock(a.serial, w.trx_id, { winningBurnAmount: a.data.maxBurn, tie: isTie });
+                        const mint = {
+                            account: w.account,
+                            status: resolved.status,
+                            className: resolved.className,
+                            rarity: resolved.rarity,
+                            card: resolved.card,
+                            block: blockNum,
+                            trx_id: w.trx_id,
+                            serial: a.serial,
+                            asset: a.asset
+                        };
+                        if (!winsByAccount[mint.account]) winsByAccount[mint.account] = [];
+                        winsByAccount[mint.account].push(mint);
+                    }
                 }
             }
 // Weighted card total per account: each card won contributes its rarity's
@@ -156,23 +155,68 @@ document.addEventListener('DOMContentLoaded', async () => {
                 pendingClassesByAccount[account] = Array.from(pendingClasses.values());
             }
 
-            // Render table
-            if (sortedBurners.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No BurnMaxxer titles won in this timeframe.</td></tr>';
-                const mobileEmpty = document.createElement('div');
-                mobileEmpty.className = 'leaderboard-card-row';
-                mobileEmpty.innerHTML = '<p class="status-message" style="margin:0;">No BurnMaxxer titles won in this timeframe.</p>';
-                const tableContainer = document.querySelector('.leaderboard-table-container');
-                if (tableContainer && tableContainer.parentNode) {
-                    tableContainer.parentNode.insertBefore(mobileEmpty, tableContainer.nextSibling);
-                }
-            } else {
-                sortedBurners.forEach(([account], index) => {
-                    const uniqueCards = uniqueCardsByAccount[account] || [];
-                    const pendingClasses = pendingClassesByAccount[account] || [];
-                    const titlesWon = (winsByAccount[account] || []).length;
+            // Build a flat row-data array for the sortable table.
+            const rowData = sortedBurners.map(([account]) => ({
+                account,
+                titles: (winsByAccount[account] || []).length,
+                weighted: weightedTotalByAccount[account] || 0,
+                steem: (burnSTEEM[account] || 0),
+                sbd: (burnSBD[account] || 0),
+                cardsArr: uniqueCardsByAccount[account] || [],
+                pendingArr: pendingClassesByAccount[account] || []
+            }));
 
-                    // Cards actually issued (released species or generic class card).
+            // Sort state
+            let sortKey = 'weighted';
+            let sortDir = 'desc';
+
+            const compareRows = (a, b) => {
+                let val;
+                if (sortKey === 'account') {
+                    val = a.account.localeCompare(b.account);
+                } else if (sortKey === 'cards') {
+                    val = a.cardsArr.length - b.cardsArr.length;
+                } else {
+                    val = (a[sortKey] || 0) - (b[sortKey] || 0);
+                }
+                return sortDir === 'asc' ? val : -val;
+            };
+
+            const renderTable = () => {
+                const sorted = [...rowData].sort(compareRows);
+
+                // Update header arrows
+                document.querySelectorAll('.leaderboard-table th.sortable').forEach(th => {
+                    th.classList.remove('sort-active');
+                    const txt = th.textContent.replace(/ [▲▼]$/, '');
+                    th.textContent = txt;
+                });
+                const activeHeader = document.querySelector(`.leaderboard-table th[data-sort="${sortKey}"]`);
+                if (activeHeader) {
+                    activeHeader.classList.add('sort-active');
+                    activeHeader.textContent += sortDir === 'asc' ? ' ▲' : ' ▼';
+                }
+
+                if (sorted.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No BurnMaxxer titles won in this timeframe.</td></tr>';
+                    document.querySelectorAll('.leaderboard-card-row').forEach(r => r.remove());
+                    const mobileEmpty = document.createElement('div');
+                    mobileEmpty.className = 'leaderboard-card-row';
+                    mobileEmpty.innerHTML = '<p class="status-message" style="margin:0;">No BurnMaxxer titles won in this timeframe.</p>';
+                    const tc = document.querySelector('.leaderboard-table-container');
+                    if (tc && tc.parentNode) {
+                        tc.parentNode.insertBefore(mobileEmpty, tc.nextSibling);
+                    }
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                document.querySelectorAll('.leaderboard-card-row').forEach(r => r.remove());
+                sorted.forEach((row, index) => {
+                    const account = row.account;
+                    const uniqueCards = row.cardsArr;
+                    const pendingClasses = row.pendingArr;
+
                     const issuedHtml = uniqueCards.map(u => `
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;">
                             <img src="${u.card.image_url}" alt="${u.card.species}" style="width: 28px; height: 28px; border-radius: 4px; object-fit: cover; flex-shrink: 0;">
@@ -180,7 +224,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                             ${u.card.is_generic ? `<span class="rarity-badge" style="font-size:0.7rem; color:var(--text-secondary); border:1px solid var(--border-color,rgba(128,128,128,0.3)); border-radius:4px; padding:1px 5px;">${u.rarity || u.card.rarity}</span>` : ''}
                         </div>`).join('');
 
-                    // Classes won but no card released yet -> show what kind it would've been (class + rarity).
                     const pendingHtml = pendingClasses.map(c => `
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;">
                             <span style="font-weight: 600;">${c.className}</span>
@@ -192,19 +235,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                         ? issuedHtml + pendingHtml
                         : '<span style="color: var(--text-secondary)">No card won in timeframe</span>';
 
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
                         <td class="rank-cell">#${index + 1}</td>
                         <td style="font-weight: 600;">@${account}</td>
-                        <td style="font-weight: 600;">${titlesWon}</td>
-                        <td style="font-weight: 600;">${weightedTotalByAccount[account] || 0}</td>
-                        <td>${(burnSTEEM[account] || 0).toFixed(3)}</td>
-                        <td>${(burnSBD[account] || 0).toFixed(3)}</td>
+                        <td style="font-weight: 600;">${row.titles}</td>
+                        <td style="font-weight: 600;">${row.weighted}</td>
+                        <td>${row.steem.toFixed(3)}</td>
+                        <td>${row.sbd.toFixed(3)}</td>
                         <td>${cardHtml}</td>
                     `;
-                    tbody.appendChild(row);
+                    tbody.appendChild(tr);
 
-                    // Mobile card row (hidden on desktop, shown on mobile via CSS)
                     const mobileCardChips = (uniqueCards.length > 0 || pendingClasses.length > 0)
                         ? [...uniqueCards.map(u => `
                             <span class="leaderboard-card-chip">
@@ -223,19 +265,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <div class="leaderboard-card-fields">
                             <div class="leaderboard-card-field">
                                 <div class="leaderboard-card-field-label">Titles Won</div>
-                                <div class="leaderboard-card-field-value">${titlesWon}</div>
+                                <div class="leaderboard-card-field-value">${row.titles}</div>
                             </div>
                             <div class="leaderboard-card-field">
                                 <div class="leaderboard-card-field-label">Weighted</div>
-                                <div class="leaderboard-card-field-value">${weightedTotalByAccount[account] || 0}</div>
+                                <div class="leaderboard-card-field-value">${row.weighted}</div>
                             </div>
                             <div class="leaderboard-card-field">
                                 <div class="leaderboard-card-field-label">Total STEEM</div>
-                                <div class="leaderboard-card-field-value">${(burnSTEEM[account] || 0).toFixed(3)}</div>
+                                <div class="leaderboard-card-field-value">${row.steem.toFixed(3)}</div>
                             </div>
                             <div class="leaderboard-card-field">
                                 <div class="leaderboard-card-field-label">Total SBD</div>
-                                <div class="leaderboard-card-field-value">${(burnSBD[account] || 0).toFixed(3)}</div>
+                                <div class="leaderboard-card-field-value">${row.sbd.toFixed(3)}</div>
                             </div>
                             <div class="leaderboard-card-field">
                                 <div class="leaderboard-card-field-label">Cards Won</div>
@@ -247,13 +289,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <div class="leaderboard-cards-list">${mobileCardChips}</div>
                         </div>
                     `;
-                    // Insert after the table container
-                    const tableContainer = document.querySelector('.leaderboard-table-container');
-                    if (tableContainer && tableContainer.parentNode) {
-                        tableContainer.parentNode.insertBefore(mobileRow, tableContainer.nextSibling);
+                    const tc = document.querySelector('.leaderboard-table-container');
+                    if (tc && tc.parentNode) {
+                        tc.parentNode.insertBefore(mobileRow, tc.nextSibling);
                     }
                 });
-            }
+            };
+
+            // Initial render
+            renderTable();
+
+            // Attach click handlers to sortable headers
+            document.querySelectorAll('.leaderboard-table th.sortable').forEach(th => {
+                th.addEventListener('click', () => {
+                    const key = th.dataset.sort;
+                    if (sortKey === key) {
+                        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        sortKey = key;
+                        sortDir = key === 'account' ? 'asc' : 'desc';
+                    }
+                    renderTable();
+                });
+            });
 
             // Render per-account card details (all unique cards + serials) for the top 10
             if (sortedBurners.length === 0) {

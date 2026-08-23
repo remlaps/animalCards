@@ -15,7 +15,8 @@
  *      overlapping windows, and any sequence of generations in a slot is
  *      contiguous (no generic gaps).
  *
- * Overlaps / gaps are reported as WARNINGS; structural problems (bad rarity,
+ * Overlaps between generation windows are ERRORS; gaps between them are
+ * WARNINGS. Structural problems (bad rarity,
  * out-of-range slot, duplicate card_id, weights != 100) are ERRORS and cause a
  * non-zero exit code.
  */
@@ -25,12 +26,31 @@ const path = require('path');
 const CONFIG = process.argv[2] || path.join(__dirname, 'cards-config.json');
 const RARITY_SLOT_COUNTS = { Common: 16, Rare: 8, Epic: 4, Legendary: 2, Mythic: 1 };
 const VALID_RARITIES = new Set(['Generic', ...Object.keys(RARITY_SLOT_COUNTS)]);
+const MONOTONIC_ORDER = ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic'];
 
 const errors = [];
 const warnings = [];
 
 function cardLabel(c) {
-    return `${c.class} > ${c.rarity} > slot ${c.slot} > ${c.species} (#${c.card_id})`;
+    return c.class + " > " + c.rarity + " > slot " + c.slot + " > " + c.species + " (#" + c.card_id + ")";
+}
+
+// Check that rarity minimum burns are non-decreasing (Common <= Rare <= ... <= Mythic).
+// values: object keyed by rarity, label: description for error messages.
+function checkMonotonic(values, label) {
+    MONOTONIC_ORDER.forEach(function(r) {
+        if (values[r] == null) values[r] = NaN;
+    });
+    for (var i = 0; i < MONOTONIC_ORDER.length - 1; i++) {
+        var r1 = MONOTONIC_ORDER[i];
+        var r2 = MONOTONIC_ORDER[i + 1];
+        var v1 = Number(values[r1]);
+        var v2 = Number(values[r2]);
+        if (!isNaN(v1) && !isNaN(v2) && v1 > v2) {
+            errors.push(label + ': ' + r1 + ' (' + v1 + ') > ' + r2 + ' (' + v2 + '). ' +
+                'Minimum burns must be non-decreasing from Common to Mythic.');
+    }
+}
 }
 
 // Effective inclusive window; null means unbounded. Block numbers are integers.
@@ -98,7 +118,7 @@ for (const [key, group] of bySlot) {
             const a = sorted[i], b = sorted[j];
             // overlap if b starts before/at a's end.
             if (effStart(b) <= effEnd(a)) {
-                warnings.push(
+                errors.push(
                     `Overlapping generation windows for ${key}: ${cardLabel(a)} [${fmt(a)}] and ${cardLabel(b)} [${fmt(b)}].`
                 );
             }
@@ -172,6 +192,18 @@ if (rd) {
                         }
                     }
                 }
+                // Build effective minimums for this milestone (fall back to root)
+                var effSteem = {}, effSbd = {};
+                for (var ri = 0; ri < MONOTONIC_ORDER.length; ri++) {
+                    var rr = MONOTONIC_ORDER[ri];
+                    var rootR = (rd.rarities||{})[rr] || {};
+                    effSteem[rr] = (m.base_min_burns_steem && m.base_min_burns_steem[rr] != null)
+                        ? m.base_min_burns_steem[rr] : rootR.base_min_burn_steem;
+                    effSbd[rr] = (m.base_min_burns_sbd && m.base_min_burns_sbd[rr] != null)
+                        ? m.base_min_burns_sbd[rr] : rootR.base_min_burn_sbd;
+                }
+                checkMonotonic(effSteem, 'rarity_difficulty.schedule[' + i + '] effective base_min_burns_steem');
+                checkMonotonic(effSbd, 'rarity_difficulty.schedule[' + i + '] effective base_min_burns_sbd');
             });
         }
     }
@@ -188,7 +220,18 @@ if (rd) {
             errors.push(`rarity_difficulty.rarities["${r}"].base_min_burn_sbd must be a number >= 0 or omitted.`);
         }
     }
-    // Immutability: once enabled_block passes, every rarity_difficulty field at or
+    
+    // Monotonicity check for root rarity values
+    var monoS = {}, monoSbd = {};
+    for (var ri = 0; ri < MONOTONIC_ORDER.length; ri++) {
+        var rr = MONOTONIC_ORDER[ri];
+        var rs = rar[rr] || {};
+        monoS[rr] = rs.base_min_burn_steem;
+        monoSbd[rr] = rs.base_min_burn_sbd;
+    }
+    checkMonotonic(monoS, 'rarity_difficulty.rarities base_min_burn_steem');
+    checkMonotonic(monoSbd, 'rarity_difficulty.rarities base_min_burn_sbd');
+// Immutability: once enabled_block passes, every rarity_difficulty field at or
     // before that block is locked (changing it retroactively alters past lookups).
     // Only appending schedule milestones with block > enabled_block is safe.
     if (rd.enabled_block != null && rd.enabled_block >= 0) {

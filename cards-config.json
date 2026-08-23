@@ -180,6 +180,46 @@
       "image_url": "https://i.postimg.cc/TYWpVyRL/Black-Vulture.png",
       "generation": "unstable-test",
       "photo_credit": "remlaps"
+    },
+    {
+      "card_id": 18,
+      "species": "European Rabbit (Domestic)",
+      "class": "Mammal",
+      "rarity": "Common",
+      "slot": 0,
+      "image_url": "https://i.postimg.cc/Qdb1dtVn/European-Rabbits-(Domestic).png",
+      "generation": "unstable-test",
+      "photo_credit": "pennsif"
+    },
+    {
+      "card_id": 19,
+      "species": "White-tailed Deer",
+      "class": "Mammal",
+      "rarity": "Common",
+      "slot": 1,
+      "image_url": "https://i.postimg.cc/sgd8Ynj6/White-tailed-Deer.png",
+      "generation": "unstable-test",
+      "photo_credit": "remlaps"
+    },
+    {
+      "card_id": 20,
+      "species": "American Red Squirrel",
+      "class": "Mammal",
+      "rarity": "Common",
+      "slot": 2,
+      "image_url": "https://i.postimg.cc/DZpCN6qk/American-Red-Squirrel.png",
+      "generation": "unstable-test",
+      "photo_credit": "remlaps"
+    },
+    {
+      "card_id": 21,
+      "species": "American Goldfinch",
+      "class": "Bird",
+      "rarity": "Rare",
+      "slot": 1,
+      "image_url": "https://i.postimg.cc/gkLYNBvV/American-Goldfinch.png",
+      "generation": "unstable-test",
+      "photo_credit": "remlaps"
     }
   ]
 }
