@@ -220,6 +220,66 @@
       "image_url": "https://i.postimg.cc/gkLYNBvV/American-Goldfinch.png",
       "generation": "unstable-test",
       "photo_credit": "remlaps"
+    },
+    {
+      "card_id": 22,
+      "species": "Eastern Box Turtle",
+      "class": "Reptile & Amphibian",
+      "rarity": "Rare",
+      "slot": 0,
+      "image_url": "https://i.postimg.cc/RCp9M0pP/Eastern-Box-Turtle.png",
+      "generation": "unstable-test",
+      "photo_credit": "remlaps"
+    },
+    {
+      "card_id": 23,
+      "species": "Eastern Cottontail",
+      "class": "Mammal",
+      "rarity": "Common",
+      "slot": 3,
+      "image_url": "https://i.postimg.cc/NF1Yp8YD/Eastern-Cottontail.png",
+      "generation": "unstable-test",
+      "photo_credit": "remlaps"
+    },
+    {
+      "card_id": 24,
+      "species": "Amur Leopard",
+      "class": "Mammal",
+      "rarity": "Legendary",
+      "slot": 0,
+      "image_url": "https://i.postimg.cc/NjYXBbz4/Amur-Leopard.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#182303394)"
+    }, 
+    {
+      "card_id": 25,
+      "species": "Mountain Gorilla",
+      "class": "Mammal",
+      "rarity": "Mythic",
+      "slot": 0,
+      "image_url": "https://i.postimg.cc/WpWYDqv7/Mountain-Gorilla.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#385482795)"
+    },
+    {
+      "card_id": 26,
+      "species": "Common Dolphin",
+      "class": "Mammal",
+      "rarity": "Common",
+      "slot": 4,
+      "image_url": "https://i.postimg.cc/sg9PzN93/Common-Dolphin.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#389940689)"
+    }, 
+    {
+      "card_id": 27,
+      "species": "Humpback Whale",
+      "class": "Mammal",
+      "rarity": "Rare",
+      "slot": 0,
+      "image_url": "https://i.postimg.cc/PJxVvky4/Humpback-Whale.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#377069835)"
     }
   ]
 }

@@ -1,8 +1,8 @@
 {
   "version": 1,
   "description": "Baseline snapshots for cards-config.json. Regenerate with: node test-cards.js --update-snapshots",
-  "generated_at": "2026-08-23T20:48:03.852Z",
-  "card_count": 19,
+  "generated_at": "2026-08-24T13:17:38.060Z",
+  "card_count": 25,
   "snapshot_cases": [
     {
       "serialNumber": "100000.0",
@@ -357,6 +357,66 @@
       "generation": "unstable-test",
       "is_generic": false,
       "slot": 1,
+      "start_block": null,
+      "end_block": null
+    },
+    "22": {
+      "species": "Eastern Box Turtle",
+      "class": "Reptile & Amphibian",
+      "rarity": "Rare",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 0,
+      "start_block": null,
+      "end_block": null
+    },
+    "23": {
+      "species": "Eastern Cottontail",
+      "class": "Mammal",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 3,
+      "start_block": null,
+      "end_block": null
+    },
+    "24": {
+      "species": "Amur Leopard",
+      "class": "Mammal",
+      "rarity": "Legendary",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 0,
+      "start_block": null,
+      "end_block": null
+    },
+    "25": {
+      "species": "Mountain Gorilla",
+      "class": "Mammal",
+      "rarity": "Mythic",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 0,
+      "start_block": null,
+      "end_block": null
+    },
+    "26": {
+      "species": "Common Dolphin",
+      "class": "Mammal",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 4,
+      "start_block": null,
+      "end_block": null
+    },
+    "27": {
+      "species": "Humpback Whale",
+      "class": "Mammal",
+      "rarity": "Rare",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 0,
       "start_block": null,
       "end_block": null
     }
