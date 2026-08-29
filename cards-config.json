@@ -280,6 +280,56 @@
       "image_url": "https://i.postimg.cc/PJxVvky4/Humpback-Whale.png",
       "generation": "unstable-test",
       "photo_credit": "CC0 iNaturalist (#377069835)"
+    },
+    {
+      "card_id": 28,
+      "species": "Greylag Goose",
+      "class": "Bird",
+      "rarity": "Rare",
+      "slot": 2,
+      "image_url": "https://i.postimg.cc/vmz0Q3WY/Greylag-Goose.png",
+      "generation": "unstable-test",
+      "photo_credit": "pennsif"
+    },
+    {
+      "card_id": 29,
+      "species": "Atlantic Goliath Grouper",
+      "class": "Fish",
+      "rarity": "Legendary",
+      "slot": 0,
+      "image_url": "https://i.postimg.cc/zvJspy8n/Atlantic-Goliath-Grouper.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#87945603)"
+    },
+    {
+      "card_id": 30,
+      "species": "Orca",
+      "class": "Mammal",
+      "rarity": "Epic",
+      "slot": 0,
+      "image_url": "https://i.postimg.cc/9Qn7ykyK/Orca.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#163442613)"
+    },
+    {
+      "card_id": 31,
+      "species": "Great White Shark",
+      "class": "Fish",
+      "rarity": "Legendary",
+      "slot": 1,
+      "image_url": "https://i.postimg.cc/DZHhgqxy/Great-White-Shark.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 rawpixel (#12014772)"
+    },
+    {
+      "card_id": 32,
+      "species": "Great Barracuda",
+      "class": "Fish",
+      "rarity": "Common",
+      "slot": 0,
+      "image_url": "https://i.postimg.cc/d1r7Gt97/Great_Barracuda.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#482252453)"
     }
   ]
 }
