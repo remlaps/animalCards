@@ -346,20 +346,45 @@ document.addEventListener('DOMContentLoaded', async () => {
             const sortDirBtn = document.getElementById('sort-dir');
             const clearFiltersBtn = document.getElementById('clear-filters');
             const serialSortOption = document.getElementById('sort-option-serial');
-            const state = { view: 'all', species: '', cls: '', rarity: '', sortKey: 'serial', sortDir: 'desc' };
+
+            // Restore the active view from the DOM so a re-submit doesn't reset
+            // the grid while the button still shows "Unique Cards" highlighted.
+            const activeViewBtn = viewToggle.querySelector('.view-btn.active');
+            const state = {
+                view: activeViewBtn ? activeViewBtn.dataset.view : 'all',
+                species: '', cls: '', rarity: '',
+                sortKey: 'serial', sortDir: 'desc'
+            };
+
+            // If the user was previously in Unique view, re-apply the side effects
+            // that the click handler normally sets (hide serial sort, switch to count).
+            if (state.view === 'unique') {
+                if (state.sortKey === 'serial') {
+                    state.sortKey = 'count';
+                    state.sortDir = 'desc';
+                    sortBy.value = 'count';
+                    sortDirBtn.innerHTML = 'Sort ▼';
+                }
+                serialSortOption.hidden = true;
+            }
 
             // Populate filter dropdowns from the cards actually present.
-            const fillSelect = (select, values) => {
+            // When rankMap is provided (e.g. { Common:0, Rare:1, … }), options sort
+            // by that rank instead of alphabetically.
+            const fillSelect = (select, values, rankMap) => {
                 const allLabel = select.getAttribute('data-all-label') || 'All';
                 select.innerHTML = `<option value="">${allLabel}</option>`;
-                [...new Set(values)].sort((a, b) => String(a).localeCompare(String(b))).forEach(v => {
+                const sorter = rankMap
+                    ? (a, b) => (rankMap[a] ?? 999) - (rankMap[b] ?? 999) || String(a).localeCompare(String(b))
+                    : (a, b) => String(a).localeCompare(String(b));
+                [...new Set(values)].sort(sorter).forEach(v => {
                     const o = document.createElement('option');
                     o.value = v; o.textContent = v; select.appendChild(o);
                 });
             };
             fillSelect(filterSpecies, displayCards.map(c => c.species));
             fillSelect(filterClass, displayCards.map(c => c.cls));
-            fillSelect(filterRarity, displayCards.map(c => c.rarity));
+            fillSelect(filterRarity, displayCards.map(c => c.rarity), rarityRankAll);
 
             const getFilteredCards = () => displayCards.filter(c =>
                 (!state.species || c.species === state.species) &&
