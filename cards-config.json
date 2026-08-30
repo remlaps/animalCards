@@ -330,6 +330,66 @@
       "image_url": "https://i.postimg.cc/d1r7Gt97/Great_Barracuda.png",
       "generation": "unstable-test",
       "photo_credit": "CC0 iNaturalist (#482252453)"
+    },
+    {
+      "card_id": 33,
+      "species": "Scalloped Hammerhead Shark",
+      "class": "Fish",
+      "rarity": "Mythic",
+      "slot": 0,
+      "image_url": "https://i.postimg.cc/8PtK9qR4/Scalloped-Hammerhead.jpg",
+      "generation": "unstable-test",
+      "photo_credit": "NOAA"
+    },
+    {
+      "card_id": 34,
+      "species": "Galapagos Land Iguana",
+      "class": "Reptile & Amphibian",
+      "rarity": "Mythic",
+      "slot": 0,
+      "image_url": "https://i.postimg.cc/5yKTMGhZ/Galapagos-Land-Iguana.gif",
+      "generation": "unstable-test",
+      "photo_credit": "Public Domain by Fran Hogan"
+    },
+    {
+      "card_id": 35,
+      "species": "Bearded Vulture",
+      "class": "Bird",
+      "rarity": "Legendary",
+      "slot": 1,
+      "image_url": "https://i.postimg.cc/7ZzBhf8v/Bearded-Vulture.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#379971689)"
+    },
+    {
+      "card_id": 36,
+      "species": "Wisent (European Bison)",
+      "class": "Mammal",
+      "rarity": "Legendary",
+      "slot": 1,
+      "image_url": "https://i.postimg.cc/wMsWNvyt/Wisent-(European-Bison).png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#5229399)"
+    },
+    {
+      "card_id": 37,
+      "species": "Meadow Viper",
+      "class": "Reptile & Amphibian",
+      "rarity": "Legendary",
+      "slot": 0,
+      "image_url": "https://i.postimg.cc/W16srpgy/Meadow-Viper.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 animalia.bio"
+    },
+    {
+      "card_id": 38,
+      "species": "Mallorcan Midwife Toad",
+      "class": "Reptile & Amphibian",
+      "rarity": "Legendary",
+      "slot": 1,
+      "image_url": "https://i.postimg.cc/0NVZH4LS/Mallorcan-Midwife-Toad.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#9740822)"
     }
   ]
 }
