@@ -21,6 +21,11 @@
       { "block": 108954600,
         "base_min_burns_steem": { "Common": 0.001, "Rare": 0.001, "Epic": 0.001, "Legendary": 0.001, "Mythic": 0.001 },
         "base_min_burns_sbd": { "Common": 0.001, "Rare": 0.001, "Epic": 0.001, "Legendary": 0.001, "Mythic": 0.001 }
+      },
+      { "block": 109385537,
+        "base_min_burns_steem": { "Common": 0.001, "Rare": 0.019, "Epic": 0.038, "Legendary": 0.076, "Mythic": 0.152 },
+        "base_min_burns_sbd": { "Common": 0.001, "Rare": 0.002, "Epic": 0.004, "Legendary": 0.008, "Mythic": 0.016 }
+
       }
     ],
     "rarities": {
@@ -390,6 +395,36 @@
       "image_url": "https://i.postimg.cc/0NVZH4LS/Mallorcan-Midwife-Toad.png",
       "generation": "unstable-test",
       "photo_credit": "CC0 iNaturalist (#9740822)"
+    },
+    {
+      "card_id": 39,
+      "species": "Polar Bear",
+      "class": "Mammal",
+      "rarity": "Rare",
+      "slot": 1,
+      "image_url": "https://i.postimg.cc/1zZkSTWY/Polar-Bear.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#177564977)"
+    },
+    {
+      "card_id": 40,
+      "species": "Grey-headed Flying Fox",
+      "class": "Mammal",
+      "rarity": "Epic",
+      "slot": 1,
+      "image_url": "https://i.postimg.cc/QMw0sWxk/Grey-headed-Flying-Fox.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#376248208)"
+    },
+    {
+      "card_id": 41,
+      "species": "Raccoon Dog",
+      "class": "Mammal",
+      "rarity": "Rare",
+      "slot": 2,
+      "image_url": "https://i.postimg.cc/XqRbCv8V/Raccoon-Dog.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#396024773)"
     }
   ]
 }
