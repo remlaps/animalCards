@@ -92,7 +92,7 @@
     display: inline-block;
     white-space: nowrap;
     padding-left: 100%;
-    animation: vaas-scroll 35s linear infinite;
+    animation: vaas-scroll 20s linear infinite;
 }
 .vaas-scroll-text.paused { animation-play-state: paused; }
 @keyframes vaas-scroll {
