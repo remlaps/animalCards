@@ -282,7 +282,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
                 const arrow = summarySortDir === 'asc' ? ' ▲' : ' ▼';
                 summaryContainer.innerHTML = `
-                <h4 style="font-family: 'Outfit'; font-size: 1.1rem; margin-bottom: 0.75rem;">Collected Cards Summary</h4>
                 <div style="overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
                         <thead>

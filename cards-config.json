@@ -425,6 +425,66 @@
       "image_url": "https://i.postimg.cc/XqRbCv8V/Raccoon-Dog.png",
       "generation": "unstable-test",
       "photo_credit": "CC0 iNaturalist (#396024773)"
+    },
+    {
+      "card_id": 42,
+      "species": "Emperor Penguin",
+      "class": "Bird",
+      "rarity": "Epic",
+      "slot": 0,
+      "image_url": "https://i.postimg.cc/ZnXvCsL3/Emperor-Penguin.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#250381532)"
+    },
+    {
+      "card_id": 43,
+      "species": "Shoebill",
+      "class": "Bird",
+      "rarity": "Epic",
+      "slot": 1,
+      "image_url": "https://i.postimg.cc/rwMxW3kj/Shoebill.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#198111360)"
+    },
+    {
+      "card_id": 44,
+      "species": "Mimic Octopus",
+      "class": "Fish",
+      "rarity": "Epic",
+      "slot": 0,
+      "image_url": "https://i.postimg.cc/J4gSz3Cs/Mimic-Octopus.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#343280010)"
+    },
+    {
+      "card_id": 45,
+      "species": "White-spotted Eagle Ray",
+      "class": "Fish",
+      "rarity": "Epic",
+      "slot": 1,
+      "image_url": "https://i.postimg.cc/kXxhq0sw/White-spotted-Eagle-Ray.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#335803913)"
+    },
+    {
+      "card_id": 46,
+      "species": "Saltwater Crocodile",
+      "class": "Reptile & Amphibian",
+      "rarity": "Epic",
+      "slot": 0,
+      "image_url": "https://i.postimg.cc/DyMmfNz5/Saltwater-Crocodile.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#144650115)"
+    },
+    {
+      "card_id": 47,
+      "species": "Komodo Dragon",
+      "class": "Reptile & Amphibian",
+      "rarity": "Epic",
+      "slot": 1,
+      "image_url": "https://i.postimg.cc/3RmbNz7D/Komodo-Dragon.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#244517846)"
     }
   ]
 }

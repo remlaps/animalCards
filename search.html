@@ -17,7 +17,7 @@
 
     <header class="glass-header">
         <div class="container header-container">
-            <h1 class="logo">animal<span>Cards</span></h1>
+            <a href="index.html" class="logo">animal<span>Cards</span></a>
             <nav class="nav-links">
                 <a href="index.html">Home</a>
                 <a href="leaderboard.html">Leaderboard</a>
@@ -62,9 +62,12 @@
             <h3 id="portfolio-header" style="margin-bottom: 1.5rem; font-family: 'Outfit'; font-size: 1.75rem;"></h3>
             <p id="portfolio-stats" style="color: var(--text-secondary); margin-bottom: 1.5rem;"></p>
 
-            <div id="portfolio-summary" style="margin-bottom: 1.5rem;">
-                <!-- Summary table populated via JS -->
-            </div>
+            <details id="portfolio-summary-wrapper" style="margin-bottom: 1.5rem;" open>
+                <summary style="font-family: 'Outfit', sans-serif; font-size: 1.1rem; cursor: pointer; user-select: none; color: var(--text-primary); padding: 0.25rem 0; margin-bottom: 0.5rem;">Collected Cards Summary</summary>
+                <div id="portfolio-summary">
+                    <!-- Summary table populated via JS -->
+                </div>
+            </details>
 
             <div class="controls-section" id="view-toggle" style="display: none; margin-bottom: 1.5rem;">
                 <span class="toolbar-label">View:</span>
