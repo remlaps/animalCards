@@ -485,6 +485,56 @@
       "image_url": "https://i.postimg.cc/3RmbNz7D/Komodo-Dragon.png",
       "generation": "unstable-test",
       "photo_credit": "CC0 iNaturalist (#244517846)"
+    },
+    {
+      "card_id": 48,
+      "species": "Spiny Seahorse",
+      "class": "Fish",
+      "rarity": "Rare",
+      "slot": 0,
+      "image_url": "https://i.postimg.cc/BQgNXwQ9/Spiny-Seahorse.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#334469779)"
+    },
+    {
+      "card_id": 49,
+      "species": "Longnose Filefish",
+      "class": "Fish",
+      "rarity": "Rare",
+      "slot": 1,
+      "image_url": "https://i.postimg.cc/44FxsXph/Longnose_Filefish.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#298091631)"
+    },
+    {
+      "card_id": 50,
+      "species": "Chevron Butterflyfish",
+      "class": "Fish",
+      "rarity": "Rare",
+      "slot": 2,
+      "image_url": "https://i.postimg.cc/DZ6d8Snt/Chevron-Butterflyfish.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#269596249)"
+    },
+    {
+      "card_id": 51,
+      "species": "Hong Kong Warty Newt",
+      "class": "Reptile & Amphibian",
+      "rarity": "Rare",
+      "slot": 1,
+      "image_url": "https://i.postimg.cc/5NWgnQtM/Hong-Kong-Warty-Newt.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#207898256)"
+    },
+    {
+      "card_id": 52,
+      "species": "Timber Rattlesnake",
+      "class": "Reptile & Amphibian",
+      "rarity": "Rare",
+      "slot": 2,
+      "image_url": "https://i.postimg.cc/VNg2cBdJ/Timber-Rattlesnake.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#371066406)"
     }
   ]
 }
