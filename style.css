@@ -1047,6 +1047,13 @@ a.logo span {
         height: 40px;
         border-width: 3px;
     }
+/* Mobile: header recedes on scroll-down, reappears on scroll-up */
+    .glass-header {
+        transition: transform 0.3s ease;
+    }
+    .glass-header.receded {
+        transform: translateY(-100%);
+    }
 }
 
 /* Small phones */
