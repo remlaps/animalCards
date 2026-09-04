@@ -1,0 +1,13 @@
+﻿# animalCards - Cline Rules
+
+## Version control
+
+- **Never commit directly to `master`.** All work must happen on a feature branch.
+  Before making any commit:
+  1. Confirm the current branch is NOT `master` (`git symbolic-ref --short HEAD`).
+  2. If on `master`, create and switch to a new branch first (`git checkout -b <branch-name>`).
+  3. Only stage and commit on the non-master branch.
+
+- Prefer small, focused commits with clear conventional-commit style messages
+  (e.g. `feat:`, `fix:`, `chore:`, `docs:`).
+

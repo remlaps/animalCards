@@ -81,6 +81,7 @@ form.addEventListener('submit', async (e) => {
             const accounts = await api.getAccounts([account]);
             const createdMs = accounts && accounts[0] ? new Date(accounts[0].created + 'Z').getTime() : 0;
             const timeConstraint = parseInt(timeFilter.value, 10);
+            const searchLengthDays = (ms) => ms ? Math.max(1, Math.round(ms / 86400000)) : Infinity;
             let earliestTimeMs = timeConstraint ? Date.now() - timeConstraint : 0;
             if (createdMs > earliestTimeMs) earliestTimeMs = createdMs;
 
@@ -229,13 +230,15 @@ const tickingProcessBlock = async (blockNum) => {
             }
 
             const streakResult = computeStreak(winDays);
+            const streakDays = searchLengthDays(timeConstraint);
+            const streakSuffix = (streakResult.streak >= streakDays && streakDays < Infinity) ? '+' : '';
 // --- Render streak ---
             streakSection.innerHTML =
                 '<div class="coll-streak-number" style="color:' +
                 (streakResult.streak >= 10 ? '#22c55e' : streakResult.streak >= 5 ? '#eab308' : streakResult.streak >= 1 ? '#3b82f6' : '#94a3b8') +
-                ';">' + streakResult.streak + '</div>' +
+                ';">' + streakResult.streak + streakSuffix + '</div>' +
                 '<div class="coll-streak-label">BurnMaxxer Title Streak' +
-                (streakResult.streak === 1 ? ' (1 day)' : streakResult.streak > 0 ? ' (' + streakResult.streak + ' days)' : '') +
+                (streakResult.streak === 1 ? ' (1 day)' : streakResult.streak > 0 ? ' (' + streakResult.streak + streakSuffix + ' days)' : '') +
                 '</div>' +
                 (streakResult.streak > 0
                     ? '<div class="coll-streak-days">Last win: ' + formatGMT(streakResult.days[streakResult.days.length - 1]) +
