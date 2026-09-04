@@ -55,7 +55,11 @@
         </div>
 
         <div id="leaderboard-content" style="display: none;">
-            <div class="leaderboard-table-container">
+            <h3 style="margin-bottom: 1.5rem; font-family: 'Outfit';">Current Streaks — Top 10</h3>
+<div id="streaks-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem; margin-bottom: 2rem;">
+    <!-- Populated via JS -->
+</div><h3 style="margin-bottom: 1.5rem; font-family: 'Outfit';">Summary Table — Top 10</h3>
+<div class="leaderboard-table-container">
                 <table class="leaderboard-table">
                     <thead>
                         <tr>
@@ -99,7 +103,25 @@
                 </svg>
                 GitHub
             </a>
-        </div>
+        <h3 style="margin-bottom: 1.5rem; font-family: 'Outfit';">Summary Table — Top 10</h3>
+<div id="summary-table-container" style="margin-bottom: 2rem; overflow-x: auto;">
+    <table class="leaderboard-table">
+        <thead>
+            <tr>
+                <th>Rank</th>
+                <th>Account</th>
+                <th>Titles Won</th>
+                <th>Weighted</th>
+                <th>STEEM</th>
+                <th>SBD</th>
+            </tr>
+        </thead>
+        <tbody id="summary-table-body">
+        </tbody>
+    </table>
+</div>
+
+</div>
     </footer>
 
     <script src="card-resolver.js?v=1"></script>

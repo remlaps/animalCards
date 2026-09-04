@@ -60,7 +60,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (!blocksData[item.block]) {
                         blocksData[item.block] = {
                             STEEM: { maxBurn: 0, winners: [] },
-                            SBD: { maxBurn: 0, winners: [] }
+                            SBD: { maxBurn: 0, winners: [] },
+                            timestamp: item.timestamp
                         };
                     }
 
@@ -111,7 +112,53 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Weighted card total per account: each card won contributes its rarity's
             // weight (1 for Common, 2 for Rare, 4 for Epic, ... from cards-config.json).
             // Generic and not-yet-released ('none') cards also count, using their slot rarity.
-            const weightedTotalByAccount = {};
+            
+            // Compute streaks per account from block timestamps.
+            var winDaysByAccount = {};
+            for (var acct in winsByAccount) {
+                var days = new Set();
+                var mints = winsByAccount[acct];
+                for (var i = 0; i < mints.length; i++) {
+                    var m = mints[i];
+                    var bData = blocksData[m.block];
+                    var ts = bData ? bData.timestamp : null;
+                    if (ts) {
+                        var d = new Date(ts + "Z");
+                        if (!isNaN(d.getTime())) days.add(d.toISOString().slice(0, 10));
+                    }
+                }
+                winDaysByAccount[acct] = days;
+            }
+            function searchLengthDays(ms) { return ms ? Math.max(1, Math.round(ms / 86400000)) : Infinity; }
+            function computeStreak(daySet) {
+                var now = new Date();
+                var today = now.toISOString().slice(0, 10);
+                var yesterday = new Date(now);
+                yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+                var yesterdayStr = yesterday.toISOString().slice(0, 10);
+                var startDay;
+                if (daySet.has(today)) { startDay = today; }
+                else if (daySet.has(yesterdayStr)) { startDay = yesterdayStr; }
+                else { return { streak: 0, days: [], startDay: null }; }
+                var days = [startDay];
+                var cursor = new Date(startDay + "T00:00:00Z");
+                while (true) {
+                    cursor.setUTCDate(cursor.getUTCDate() - 1);
+                    var prev = cursor.toISOString().slice(0, 10);
+                    if (daySet.has(prev)) { days.push(prev); } else { break; }
+                }
+                return { streak: days.length, days: days.sort(), startDay: startDay };
+            }
+            var streakEntries = [];
+            for (var acct in winDaysByAccount) {
+                var result = computeStreak(winDaysByAccount[acct]);
+                if (result.streak > 0) { streakEntries.push({ account: acct, streak: result.streak, days: result.days }); }
+            }
+            streakEntries.sort(function(a, b) { return b.streak - a.streak || a.account.localeCompare(b.account); });
+            var topStreaks = streakEntries.slice(0, 10);
+            var streakDays = searchLengthDays(timeConstraint);
+
+const weightedTotalByAccount = {};
             for (const [acct, mints] of Object.entries(winsByAccount)) {
                 let total = 0;
                 for (const m of mints) {
@@ -358,7 +405,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }).join('');
             }
 
-            loading.style.display = 'none';
+            ﻿
+
+﻿
+
+
+// Render streaks grid
+var streaksGrid = document.getElementById('streaks-grid');
+if (streaksGrid) {
+  if (topStreaks.length === 0) {
+    streaksGrid.innerHTML = '<p class="status-message" style="grid-column: 1/-1;">No streaks found in this timeframe.</p>';
+  } else {
+    streaksGrid.innerHTML = topStreaks.map(function(e) {
+      var display = e.streak >= streakDays ? e.streak + '+' : String(e.streak);
+      var color = e.streak >= 10 ? '#22c55e' : e.streak >= 5 ? '#eab308' : '#3b82f6';
+      return '<div style="background:var(--glass-bg);backdrop-filter:blur(12px);border:1px solid var(--glass-border);border-radius:12px;padding:0.75rem 1rem;text-align:center;box-shadow:var(--glass-shadow);">' +
+        '<div style="font-family:Outfit,sans-serif;font-size:1.75rem;font-weight:800;line-height:1;color:' + color + ';">' + display + '</div>' +
+        '<div style="font-size:0.82rem;color:var(--text-secondary);margin-top:0.25rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@' + e.account + '</div>' +
+        '</div>';
+    }).join('');
+  }
+}
+
+loading.style.display = 'none';
             content.style.display = 'block';
 
         } catch (error) {
