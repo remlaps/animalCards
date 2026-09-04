@@ -11,6 +11,7 @@ rewards are resolved to a card defined in `cards-config.json`.
 | `index.html` | Landing page |
 | `search.html` / `search.js` | Look up an account's earned cards |
 | `leaderboard.html` / `leaderboard.js` | Top burners and the cards they won |
+| `collections.html` / `collections.js` | Account collections — BurnMaxxer streak, rarity sets, and class sets |
 | `blockchain-api.js` | STEEM API wrapper + network methods; delegates card resolution to `card-resolver.js` |
 | `card-resolver.js` | **The deterministic card-resolution algorithm** — single source of truth shared by the browser (`blockchain-api.js`) and the `resolve-card.js` CLI |
 | `cards-config.json` | **The card catalogue — the only file you edit to add/change cards** |
@@ -49,20 +50,20 @@ is hashed with the block hash to produce a deterministic integer. The algorithm 
 
 1. **Picks a class** from `class_weights` (must sum to 100).
 2. **Picks a rarity slot from a fixed pool** shared by every class. The slot counts
-   are hard-coded and never change:
-   | Rarity | Slots |
+   come from `slot_layouts` in `cards-config.json` (currently):
+   | Rarity | Slots (current `slot_layouts`) |
    |--------|-------|
-   | Common | 16 |
-   | Rare | 8 |
-   | Epic ≤ | 4 |
+   | Common | 8 |
+   | Rare | 3 |
+   | Epic | 2 |
    | Legendary | 2 |
    | Mythic | 1 |
-   | **Total** | **31** |
+   | **Total** | **16** |
 
    Each slot is then **weighted by its rarity's multiplier** (`Common` 16,
    `Rare` 8, `Epic` 4, `Legendary` 2, `Mythic` 1). A Common slot is chosen 16×
    as often as a Mythic slot and 2× as often as a Rare slot. Total weight =
-   16·16 + 8·8 + 4·4 + 2·2 + 1·1 = **341**. This is the **second dimension of
+   8·16 + 3·8 + 2·4 + 2·2 + 1·1 = **165**. This is the **second dimension of
    scarcity**: more species exist at lower rarities (the slot counts), *and*
    lower-rarity slots are more likely to be chosen (the weighting).
 
@@ -207,7 +208,7 @@ backward, so very old blocks may be slow.
       "species": "Turkey Vulture",
       "class": "Bird",
       "rarity": "Common",    // Common | Rare | Epic | Legendary | Mythic | Generic
-      "slot": 0,             // 0-based index within this rarity's slot band (0..15 Common)
+      "slot": 0,             // 0-based index within this rarity's slot band (0..7 Common)
       "start_block": null,   // inclusive; null = active from the beginning
       "end_block": null,     // inclusive; null = active forever
       "image_url": "https://...png",
@@ -232,7 +233,7 @@ this one map — no code changes needed.
 | `species` | ✅ | Display name. |
 | `class` | ✅ | Must match one of the keys in `class_weights`. |
 | `rarity` | ✅ | One of `Common`, `Rare`, `Epic`, `Legendary`, `Mythic`, or `Generic`. |
-| `slot` | ✅ (non-generic) | 0-based index within the rarity's slot band (Common 0–15, Rare 0–7, Epic 0–3, Legendary 0–1, Mythic 0). The **stable identity** a card occupies. |
+| `slot` | ✅ (non-generic) | 0-based index within the rarity's slot band (Common 0–7, Rare 0–2, Epic 0–1, Legendary 0–1, Mythic 0). The **stable identity** a card occupies. |
 | `start_block` | ⬜ | First awardable block (inclusive). Omit/null = active from the beginning. |
 | `end_block` | ⬜ | Last awardable block (inclusive). Omit/null = active forever. |
 | `image_url` | ✅ | Card image. |
@@ -243,7 +244,7 @@ this one map — no code changes needed.
 ### How the slot-to-card mapping works
 
 A card's **`slot`** is its stable identity — the 0-based position within its rarity's
-fixed slot band (Common 0–15, Rare 0–7, Epic 0–3, Legendary 0–1, Mythic 0). At a given
+fixed slot band (Common 0–7, Rare 0–2, Epic 0–1, Legendary 0–1, Mythic 0). At a given
 block, the slot resolves to the card whose `[start_block, end_block]` window contains
 that block. Current Bird **Common** cards:
 
@@ -256,10 +257,10 @@ that block. Current Bird **Common** cards:
 | 4 | Northern Cardinal | forever |
 | 5 | Blue Jay | forever |
 | 6 | White-breasted Nuthatch | forever |
-| 7–15 | *(empty → generic card)* | — |
+| 7 | Black Vulture | forever |
 
 Every slot — filled or empty — carries the same per-slot weight **within its rarity**
-(e.g. all 16 Common slots are weight 16). Changing one card's window never touches
+(e.g. all 8 Common slots are weight 16). Changing one card's window never touches
 other slots, so unrelated past winners are undisturbed.
 
 ### Adding a new species (fills an empty slot)
@@ -355,7 +356,7 @@ non-zero on structural errors, making it easy to drop into CI.
   `card_id`.
 - **Run `node validate-cards.js` after every change** to `cards-config.json`.
 - Rarity values are case-sensitive: `Common`, `Rare`, `Epic`, `Legendary`, `Mythic`, `Generic`.
-- A rarity can never exceed its fixed slot band (16 Common, 8 Rare, 4 Epic, 2 Legendary,
+- A rarity can never exceed its slot band from `slot_layouts` (8 Common, 3 Rare, 2 Epic, 2 Legendary,
   1 Mythic) **per generation**. Later generations may re-fill the same slots.
 - `rarity_difficulty` is **optional**; leave `enabled_block` null to keep it off. Set it
   to a future block to enable RABD from that block forward — past cards are untouched.

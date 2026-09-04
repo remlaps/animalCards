@@ -79,9 +79,9 @@ function serialFor(blockNum, asset) {
     return `${blockNum}.${asset === 'SBD' ? 1 : 0}`;
 }
 
-// 0-based slot band (e.g. "0-7") for a rarity, from the shared config constant.
-function slotRangeFor(rarity) {
-    const count = CardResolver.DEFAULT_RARITY_SLOT_COUNTS[rarity];
+// 0-based slot band (e.g. "0-7") for a rarity, from the active slot_layouts config.
+function slotRangeFor(rarity, slotCounts) {
+    const count = (slotCounts && slotCounts[rarity]) || CardResolver.DEFAULT_RARITY_SLOT_COUNTS[rarity];
     return count == null ? '-' : `0-${count - 1}`;
 }
 
@@ -148,7 +148,7 @@ async function fetchNullWinners(blockNum) {
     return winners;
 }
 
-function renderHuman(outputs, blockNum) {
+function renderHuman(outputs, blockNum, totalSlots) {
     const lines = [`Block ${blockNum}`];
     for (const o of outputs) {
         lines.push('');
@@ -160,7 +160,7 @@ function renderHuman(outputs, blockNum) {
         if (o.className) lines.push(`  class    : ${o.className}`);
         lines.push(`  rarity   : ${o.rarity}`);
         lines.push(`  slot (rarity ${o.slotRange}) : ${o.slot}`);
-        lines.push(`  slot (global 0-30) : ${o.slotPick ?? '-'}`);
+        lines.push(`  slot (global 0-${totalSlots - 1}) : ${o.slotPick ?? '-'}`);
         lines.push(`  species  : ${o.species === null || o.species === undefined ? '(none — card not released yet)' : o.species}`);
         if (o.card_id != null) lines.push(`  card_id  : ${o.card_id}`);
         if (o.rarity_min_burn != null && o.rarity_min_burn > 0) lines.push(`  min burn : ${o.rarity_min_burn} (RABD)`);
@@ -171,14 +171,14 @@ function renderHuman(outputs, blockNum) {
     return lines.join('\n');
 }
 
-function buildOutput(asset, serial, trxId, winner, resolved, note, minBurns) {
+function buildOutput(asset, serial, trxId, winner, resolved, note, minBurns, slotCounts) {
     const base = { asset, serial, status: note ? 'none' : resolved.status };
     if (resolved) {
         base.className = resolved.className;
         base.rarity = resolved.rarity;
         base.slot = resolved.slot;
         base.slotPick = resolved.slotPick;
-        base.slotRange = slotRangeFor(resolved.rarity);
+        base.slotRange = slotRangeFor(resolved.rarity, slotCounts);
         base.species = resolved.card ? resolved.card.species : null;
         base.card_id = resolved.card ? resolved.card.card_id : null;
         if (minBurns && minBurns[resolved.rarity] > 0) base.rarity_min_burn = minBurns[resolved.rarity];
@@ -201,13 +201,15 @@ async function main() {
     const args = parseArgs(process.argv);
     const config = loadConfig();
     const outputs = [];
+    const slotCounts = CardResolver.getSlotLayoutForBlock(config.slot_layouts, args.blockNum);
+    const totalSlots = slotCounts ? Object.keys(slotCounts).reduce((s, r) => s + slotCounts[r], 0) : 16;
 
     if (args.trxId) {
         // Manual mode — resolve locally, no network.
         const asset = args.asset || 'STEEM';
         const serial = serialFor(args.blockNum, asset);
         const resolved = await CardResolver.resolveCardForBlock(serial, args.trxId, config);
-        outputs.push(buildOutput(asset, serial, args.trxId, null, resolved));
+        outputs.push(buildOutput(asset, serial, args.trxId, null, resolved, null, null, slotCounts));
     } else {
         // Auto mode — fetch that block's burn winners from the chain.
         const winners = await fetchNullWinners(args.blockNum);
@@ -219,7 +221,7 @@ async function main() {
             const w = winners[asset];
             if (w.winners.length === 0) {
                 const note = Number.isFinite(w.max) ? 'no burn to null in this block' : 'no burn to null in this block';
-                outputs.push(buildOutput(asset, serialFor(args.blockNum, asset), null, null, null, note));
+                outputs.push(buildOutput(asset, serialFor(args.blockNum, asset), null, null, null, note, null, slotCounts));
                 continue;
             }
             const isTie = w.winners.length > 1;
@@ -227,12 +229,12 @@ async function main() {
                 const serial = serialFor(args.blockNum, asset);
                 const constraints = { rarity_min_burn: effBurns, winning_burn_amount: w.max, tie: isTie };
                 const resolved = await CardResolver.resolveCardForBlock(serial, we.trx_id, config, constraints);
-                outputs.push(buildOutput(asset, serial, we.trx_id, we.account, resolved, null, effBurns));
+                outputs.push(buildOutput(asset, serial, we.trx_id, we.account, resolved, null, effBurns, slotCounts));
             }
         }
     }
 
-    console.log(args.json ? JSON.stringify(outputs, null, 2) : renderHuman(outputs, args.blockNum));
+    console.log(args.json ? JSON.stringify(outputs, null, 2) : renderHuman(outputs, args.blockNum, totalSlots));
 }
 
 main().catch(err => {
