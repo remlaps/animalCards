@@ -9,8 +9,8 @@
  *   1. class_weights sum to 100.
  *   2. card_id values are unique.
  *   3. rarity values are one of the supported set.
- *   4. `slot` is within its rarity's fixed band (Common 0-15, Rare 0-7,
- *      Epic 0-3, Legendary 0-1, Mythic 0).
+ *   4. `slot` is within its rarity's band from `slot_layouts` (or the
+ *      default 0-15 Common, 0-7 Rare, 0-3 Epic, 0-1 Legendary, Mythic 0).
  *   5. generation windows: no two cards of the same class+rarity+slot have
  *      overlapping windows, and any sequence of generations in a slot is
  *      contiguous (no generic gaps).
@@ -24,7 +24,22 @@ const fs = require('fs');
 const path = require('path');
 
 const CONFIG = process.argv[2] || path.join(__dirname, 'cards-config.json');
-const RARITY_SLOT_COUNTS = { Common: 16, Rare: 8, Epic: 4, Legendary: 2, Mythic: 1 };
+const cfg = JSON.parse(fs.readFileSync(CONFIG, 'utf8'));
+
+// Slot counts are derived from slot_layouts (last entry's values, which is the
+// active layout). Fall back to the hard-coded defaults when absent.
+const DEFAULT_RARITY_SLOT_COUNTS = { Common: 16, Rare: 8, Epic: 4, Legendary: 2, Mythic: 1 };
+const slotLayouts = cfg.slot_layouts || [];
+let RARITY_SLOT_COUNTS;
+if (Array.isArray(slotLayouts) && slotLayouts.length > 0) {
+    const latest = slotLayouts[slotLayouts.length - 1];
+    RARITY_SLOT_COUNTS = {};
+    for (const r of ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic']) {
+        RARITY_SLOT_COUNTS[r] = (typeof latest[r] === 'number' && latest[r] >= 1) ? latest[r] : DEFAULT_RARITY_SLOT_COUNTS[r];
+    }
+} else {
+    RARITY_SLOT_COUNTS = { ...DEFAULT_RARITY_SLOT_COUNTS };
+}
 const VALID_RARITIES = new Set(['Generic', ...Object.keys(RARITY_SLOT_COUNTS)]);
 const MONOTONIC_ORDER = ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic'];
 
@@ -54,7 +69,6 @@ function checkMonotonic(values, label) {
 }
 
 // Effective inclusive window; null means unbounded. Block numbers are integers.
-const cfg = JSON.parse(fs.readFileSync(CONFIG, 'utf8'));
 const cards = cfg.cards || [];
 
 // 1. class_weights sum to 100
@@ -246,7 +260,6 @@ if (rd) {
 }
 
 // 7. slot_layouts validation
-const slotLayouts = cfg.slot_layouts || [];
 if (!Array.isArray(slotLayouts)) {
     errors.push('slot_layouts must be an array.');
 } else if (slotLayouts.length > 0) {
