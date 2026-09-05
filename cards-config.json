@@ -55,7 +55,7 @@
       "image_url": "https://i.postimg.cc/Njz4HVzq/Generic-Fish.png",
       "is_generic": true,
       "generation": "unstable-test",
-      "photo_credit": "CC0 iNaturalist (#482252453)"
+      "photo_credit": "CC0 iNaturalist (#268310437)"
     },
     { "card_id": 3,
       "species": "Generic Mammal",
@@ -334,7 +334,7 @@
       "slot": 0,
       "image_url": "https://i.postimg.cc/d1r7Gt97/Great_Barracuda.png",
       "generation": "unstable-test",
-      "photo_credit": "CC0 iNaturalist (#482252453)"
+      "photo_credit": "CC0 iNaturalist (#249985346)"
     },
     {
       "card_id": 33,
@@ -535,6 +535,56 @@
       "image_url": "https://i.postimg.cc/VNg2cBdJ/Timber-Rattlesnake.png",
       "generation": "unstable-test",
       "photo_credit": "CC0 iNaturalist (#371066406)"
+    },
+    {
+      "card_id": 53,
+      "species": "Indian Longnosed Parrotfish",
+      "class": "Fish",
+      "rarity": "Common",
+      "slot": 1,
+      "image_url": "https://i.postimg.cc/5yGN5mNC/Indian-Longnose-Parrotfish.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#397377955)"
+    },
+    {
+      "card_id": 54,
+      "species": "Mahsena Emperor",
+      "class": "Fish",
+      "rarity": "Common",
+      "slot": 2,
+      "image_url": "https://i.postimg.cc/8kyqK5dw/Mahsena-Emperor.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#397372781)"
+    },
+    {
+      "card_id": 55,
+      "species": "Atlantic Bluefin Tuna",
+      "class": "Fish",
+      "rarity": "Common",
+      "slot": 3,
+      "image_url": "https://i.postimg.cc/fbfwJs4N/Atlantic-Bluefin-Tuna.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#35422206)"
+    },
+    {
+      "card_id": 56,
+      "species": "Spotted Salamander",
+      "class": "Reptile & Amphibian",
+      "rarity": "Common",
+      "slot": 0,
+      "image_url": "https://i.postimg.cc/Y2WWP0Zy/Spotted-Salamander.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#264146445)"
+    },
+    {
+      "card_id": 57,
+      "species": "Indus Valley Bullfrog",
+      "class": "Reptile & Amphibian",
+      "rarity": "Common",
+      "slot": 1,
+      "image_url": "https://i.postimg.cc/k4F3TvJb/Indus-Valley-Bullfrog.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#379028516)"
     }
   ]
 }
