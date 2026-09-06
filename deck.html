@@ -48,6 +48,10 @@
         .swatch-Legendary { background: #f59e0b; }
         .swatch-Mythic    { background: #ef4444; }
         .empty-cell { color: rgba(148,163,184,0.3); font-size: 0.75rem; }
+        .deck-table th.sortable { cursor: pointer; user-select: none; }
+        .deck-table th.sortable:hover { background: rgba(59,130,246,0.25); }
+        .deck-table th.sortable .sort-indicator { font-size: 0.7rem; margin-left: 2px; opacity: 0.6; }
+        .deck-table th.sortable.active-sort .sort-indicator { opacity: 1; }
         @media (max-width: 768px) {
             .deck-header h2 { font-size: 1.5rem; }
             .deck-table { font-size: 0.72rem; }
@@ -122,6 +126,7 @@
 
         const RARITY_NAMES = ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic'];
         const RARITY_WEIGHT = { Common: 16, Rare: 8, Epic: 4, Legendary: 2, Mythic: 1 };
+        const RARITY_RANK = { Common: 0, Rare: 1, Epic: 2, Legendary: 3, Mythic: 4 };
 
         // Build RARITY_RANGES from a slot_layouts entry (or default 31-slot layout)
         function buildRanges(layout) {
@@ -160,43 +165,128 @@
                     if (c.is_generic) { genericsByClass[c.class] = c; }
                     else { cardIndex[c.class + '|' + c.rarity + '|' + c.slot] = c; }
                 }
+
+                // Build row data objects
+                const rows = [];
                 let releasedCount = 0;
-                let genericCount = Object.keys(genericsByClass).length;
-                let html = '<table class="deck-table"><thead><tr><th>Global Slot</th>';
-                for (const cls of classes) html += '<th>' + cls + '</th>';
-                html += '</tr></thead><tbody>';
                 for (let gs = 0; gs < totalSlots; gs++) {
                     const rarity = gsRarity(ranges, gs);
                     if (!rarity) continue;
                     const inSlot = gsInSlot(ranges, gs);
-                    html += '<tr class="band-' + rarity.toLowerCase() + '">';
-                    html += '<td class="rarity-' + rarity + '"><span class="slot-label">' + gs + '</span> <span class="slot-rarity-badge badge-' + rarity + '">' + rarity + '</span> <span class="cell-in-slot">#' + inSlot + '</span></td>';
+                    const cells = {};
                     for (const cls of classes) {
                         const key = cls + '|' + rarity + '|' + inSlot;
                         const card = cardIndex[key];
                         const generic = genericsByClass[cls];
-                        html += '<td class="rarity-' + rarity + '">';
                         if (card) {
                             releasedCount++;
-                            html += '<div class="cell-card released"><div class="cell-species">' + card.species + '</div><div class="cell-generation">' + card.generation + '</div><div><span class="slot-rarity-badge badge-' + rarity + '">' + rarity + '</span> <span class="cell-in-slot">slot #' + inSlot + '</span></div></div>';
+                            cells[cls] = { type: 'released', species: card.species, generation: card.generation, rarity: rarity, inSlot: inSlot };
                         } else if (generic) {
-                            html += '<div class="cell-card generic"><div class="cell-species">' + generic.species + '</div><div class="cell-generation">' + generic.generation + '</div><div><span class="slot-rarity-badge badge-Generic">GENERIC</span> <span class="cell-in-slot">slot #' + inSlot + '</span></div></div>';
+                            cells[cls] = { type: 'generic', species: generic.species, generation: generic.generation };
                         } else {
-                            html += '<div class="empty-cell">&mdash;</div>';
+                            cells[cls] = { type: 'empty' };
                         }
-                        html += '</td>';
                     }
-                    html += '</tr>';
+                    rows.push({ gs: gs, rarity: rarity, inSlot: inSlot, cells: cells });
                 }
-                html += '</tbody></table>';
-                document.getElementById('deck-table-container').innerHTML = html;
+
+                // ----- SORTING -----
+                let sortColumn = 'rarity';   // default: sort by rarity
+                let sortAsc = false;          // default: Mythic (rank 4) first = descending
+
+                function cellSortValue(row, col) {
+                    if (col === 'gs') return row.gs;
+                    if (col === 'rarity') return RARITY_RANK[row.rarity];
+                    // Class column: released < generic < empty; within same tier sort by species
+                    const cell = row.cells[col];
+                    if (cell.type === 'released') return { tier: 0, species: cell.species.toLowerCase() };
+                    if (cell.type === 'generic')  return { tier: 1, species: cell.species.toLowerCase() };
+                    return { tier: 2, species: '' };
+                }
+
+                function compareRows(a, b) {
+                    const va = cellSortValue(a, sortColumn);
+                    const vb = cellSortValue(b, sortColumn);
+                    let cmp;
+                    if (sortColumn === 'gs' || sortColumn === 'rarity') {
+                        cmp = va - vb;
+                    } else {
+                        cmp = va.tier - vb.tier;
+                        if (cmp === 0) cmp = va.species.localeCompare(vb.species);
+                    }
+                    cmp = sortAsc ? cmp : -cmp;
+                    if (cmp === 0) cmp = a.gs - b.gs;   // secondary sort by slot
+                    return cmp;
+                }
+
+                function renderTable() {
+                    const sorted = [...rows].sort(compareRows);
+                    let html = '<table class="deck-table"><thead><tr>';
+                    html += '<th class="sortable" data-col="rarity">Global Slot <span class="sort-indicator"></span></th>';
+                    for (const cls of classes) {
+                        html += '<th class="sortable" data-col="' + cls + '">' + cls + ' <span class="sort-indicator"></span></th>';
+                    }
+                    html += '</tr></thead><tbody>';
+                    for (const row of sorted) {
+                        html += '<tr class="band-' + row.rarity.toLowerCase() + '">';
+                        html += '<td class="rarity-' + row.rarity + '"><span class="slot-label">' + row.gs + '</span> <span class="slot-rarity-badge badge-' + row.rarity + '">' + row.rarity + '</span> <span class="cell-in-slot">#' + row.inSlot + '</span></td>';
+                        for (const cls of classes) {
+                            const cell = row.cells[cls];
+                            html += '<td class="rarity-' + row.rarity + '">';
+                            if (cell.type === 'released') {
+                                html += '<div class="cell-card released"><div class="cell-species">' + cell.species + '</div><div class="cell-generation">' + cell.generation + '</div><div><span class="slot-rarity-badge badge-' + cell.rarity + '">' + cell.rarity + '</span> <span class="cell-in-slot">slot #' + cell.inSlot + '</span></div></div>';
+                            } else if (cell.type === 'generic') {
+                                html += '<div class="cell-card generic"><div class="cell-species">' + cell.species + '</div><div class="cell-generation">' + cell.generation + '</div><div><span class="slot-rarity-badge badge-Generic">GENERIC</span> <span class="cell-in-slot">slot #' + row.inSlot + '</span></div></div>';
+                            } else {
+                                html += '<div class="empty-cell">&mdash;</div>';
+                            }
+                            html += '</td>';
+                        }
+                        html += '</tr>';
+                    }
+                    html += '</tbody></table>';
+                    document.getElementById('deck-table-container').innerHTML = html;
+
+                    // Update sort indicators and active class
+                    document.querySelectorAll('.deck-table th.sortable').forEach(function(th) {
+                        const col = th.dataset.col;
+                        const indicator = th.querySelector('.sort-indicator');
+                        if (col === sortColumn) {
+                            th.classList.add('active-sort');
+                            indicator.textContent = sortAsc ? ' ▲' : ' ▼';
+                        } else {
+                            th.classList.remove('active-sort');
+                            indicator.textContent = '';
+                        }
+                    });
+
+                    // Attach click handlers
+                    document.querySelectorAll('.deck-table th.sortable').forEach(function(th) {
+                        th.addEventListener('click', function() {
+                            const col = this.dataset.col;
+                            if (col === sortColumn) {
+                                sortAsc = !sortAsc;
+                            } else {
+                                sortColumn = col;
+                                if (col === 'rarity') sortAsc = false;
+                                else sortAsc = true;
+                            }
+                            renderTable();
+                        });
+                    });
+                }
+
+                // Render with default sort (by rarity, Mythic first)
+                renderTable();
+
+                // Legend and summary
                 var legendHtml = '';
                 for (var i = 0; i < RARITY_NAMES.length; i++) {
                     legendHtml += '<span class="deck-legend-item"><span class="deck-legend-swatch swatch-' + RARITY_NAMES[i] + '"></span>' + RARITY_NAMES[i] + '</span>';
                 }
                 legendHtml += '<span class="deck-legend-item"><span class="deck-legend-swatch swatch-Generic"></span>Generic</span>';
                 document.getElementById('deck-legend').innerHTML = legendHtml;
-                document.getElementById('deck-summary').textContent = releasedCount + ' species cards + ' + genericCount + ' generic placeholders across ' + classes.length + ' classes | ' + totalSlots + ' global slots | Layout: ' + (layout && layout.block != null ? 'block ' + layout.block : 'default') + ' | Loaded: ' + new Date().toLocaleString();
+                document.getElementById('deck-summary').textContent = releasedCount + ' species cards + ' + Object.keys(genericsByClass).length + ' generic placeholders across ' + classes.length + ' classes | ' + totalSlots + ' global slots | Layout: ' + (layout && layout.block != null ? 'block ' + layout.block : 'default') + ' | Loaded: ' + new Date().toLocaleString();
             } catch (e) {
                 document.getElementById('deck-table-container').innerHTML = '<div class="glass-panel" style="padding:2rem;text-align:center;color:#ef4444;"><p>Failed to load card deck: ' + e.message + '</p></div>';
             }
