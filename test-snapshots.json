@@ -1,8 +1,8 @@
 {
   "version": 1,
   "description": "Baseline snapshots for cards-config.json. Regenerate with: node test-cards.js --update-snapshots",
-  "generated_at": "2026-08-24T13:17:38.060Z",
-  "card_count": 25,
+  "generated_at": "2026-09-06T14:17:21.553Z",
+  "card_count": 59,
   "snapshot_cases": [
     {
       "serialNumber": "100000.0",
@@ -120,28 +120,28 @@
       "serialNumber": "5000000.0",
       "blockHash": "1111111111111111111111111111111111111111111111111111111111111111",
       "expected": {
-        "status": "generic",
+        "status": "released",
         "className": "Reptile & Amphibian",
         "rarity": "Common",
         "slot": 1,
         "slotPick": 1,
-        "species": "Generic Reptile & Amphibian",
-        "card_id": 4,
-        "generic_reason": "unreleased"
+        "species": "Indus Valley Bullfrog",
+        "card_id": 57,
+        "generic_reason": null
       }
     },
     {
       "serialNumber": "5000000.1",
       "blockHash": "2222222222222222222222222222222222222222222222222222222222222222",
       "expected": {
-        "status": "generic",
+        "status": "released",
         "className": "Reptile & Amphibian",
         "rarity": "Common",
         "slot": 4,
         "slotPick": 4,
-        "species": "Generic Reptile & Amphibian",
-        "card_id": 4,
-        "generic_reason": "unreleased"
+        "species": "Yellow-headed Poison Dart Frog",
+        "card_id": 60,
+        "generic_reason": null
       }
     },
     {
@@ -162,14 +162,14 @@
       "serialNumber": "9999999.1",
       "blockHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "expected": {
-        "status": "generic",
+        "status": "released",
         "className": "Reptile & Amphibian",
         "rarity": "Common",
         "slot": 1,
         "slotPick": 1,
-        "species": "Generic Reptile & Amphibian",
-        "card_id": 4,
-        "generic_reason": "unreleased"
+        "species": "Indus Valley Bullfrog",
+        "card_id": 57,
+        "generic_reason": null
       }
     }
   ],
@@ -184,8 +184,8 @@
       "end_block": null
     },
     "2": {
-      "species": "Generic Fish",
-      "class": "Fish",
+      "species": "Generic Fish, Mollusk & Crustacean",
+      "class": "Fish, Mollusk & Crustacean",
       "rarity": "Generic",
       "generation": "unstable-test",
       "is_generic": true,
@@ -417,6 +417,346 @@
       "generation": "unstable-test",
       "is_generic": false,
       "slot": 0,
+      "start_block": null,
+      "end_block": null
+    },
+    "28": {
+      "species": "Greylag Goose",
+      "class": "Bird",
+      "rarity": "Rare",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 2,
+      "start_block": null,
+      "end_block": null
+    },
+    "29": {
+      "species": "Atlantic Goliath Grouper",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Legendary",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 0,
+      "start_block": null,
+      "end_block": null
+    },
+    "30": {
+      "species": "Orca",
+      "class": "Mammal",
+      "rarity": "Epic",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 0,
+      "start_block": null,
+      "end_block": null
+    },
+    "31": {
+      "species": "Great White Shark",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Legendary",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 1,
+      "start_block": null,
+      "end_block": null
+    },
+    "32": {
+      "species": "Great Barracuda",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 0,
+      "start_block": null,
+      "end_block": null
+    },
+    "33": {
+      "species": "Scalloped Hammerhead Shark",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Mythic",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 0,
+      "start_block": null,
+      "end_block": null
+    },
+    "34": {
+      "species": "Galapagos Land Iguana",
+      "class": "Reptile & Amphibian",
+      "rarity": "Mythic",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 0,
+      "start_block": null,
+      "end_block": null
+    },
+    "35": {
+      "species": "Bearded Vulture",
+      "class": "Bird",
+      "rarity": "Legendary",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 1,
+      "start_block": null,
+      "end_block": null
+    },
+    "36": {
+      "species": "Wisent (European Bison)",
+      "class": "Mammal",
+      "rarity": "Legendary",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 1,
+      "start_block": null,
+      "end_block": null
+    },
+    "37": {
+      "species": "Meadow Viper",
+      "class": "Reptile & Amphibian",
+      "rarity": "Legendary",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 0,
+      "start_block": null,
+      "end_block": null
+    },
+    "38": {
+      "species": "Mallorcan Midwife Toad",
+      "class": "Reptile & Amphibian",
+      "rarity": "Legendary",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 1,
+      "start_block": null,
+      "end_block": null
+    },
+    "39": {
+      "species": "Polar Bear",
+      "class": "Mammal",
+      "rarity": "Rare",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 1,
+      "start_block": null,
+      "end_block": null
+    },
+    "40": {
+      "species": "Grey-headed Flying Fox",
+      "class": "Mammal",
+      "rarity": "Epic",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 1,
+      "start_block": null,
+      "end_block": null
+    },
+    "41": {
+      "species": "Raccoon Dog",
+      "class": "Mammal",
+      "rarity": "Rare",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 2,
+      "start_block": null,
+      "end_block": null
+    },
+    "42": {
+      "species": "Emperor Penguin",
+      "class": "Bird",
+      "rarity": "Epic",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 0,
+      "start_block": null,
+      "end_block": null
+    },
+    "43": {
+      "species": "Shoebill",
+      "class": "Bird",
+      "rarity": "Epic",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 1,
+      "start_block": null,
+      "end_block": null
+    },
+    "44": {
+      "species": "Mimic Octopus",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Epic",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 0,
+      "start_block": null,
+      "end_block": null
+    },
+    "45": {
+      "species": "White-spotted Eagle Ray",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Epic",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 1,
+      "start_block": null,
+      "end_block": null
+    },
+    "46": {
+      "species": "Saltwater Crocodile",
+      "class": "Reptile & Amphibian",
+      "rarity": "Epic",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 0,
+      "start_block": null,
+      "end_block": null
+    },
+    "47": {
+      "species": "Komodo Dragon",
+      "class": "Reptile & Amphibian",
+      "rarity": "Epic",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 1,
+      "start_block": null,
+      "end_block": null
+    },
+    "48": {
+      "species": "Spiny Seahorse",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Rare",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 0,
+      "start_block": null,
+      "end_block": null
+    },
+    "49": {
+      "species": "Longnose Filefish",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Rare",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 1,
+      "start_block": null,
+      "end_block": null
+    },
+    "50": {
+      "species": "Chevron Butterflyfish",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 3,
+      "start_block": null,
+      "end_block": null
+    },
+    "51": {
+      "species": "Hong Kong Warty Newt",
+      "class": "Reptile & Amphibian",
+      "rarity": "Rare",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 1,
+      "start_block": null,
+      "end_block": null
+    },
+    "52": {
+      "species": "Timber Rattlesnake",
+      "class": "Reptile & Amphibian",
+      "rarity": "Rare",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 2,
+      "start_block": null,
+      "end_block": null
+    },
+    "53": {
+      "species": "Indian Longnosed Parrotfish",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 1,
+      "start_block": null,
+      "end_block": null
+    },
+    "54": {
+      "species": "Mahsena Emperor",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 2,
+      "start_block": null,
+      "end_block": null
+    },
+    "55": {
+      "species": "Atlantic Bluefin Tuna",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Rare",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 2,
+      "start_block": null,
+      "end_block": null
+    },
+    "56": {
+      "species": "Spotted Salamander",
+      "class": "Reptile & Amphibian",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 0,
+      "start_block": null,
+      "end_block": null
+    },
+    "57": {
+      "species": "Indus Valley Bullfrog",
+      "class": "Reptile & Amphibian",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 1,
+      "start_block": null,
+      "end_block": null
+    },
+    "58": {
+      "species": "Flathead Leaf-toed Gecko",
+      "class": "Reptile & Amphibian",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 2,
+      "start_block": null,
+      "end_block": null
+    },
+    "59": {
+      "species": "Leopard Tortoise",
+      "class": "Reptile & Amphibian",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 3,
+      "start_block": null,
+      "end_block": null
+    },
+    "60": {
+      "species": "Yellow-headed Poison Dart Frog",
+      "class": "Reptile & Amphibian",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 4,
+      "start_block": null,
+      "end_block": null
+    },
+    "61": {
+      "species": "Blue Land Crab",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 4,
       "start_block": null,
       "end_block": null
     }
