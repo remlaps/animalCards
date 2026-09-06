@@ -2,7 +2,7 @@
   "class_weights": {
     "Bird": 34,
     "Mammal": 34,
-    "Fish": 16,
+    "Fish, Mollusk & Crustacean": 16,
     "Reptile & Amphibian": 16
   },
   "beneficiaries": {
@@ -49,10 +49,10 @@
     },
     {
       "card_id": 2,
-      "species": "Generic Fish",
-      "class": "Fish",
+      "species": "Generic Fish, Mollusk & Crustacean",
+      "class": "Fish, Mollusk & Crustacean",
       "rarity": "Generic",
-      "image_url": "https://i.postimg.cc/Njz4HVzq/Generic-Fish.png",
+      "image_url": "https://i.postimg.cc/Njz4HVzq/Generic-Fish-Mollusk-and-Crustacean.png",
       "is_generic": true,
       "generation": "unstable-test",
       "photo_credit": "CC0 iNaturalist (#268310437)"
@@ -299,7 +299,7 @@
     {
       "card_id": 29,
       "species": "Atlantic Goliath Grouper",
-      "class": "Fish",
+      "class": "Fish, Mollusk & Crustacean",
       "rarity": "Legendary",
       "slot": 0,
       "image_url": "https://i.postimg.cc/zvJspy8n/Atlantic-Goliath-Grouper.png",
@@ -319,7 +319,7 @@
     {
       "card_id": 31,
       "species": "Great White Shark",
-      "class": "Fish",
+      "class": "Fish, Mollusk & Crustacean",
       "rarity": "Legendary",
       "slot": 1,
       "image_url": "https://i.postimg.cc/DZHhgqxy/Great-White-Shark.png",
@@ -329,7 +329,7 @@
     {
       "card_id": 32,
       "species": "Great Barracuda",
-      "class": "Fish",
+      "class": "Fish, Mollusk & Crustacean",
       "rarity": "Common",
       "slot": 0,
       "image_url": "https://i.postimg.cc/d1r7Gt97/Great_Barracuda.png",
@@ -339,7 +339,7 @@
     {
       "card_id": 33,
       "species": "Scalloped Hammerhead Shark",
-      "class": "Fish",
+      "class": "Fish, Mollusk & Crustacean",
       "rarity": "Mythic",
       "slot": 0,
       "image_url": "https://i.postimg.cc/8PtK9qR4/Scalloped-Hammerhead.jpg",
@@ -449,7 +449,7 @@
     {
       "card_id": 44,
       "species": "Mimic Octopus",
-      "class": "Fish",
+      "class": "Fish, Mollusk & Crustacean",
       "rarity": "Epic",
       "slot": 0,
       "image_url": "https://i.postimg.cc/J4gSz3Cs/Mimic-Octopus.png",
@@ -459,7 +459,7 @@
     {
       "card_id": 45,
       "species": "White-spotted Eagle Ray",
-      "class": "Fish",
+      "class": "Fish, Mollusk & Crustacean",
       "rarity": "Epic",
       "slot": 1,
       "image_url": "https://i.postimg.cc/kXxhq0sw/White-spotted-Eagle-Ray.png",
@@ -489,7 +489,7 @@
     {
       "card_id": 48,
       "species": "Spiny Seahorse",
-      "class": "Fish",
+      "class": "Fish, Mollusk & Crustacean",
       "rarity": "Rare",
       "slot": 0,
       "image_url": "https://i.postimg.cc/BQgNXwQ9/Spiny-Seahorse.png",
@@ -499,7 +499,7 @@
     {
       "card_id": 49,
       "species": "Longnose Filefish",
-      "class": "Fish",
+      "class": "Fish, Mollusk & Crustacean",
       "rarity": "Rare",
       "slot": 1,
       "image_url": "https://i.postimg.cc/44FxsXph/Longnose_Filefish.png",
@@ -509,9 +509,9 @@
     {
       "card_id": 50,
       "species": "Chevron Butterflyfish",
-      "class": "Fish",
-      "rarity": "Rare",
-      "slot": 2,
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Common",
+      "slot": 3,
       "image_url": "https://i.postimg.cc/DZ6d8Snt/Chevron-Butterflyfish.png",
       "generation": "unstable-test",
       "photo_credit": "CC0 iNaturalist (#269596249)"
@@ -539,7 +539,7 @@
     {
       "card_id": 53,
       "species": "Indian Longnosed Parrotfish",
-      "class": "Fish",
+      "class": "Fish, Mollusk & Crustacean",
       "rarity": "Common",
       "slot": 1,
       "image_url": "https://i.postimg.cc/5yGN5mNC/Indian-Longnose-Parrotfish.png",
@@ -549,7 +549,7 @@
     {
       "card_id": 54,
       "species": "Mahsena Emperor",
-      "class": "Fish",
+      "class": "Fish, Mollusk & Crustacean",
       "rarity": "Common",
       "slot": 2,
       "image_url": "https://i.postimg.cc/8kyqK5dw/Mahsena-Emperor.png",
@@ -559,9 +559,9 @@
     {
       "card_id": 55,
       "species": "Atlantic Bluefin Tuna",
-      "class": "Fish",
-      "rarity": "Common",
-      "slot": 3,
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Rare",
+      "slot": 2,
       "image_url": "https://i.postimg.cc/fbfwJs4N/Atlantic-Bluefin-Tuna.png",
       "generation": "unstable-test",
       "photo_credit": "CC0 iNaturalist (#35422206)"
@@ -585,6 +585,46 @@
       "image_url": "https://i.postimg.cc/k4F3TvJb/Indus-Valley-Bullfrog.png",
       "generation": "unstable-test",
       "photo_credit": "CC0 iNaturalist (#379028516)"
+    },
+    {
+      "card_id": 58,
+      "species": "Flathead Leaf-toed Gecko",
+      "class": "Reptile & Amphibian",
+      "rarity": "Common",
+      "slot": 2,
+      "image_url": "https://i.postimg.cc/qMzzdyVx/Flathead-Leaf-toed-Gecko.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#10614065)"
+    },
+    {
+      "card_id": 59,
+      "species": "Leopard Tortoise",
+      "class": "Reptile & Amphibian",
+      "rarity": "Common",
+      "slot": 3,
+      "image_url": "https://i.postimg.cc/Dy9sjBJB/Leopard-Tortoise.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#9880084)"
+    },
+    {
+      "card_id": 60,
+      "species": "Yellow-headed Poison Dart Frog",
+      "class": "Reptile & Amphibian",
+      "rarity": "Common",
+      "slot": 4,
+      "image_url": "https://i.postimg.cc/0NFF4gv6/Yellow-headed-Poison-Dart-Frog.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#335881330)"
+    },
+    {
+      "card_id": 61,
+      "species": "Blue Land Crab",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Common",
+      "slot": 4,
+      "image_url": "https://i.postimg.cc/28nWbnyF/Blue-Land-Crab.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#61855021)"
     }
   ]
 }

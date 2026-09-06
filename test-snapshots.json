@@ -184,8 +184,8 @@
       "end_block": null
     },
     "2": {
-      "species": "Generic Fish",
-      "class": "Fish",
+      "species": "Generic Fish, Mollusk & Crustacean",
+      "class": "Fish, Mollusk & Crustacean",
       "rarity": "Generic",
       "generation": "unstable-test",
       "is_generic": true,
