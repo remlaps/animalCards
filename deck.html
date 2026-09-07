@@ -148,7 +148,7 @@
             try {
                 const res = await fetch('cards-config.json?v=' + Date.now());
                 const config = await res.json();
-                const classes = Object.keys(config.class_weights || {});
+                const classes = Object.keys(config.class_weights || {}).sort(function (a, b) { return a.localeCompare(b); });
                 const cards = config.cards || [];
 
                 // Pick the last slot_layouts entry (highest block number) for display

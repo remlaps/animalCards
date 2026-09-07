@@ -13,7 +13,7 @@ class BlockchainAPI {
             const res = await fetch('cards-config.json?v=' + Date.now());
             const config = await res.json();
                         this.cardsConfig = config.cards || [];
-            this.classOrder = Object.keys(config.class_weights || {});
+            this.classOrder = Object.keys(config.class_weights || {}).sort((a, b) => a.localeCompare(b));
             this.classWeights = this.classOrder.map(c => config.class_weights[c]);
             this.classWeightsObj = config.class_weights || {};
             this.beneficiaries = config.beneficiaries || {};

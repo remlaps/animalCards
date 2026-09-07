@@ -625,6 +625,56 @@
       "image_url": "https://i.postimg.cc/28nWbnyF/Blue-Land-Crab.png",
       "generation": "unstable-test",
       "photo_credit": "CC0 iNaturalist (#61855021)"
+    },
+    {
+      "card_id": 62,
+      "species": "Balkan Italic Minnow",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Common",
+      "slot": 5,
+      "image_url": "https://i.postimg.cc/HWZkNsxw/Balkan-Italic-Minnow.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#286798565)"
+    },
+    {
+      "card_id": 63,
+      "species": "European Lobster",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Common",
+      "slot": 6,
+      "image_url": "https://i.postimg.cc/WbYStr4J/European-Lobster.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#314764047)"
+    },
+    {
+      "card_id": 64,
+      "species": "Western White-bearded Wildebeest",
+      "class": "Mammal",
+      "rarity": "Common",
+      "slot": 5,
+      "image_url": "https://i.postimg.cc/mkJwpfJN/Western-White-bearded-Wildebeest.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#8679061)"
+    },
+    {
+      "card_id": 65,
+      "species": "Hawaiian Convict Surgeonfish",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Common",
+      "slot": 7,
+      "image_url": "https://i.postimg.cc/yY9f9hb3/Hawaiian-Convict-Surgeonfish.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#104052253)"
+    },
+    {
+      "card_id": 66,
+      "species": "Green Iguana",
+      "class": "Reptile & Amphibian",
+      "rarity": "Common",
+      "slot": 5,
+      "image_url": "https://i.postimg.cc/qBbZcMw9/Green-Iguana.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#105728733)"
     }
   ]
 }

@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const byClass = new Map();
         const rarities = ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic'];
         rarities.forEach(r => byRarity.set(r, []));
-        const classes = Object.keys(api.classWeightsObj);
+        const classes = Object.keys(api.classWeightsObj).sort((a, b) => a.localeCompare(b));
         classes.forEach(c => byClass.set(c, []));
 
         for (const card of cards) {
@@ -287,7 +287,7 @@ const tickingProcessBlock = async (blockNum) => {
                 rarityContainer.innerHTML += renderCollectionCard(r, cardsInRarity.length, ownedCardIds, cardsInRarity, 'fill-' + r);
             }
 
-            const classOrder = Object.keys(api.classWeightsObj);
+            const classOrder = Object.keys(api.classWeightsObj).sort((a, b) => a.localeCompare(b));
             classContainer.innerHTML = '';
             for (const cls of classOrder) {
                 const cardsInClass = byClass.get(cls) || [];
