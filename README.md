@@ -175,8 +175,8 @@ backward, so very old blocks may be slow.
 {
   "class_weights": {
     "Bird": 34,
-    "Mammal": 34,
     "Fish, Mollusk & Crustacean": 16,
+    "Mammal": 34,
     "Reptile & Amphibian": 16
     // MUST sum to 100
   },
