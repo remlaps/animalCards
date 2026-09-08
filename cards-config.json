@@ -675,6 +675,46 @@
       "image_url": "https://i.postimg.cc/qBbZcMw9/Green-Iguana.png",
       "generation": "unstable-test",
       "photo_credit": "CC0 iNaturalist (#105728733)"
+    },
+    {
+      "card_id": 67,
+      "species": "Virginia Opossum",
+      "class": "Mammal",
+      "rarity": "Common",
+      "slot": 6,
+      "image_url": "https://i.postimg.cc/3w0NFW7z/Virginia-Opossum.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#67819246)"
+    },
+    {
+      "card_id": 68,
+      "species": "South American Fur Seal",
+      "class": "Mammal",
+      "rarity": "Common",
+      "slot": 7,
+      "image_url": "https://i.postimg.cc/yYWHZtVV/South-American-Fur-Seal.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#61796675)"
+    },
+    {
+      "card_id": 69,
+      "species": "European Toad",
+      "class": "Reptile & Amphibian",
+      "rarity": "Common",
+      "slot": 6,
+      "image_url": "https://i.postimg.cc/rpyXqPZJ/European-Toad.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#197958738)"
+    },
+    {
+      "card_id": 70,
+      "species": "Manu Poison Frog",
+      "class": "Reptile & Amphibian",
+      "rarity": "Common",
+      "slot": 7,
+      "image_url": "https://i.postimg.cc/yYKfqSb5/Manu-Poison-Frog.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#120896894)"
     }
   ]
 }
