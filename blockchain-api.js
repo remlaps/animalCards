@@ -222,6 +222,55 @@ class BlockchainAPI {
 
 const api = new BlockchainAPI();
 
+// --- Card image rendering helper -------------------------------------------
+// Shared by search.js and leaderboard.js so every rendered card <img> gets the
+// same lazy-loading, fade-in, and error-retry behavior. Prevents cards from
+// ever showing a raw black box while an image loads or after a failed /
+// hotlink-blocked request.
+function escapeHtml(str) {
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// Global handlers referenced by the inline onload/onerror attributes emitted
+// from cardImageTag().
+window.__cardImgLoaded = function (img) { img.classList.add('loaded'); };
+window.__cardImgError = function (img) {
+    // Retry once with a cache-busting query string so a previously-cached bad /
+    // blank response is re-fetched. On a second failure, hide the broken image
+    // and let the .card-image-fallback species initial show through.
+    if (img.dataset.retried !== '1') {
+        img.dataset.retried = '1';
+        var src = img.getAttribute('src') || '';
+        if (src) {
+            var sep = src.indexOf('?') === -1 ? '?' : '&';
+            img.setAttribute('src', src + sep + 'retry=' + Date.now());
+            return;
+        }
+    }
+    img.classList.add('card-image-error');
+};
+
+// Build the standard card-image block: a visible species-initial fallback plus
+// a lazy, async-decoded <img> that fades in only once it actually loads.
+// opts.badge is an optional HTML string to render inside the container.
+function cardImageTag(card, opts) {
+    opts = opts || {};
+    var src = (card && card.image_url) || '';
+    var alt = (card && card.species) || 'Card';
+    var initial = (alt.charAt(0) || '?').toUpperCase();
+    return '<div class="card-image-container">' +
+        '<span class="card-image-fallback" aria-hidden="true">' + escapeHtml(initial) + '</span>' +
+        '<img src="' + escapeHtml(src) + '" alt="' + escapeHtml(alt) + '" class="card-image" ' +
+        'loading="lazy" decoding="async" referrerpolicy="no-referrer" ' +
+        'onload="window.__cardImgLoaded(this)" onerror="window.__cardImgError(this)">' +
+        (opts.badge || '') +
+        '</div>';
+}
 // Render the RABD difficulty dashboard into `#difficulty-dashboard` (if present).
 // Shared by leaderboard.html and search.html. The element is a left sidebar
 // panel: title · per-rarity minimums · current block · next adjustment (only

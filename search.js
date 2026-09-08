@@ -453,10 +453,7 @@ const verifyBadge = (c) => `<span class="verify-badge" title="Hash: ${c.trx_id}"
                             </div>`;
                 } else {
                     cardEl.innerHTML = `
-                            <div class="card-image-container">
-                                <img src="${c.image_url}" alt="${c.species}" class="card-image">
-                                ${showCount ? `<span class="card-count-badge">×${count}</span>` : ''}
-                            </div>
+                            ${cardImageTag(c, { badge: showCount ? `<span class="card-count-badge">×${count}</span>` : '' })}
                             <div class="card-content">
                                 <div class="card-class">${c.cls} • ${c.rarity}</div>
                                 <h3 class="card-species">${c.species}</h3>
