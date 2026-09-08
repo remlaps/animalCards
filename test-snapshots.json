@@ -1,8 +1,8 @@
 {
   "version": 1,
   "description": "Baseline snapshots for cards-config.json. Regenerate with: node test-cards.js --update-snapshots",
-  "generated_at": "2026-09-06T14:17:21.553Z",
-  "card_count": 59,
+  "generated_at": "2026-09-08T23:12:45.324Z",
+  "card_count": 68,
   "snapshot_cases": [
     {
       "serialNumber": "100000.0",
@@ -22,14 +22,14 @@
       "serialNumber": "100000.1",
       "blockHash": "0000000000000000000000000000000000000000000000000000000000000000",
       "expected": {
-        "status": "generic",
+        "status": "released",
         "className": "Mammal",
         "rarity": "Common",
         "slot": 7,
         "slotPick": 7,
-        "species": "Generic Mammal",
-        "card_id": 3,
-        "generic_reason": "unreleased"
+        "species": "South American Fur Seal",
+        "card_id": 68,
+        "generic_reason": null
       }
     },
     {
@@ -757,6 +757,96 @@
       "generation": "unstable-test",
       "is_generic": false,
       "slot": 4,
+      "start_block": null,
+      "end_block": null
+    },
+    "62": {
+      "species": "Balkan Italic Minnow",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 5,
+      "start_block": null,
+      "end_block": null
+    },
+    "63": {
+      "species": "European Lobster",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 6,
+      "start_block": null,
+      "end_block": null
+    },
+    "64": {
+      "species": "Western White-bearded Wildebeest",
+      "class": "Mammal",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 5,
+      "start_block": null,
+      "end_block": null
+    },
+    "65": {
+      "species": "Hawaiian Convict Surgeonfish",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 7,
+      "start_block": null,
+      "end_block": null
+    },
+    "66": {
+      "species": "Green Iguana",
+      "class": "Reptile & Amphibian",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 5,
+      "start_block": null,
+      "end_block": null
+    },
+    "67": {
+      "species": "Virginia Opossum",
+      "class": "Mammal",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 6,
+      "start_block": null,
+      "end_block": null
+    },
+    "68": {
+      "species": "South American Fur Seal",
+      "class": "Mammal",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 7,
+      "start_block": null,
+      "end_block": null
+    },
+    "69": {
+      "species": "European Toad",
+      "class": "Reptile & Amphibian",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 6,
+      "start_block": null,
+      "end_block": null
+    },
+    "70": {
+      "species": "Manu Poison Frog",
+      "class": "Reptile & Amphibian",
+      "rarity": "Common",
+      "generation": "unstable-test",
+      "is_generic": false,
+      "slot": 7,
       "start_block": null,
       "end_block": null
     }
