@@ -127,7 +127,7 @@ async function fetchNullWinners(blockNum) {
             const val = parseFloat(parts[0]);
             if (val > winners[asset].max) {
                 winners[asset] = { max: val, winners: [{ account: params.from, trx_id: item.trx_id }] };
-            } else if (val === winners[asset].max) {
+            } else if (val === winners[asset].max && !winners[asset].winners.some(w => w.trx_id === item.trx_id)) {
                 // Exact tie for the top burn → both (all) tied accounts
                 // win a downgraded card.
                 winners[asset].winners.push({ account: params.from, trx_id: item.trx_id });

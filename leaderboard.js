@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (val > blocksData[item.block][asset].maxBurn) {
                         blocksData[item.block][asset].maxBurn = val;
                         blocksData[item.block][asset].winners = [{ account: from, trx_id: item.trx_id }];
-                    } else if (val === blocksData[item.block][asset].maxBurn) {
+                    } else if (val === blocksData[item.block][asset].maxBurn && !blocksData[item.block][asset].winners.some(w => w.trx_id === item.trx_id)) {
                         // Exact tie for the top burn → both (all) tied accounts
                         // win a downgraded card.
                         blocksData[item.block][asset].winners.push({ account: from, trx_id: item.trx_id });
@@ -99,6 +99,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             className: resolved.className,
                             rarity: resolved.rarity,
                             card: resolved.card,
+                            generic_reason: resolved.generic_reason || null,
                             block: blockNum,
                             trx_id: w.trx_id,
                             serial: a.serial,
@@ -194,7 +195,7 @@ const weightedTotalByAccount = {};
                     const rarity = m.status === 'generic' ? m.rarity : m.card.rarity;
                     const key = `${m.card.class}|${rarity}|${m.card.species}`;
                     if (!byCard.has(key)) {
-                        byCard.set(key, { card: m.card, rarity, serials: [] });
+                        byCard.set(key, { card: m.card, rarity, generic_reason: m.generic_reason || null, serials: [] });
                     }
                     byCard.get(key).serials.push(m.serial);
                 }
@@ -266,7 +267,7 @@ const weightedTotalByAccount = {};
 
                     const issuedHtml = uniqueCards.map(u => `
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;">
-                            <img src="${u.card.image_url}" alt="${u.card.species}" style="width: 28px; height: 28px; border-radius: 4px; object-fit: cover; flex-shrink: 0;">
+                            <img src="${u.card.image_url}" alt="${u.card.species}" style="width: 28px; height: 28px; border-radius: 4px; object-fit: cover; flex-shrink: 0;" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.style.display='none'">
                             <span style="font-weight: 600;">${u.card.species}</span>
                             ${u.card.is_generic ? `<span class="rarity-badge" style="font-size:0.7rem; color:var(--text-secondary); border:1px solid var(--border-color,rgba(128,128,128,0.3)); border-radius:4px; padding:1px 5px;">${u.rarity || u.card.rarity}</span>` : ''}
                         </div>`).join('');
@@ -297,7 +298,7 @@ const weightedTotalByAccount = {};
                     const mobileCardChips = (uniqueCards.length > 0 || pendingClasses.length > 0)
                         ? [...uniqueCards.map(u => `
                             <span class="leaderboard-card-chip">
-                                <img src="${u.card.image_url}" alt="${u.card.species}">
+                                <img src="${u.card.image_url}" alt="${u.card.species}" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.style.display='none'">
                                 ${u.card.species}${u.card.is_generic ? ` (${u.rarity})` : ''}
                             </span>`),
                             ...pendingClasses.map(c => `
@@ -376,14 +377,11 @@ const weightedTotalByAccount = {};
                                 : `<span style="font-size:0.75rem;">Serial: <strong style="color:var(--text-primary);">${u.serials[0]}</strong></span>`;
                             return `
                             <div class="tribute-card">
-                                <div class="card-image-container">
-                                    <img src="${u.card.image_url}" alt="${u.card.species}" class="card-image">
-                                    ${countBadge}
-                                </div>
+                                ${cardImageTag(u.card, { badge: countBadge })}
                                 <div class="card-content">
                                     <div class="card-class">${u.card.class} • ${u.rarity || u.card.rarity}</div>
                                     <h3 class="card-species">${u.card.species}</h3>
-                                    ${u.card.is_generic ? '<p style="color: var(--text-secondary); font-size: 0.8rem; font-style: italic; margin-top: 0.25rem;">A specific species will be released in the future.</p>' : ''}
+                                    ${u.card.is_generic ? `<p style="color: var(--text-secondary); font-size: 0.8rem; font-style: italic; margin-top: 0.25rem;">${u.generic_reason === 'below_minimum' ? 'The burn was below the minimum required for any species card this block, so no species card was issued.' : 'A specific species will be released in the future.'}</p>` : ''}
                                     <p class="card-attribution" title="${beneficiaryTip(api, u.rarity || u.card.rarity)}">Winner: @${account} • Generation: ${u.card.generation} • Photo by ${u.card.photo_credit}</p>
                                     <div class="card-meta">
                                         ${serialOrQty}
