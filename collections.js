@@ -117,7 +117,7 @@ form.addEventListener('submit', async (e) => {
                 if (val > slot.maxBurn) {
                     slot.maxBurn = val;
                     slot.winners = [{ account: from, trx_id: item.trx_id, timestamp: item.timestamp }];
-                } else if (val === slot.maxBurn) {
+                } else if (val === slot.maxBurn && !slot.winners.some(w => w.trx_id === item.trx_id)) {
                     slot.winners.push({ account: from, trx_id: item.trx_id, timestamp: item.timestamp });
                 }
             }

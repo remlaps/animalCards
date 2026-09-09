@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (val > slot.maxBurn) {
                     slot.maxBurn = val;
                     slot.winners = [{ account: from, trx_id: item.trx_id, timestamp: item.timestamp }];
-                } else if (val === slot.maxBurn) {
+                } else if (val === slot.maxBurn && !slot.winners.some(w => w.trx_id === item.trx_id)) {
                     // Exact tie for the top burn → both (all) tied accounts
                     // win a downgraded card.
                     slot.winners.push({ account: from, trx_id: item.trx_id, timestamp: item.timestamp });
@@ -198,6 +198,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             className: resolved.className,
                             rarity: resolved.rarity,
                             card: resolved.card,
+                            generic_reason: resolved.generic_reason || null,
                             block: blockNum,
                             trx_id: winEntry.trx_id,
                             serial: serial,
@@ -329,10 +330,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Normalize each won card into a renderable item.
             const normalizeCard = (m) => {
                 if (m.status === 'none') {
-                    return { isPlaceholder: true, species: `${m.className} — placeholder`, cls: m.className, rarity: m.rarity || '', image_url: null, is_generic: false, generation: '', photo_credit: '', account: m.account, serial: m.serial, timestamp: m.timestamp, trx_id: m.trx_id };
+                    return { isPlaceholder: true, species: `${m.className} — placeholder`, cls: m.className, rarity: m.rarity || '', image_url: null, is_generic: false, generation: '', photo_credit: '', account: m.account, serial: m.serial, timestamp: m.timestamp, trx_id: m.trx_id, generic_reason: m.generic_reason || null };
                 }
                 const rarity = m.status === 'generic' ? (m.rarity || m.card.rarity) : m.card.rarity;
-                return { isPlaceholder: false, species: m.card.species, cls: m.card.class, rarity, image_url: m.card.image_url, is_generic: m.card.is_generic, generation: m.card.generation, photo_credit: m.card.photo_credit, account: m.account, serial: m.serial, timestamp: m.timestamp, trx_id: m.trx_id };
+                return { isPlaceholder: false, species: m.card.species, cls: m.card.class, rarity, image_url: m.card.image_url, is_generic: m.card.is_generic, generation: m.card.generation, photo_credit: m.card.photo_credit, account: m.account, serial: m.serial, timestamp: m.timestamp, trx_id: m.trx_id, generic_reason: m.generic_reason || null };
             };
             const displayCards = wonCards.map(normalizeCard);
 
@@ -457,7 +458,7 @@ const verifyBadge = (c) => `<span class="verify-badge" title="Hash: ${c.trx_id}"
                             <div class="card-content">
                                 <div class="card-class">${c.cls} • ${c.rarity}</div>
                                 <h3 class="card-species">${c.species}</h3>
-                                ${c.is_generic ? '<p style="color: var(--text-secondary); font-size: 0.8rem; font-style: italic; margin-top: 0.25rem;">A specific species will be released in the future.</p>' : ''}
+                                ${c.is_generic ? `<p style="color: var(--text-secondary); font-size: 0.8rem; font-style: italic; margin-top: 0.25rem;">${c.generic_reason === 'below_minimum' ? 'The burn was below the minimum required for any species card this block, so no species card was issued.' : 'A specific species will be released in the future.'}</p>` : ''}
                                 <p class="card-attribution" title="${beneficiaryTip(api, c.rarity)}">Winner: @${c.account} • Generation: ${c.generation} • Photo by ${c.photo_credit}</p>
                                 <div class="card-meta">
                                     ${countSpan}
