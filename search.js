@@ -502,6 +502,9 @@ const verifyBadge = (c) => `<span class="verify-badge" title="Hash: ${c.trx_id}"
                     // All cards, each with its own serial number (newest first).
                     sortCards(filtered).forEach(c => grid.appendChild(renderCardEl(c, 1, [c.serial])));
                 }
+                // Start lazy-loading the freshly rendered cards: visible ones
+                // load right away, off-screen ones load as they're scrolled to.
+                if (window.__cardImgInit) window.__cardImgInit(grid);
             };
 
             viewToggle.addEventListener('click', (e) => {
@@ -556,6 +559,7 @@ const verifyBadge = (c) => `<span class="verify-badge" title="Hash: ${c.trx_id}"
 
             loading.style.display = 'none';
             content.style.display = 'block';
+            if (window.__cardImgInit) window.__cardImgInit();
 
         } catch (error) {
             console.error(error);
