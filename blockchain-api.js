@@ -227,6 +227,15 @@ const api = new BlockchainAPI();
 // same lazy-loading, fade-in, and error-retry behavior. Prevents cards from
 // ever showing a raw black box while an image loads or after a failed /
 // hotlink-blocked request.
+//
+// Images use a custom IntersectionObserver lazy loader (see __cardImgInit)
+// instead of the native `loading="lazy"` attribute: the cards are rendered
+// while their parent container is still `display:none` (search / leaderboard
+// only reveal the results container after the data arrives), and native lazy
+// images inside a hidden element never start loading. The observer re-evaluates
+// once the container is revealed, so visible cards load immediately while
+// off-screen cards stay unrequested until scrolled near — no pages firing
+// hundreds of simultaneous full-size image requests at once.
 function escapeHtml(str) {
     return String(str == null ? '' : str)
         .replace(/&/g, '&amp;')
@@ -238,7 +247,16 @@ function escapeHtml(str) {
 
 // Global handlers referenced by the inline onload/onerror attributes emitted
 // from cardImageTag().
-window.__cardImgLoaded = function (img) { img.classList.add('loaded'); };
+window.__cardImgLoaded = function (img) {
+    // A "successful" load can still be an empty/stale cached entry. If there
+    // are no actual pixels, route through the error path so the cache is
+    // busted and the image is re-fetched.
+    if (img.naturalWidth === 0) {
+        window.__cardImgError(img);
+        return;
+    }
+    img.classList.add('loaded');
+};
 window.__cardImgError = function (img) {
     // Retry once with a cache-busting query string so a previously-cached bad /
     // blank response is re-fetched. On a second failure, hide the broken image
@@ -248,26 +266,69 @@ window.__cardImgError = function (img) {
         var src = img.getAttribute('src') || '';
         if (src) {
             var sep = src.indexOf('?') === -1 ? '?' : '&';
-            img.setAttribute('src', src + sep + 'retry=' + Date.now());
+            img.classList.remove('loaded');
+            img.src = src + sep + 'retry=' + Date.now();
             return;
         }
     }
     img.classList.add('card-image-error');
 };
 
+// Shared lazy-load machinery. Page images are emitted with `data-src` instead
+// of `src`, and __cardImgInit() asks a single IntersectionObserver to assign
+// `src` only once an image approaches the viewport (a 300px prefetch margin
+// so scrolling feels seamless). Works with images inserted into `display:none`
+// containers because the observer re-evaluates intersections each time layout
+// changes, including when the results container is revealed.
+window.__cardImgIO = null;
+window.__cardImgLazyLoad = function (img) {
+    var src = img.getAttribute('data-src');
+    if (!src) return;
+    if (!('IntersectionObserver' in window)) {
+        // No observer support: load everything eagerly so nothing stays blank.
+        img.removeAttribute('data-src');
+        img.src = src;
+        return;
+    }
+    if (!window.__cardImgIO) {
+        window.__cardImgIO = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (!entry.isIntersecting) return;
+                var el = entry.target;
+                var s = el.getAttribute('data-src');
+                if (s) {
+                    el.removeAttribute('data-src');
+                    el.src = s;
+                }
+                window.__cardImgIO.unobserve(el);
+            });
+        }, { rootMargin: '300px 0px' });
+    }
+    window.__cardImgIO.observe(img);
+};
+
+// Start lazy-loading every not-yet-requested image under `root`. Safe to call
+// repeatedly: already-loaded / already-observed images are no-ops.
+window.__cardImgInit = function (root) {
+    (root || document).querySelectorAll('img[data-src]').forEach(window.__cardImgLazyLoad);
+};
+
 // Build the standard card-image block: a visible species-initial fallback plus
-// a lazy, async-decoded <img> that fades in only once it actually loads.
-// opts.badge is an optional HTML string to render inside the container.
+// a lazily-loaded, async-decoded <img> that fades in only once it actually
+// loads. opts.badge is an optional HTML string to render inside the container.
 function cardImageTag(card, opts) {
     opts = opts || {};
     var src = (card && card.image_url) || '';
     var alt = (card && card.species) || 'Card';
     var initial = (alt.charAt(0) || '?').toUpperCase();
+    var imgTag = src
+        ? '<img data-src="' + escapeHtml(src) + '" alt="' + escapeHtml(alt) + '" class="card-image" ' +
+          'decoding="async" referrerpolicy="no-referrer" ' +
+          'onload="window.__cardImgLoaded(this)" onerror="window.__cardImgError(this)">'
+        : '';
     return '<div class="card-image-container">' +
         '<span class="card-image-fallback" aria-hidden="true">' + escapeHtml(initial) + '</span>' +
-        '<img src="' + escapeHtml(src) + '" alt="' + escapeHtml(alt) + '" class="card-image" ' +
-        'loading="lazy" decoding="async" referrerpolicy="no-referrer" ' +
-        'onload="window.__cardImgLoaded(this)" onerror="window.__cardImgError(this)">' +
+        imgTag +
         (opts.badge || '') +
         '</div>';
 }
