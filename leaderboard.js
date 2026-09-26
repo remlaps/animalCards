@@ -267,7 +267,7 @@ const weightedTotalByAccount = {};
 
                     const issuedHtml = uniqueCards.map(u => `
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;">
-                            <img data-src="${u.card.image_url}" alt="${u.card.species}" style="width: 28px; height: 28px; border-radius: 4px; object-fit: cover; flex-shrink: 0;" decoding="async" referrerpolicy="no-referrer" onerror="this.style.display='none'">
+                            ${cardThumbTag(u.card, { imgStyle: 'width: 28px; height: 28px; border-radius: 4px; object-fit: cover; flex-shrink: 0;' })}
                             <span style="font-weight: 600;">${u.card.species}</span>
                             ${u.card.is_generic ? `<span class="rarity-badge" style="font-size:0.7rem; color:var(--text-secondary); border:1px solid var(--border-color,rgba(128,128,128,0.3)); border-radius:4px; padding:1px 5px;">${u.rarity || u.card.rarity}</span>` : ''}
                         </div>`).join('');
@@ -298,7 +298,7 @@ const weightedTotalByAccount = {};
                     const mobileCardChips = (uniqueCards.length > 0 || pendingClasses.length > 0)
                         ? [...uniqueCards.map(u => `
                             <span class="leaderboard-card-chip">
-                                <img data-src="${u.card.image_url}" alt="${u.card.species}" decoding="async" referrerpolicy="no-referrer" onerror="this.style.display='none'">
+                                ${cardThumbTag(u.card)}
                                 ${u.card.species}${u.card.is_generic ? ` (${u.rarity})` : ''}
                             </span>`),
                             ...pendingClasses.map(c => `
