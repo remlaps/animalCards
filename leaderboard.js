@@ -14,6 +14,9 @@ function beneficiaryTip(api, rarity) {
 document.addEventListener('DOMContentLoaded', async () => {
     const timeFilter = document.getElementById('time-filter');
     const loading = document.getElementById('loading');
+    const loadingStatus = document.getElementById('loading-status');
+    const loadingError = document.getElementById('loading-error');
+    const loadingSpinner = document.querySelector('#loading .spinner');
     const content = document.getElementById('leaderboard-content');
     const tbody = document.getElementById('leaderboard-body');
     const cardsGrid = document.getElementById('recent-cards-grid');
@@ -23,6 +26,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         content.style.display = 'none';
         tbody.innerHTML = '';
         cardsGrid.innerHTML = '';
+
+        // Reset the loader out of any previous error/run so a retry (e.g. a
+        // timeframe change) shows fresh progress instead of a stale failure.
+        loadingError.style.display = 'none';
+        loadingSpinner.style.display = '';
+        loadingStatus.style.display = '';
+        loadingStatus.textContent = 'Scanning blockchain for recent burns...';
 
         // Clear any previous mobile card rows
         const existingMobileRows = document.querySelectorAll('.leaderboard-card-row');
@@ -434,7 +444,12 @@ loading.style.display = 'none';
 
         } catch (error) {
             console.error(error);
-            loading.innerHTML = `<p class="status-message" style="color: #ef4444;">Error loading leaderboard data: ${error.message}</p>`;
+            // Show the failure without wiping the loader markup, so a retry can
+            // reset cleanly and show progress again (references stay valid).
+            loadingSpinner.style.display = 'none';
+            loadingStatus.style.display = 'none';
+            loadingError.style.display = 'block';
+            loadingError.textContent = `Error loading leaderboard data: ${error.message}`;
         }
     }
 

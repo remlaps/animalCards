@@ -54,6 +54,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const grid = document.getElementById('portfolio-grid');
     const loadingStatus = document.getElementById('loading-status');
     const loadingProgress = document.getElementById('loading-progress');
+    const loadingError = document.getElementById('loading-error');
+    const loadingSpinner = document.querySelector('#loading .spinner');
 
     // Default to the user's input if coming from another page with a query param? Optional.
 
@@ -70,6 +72,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         loading.style.display = 'flex';
         content.style.display = 'none';
         grid.innerHTML = '';
+
+        // Reset the loader out of any previous error/run so a retry shows
+        // fresh progress instead of instantly re-displaying the old failure.
+        loadingError.style.display = 'none';
+        loadingSpinner.style.display = '';
+        loadingStatus.style.display = '';
+        loadingProgress.style.display = '';
+        loadingStatus.textContent = 'Scanning blockchain for earned cards...';
+        loadingProgress.textContent = '';
 
         try {
             if (api.cardsConfig.length === 0) {
@@ -563,7 +574,13 @@ const verifyBadge = (c) => `<span class="verify-badge" title="Hash: ${c.trx_id}"
 
         } catch (error) {
             console.error(error);
-            loading.innerHTML = `<p class="status-message" style="color: #ef4444;">Error searching account: ${error.message}</p>`;
+            // Show the failure without wiping the loader markup, so a retry can
+            // reset cleanly and show progress again (references stay valid).
+            loadingSpinner.style.display = 'none';
+            loadingStatus.style.display = 'none';
+            loadingProgress.style.display = 'none';
+            loadingError.style.display = 'block';
+            loadingError.textContent = `Error searching account: ${error.message}`;
         }
     });
 });

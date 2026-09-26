@@ -23,13 +23,21 @@ class BlockchainAPI {
         }
     }
 
-    async callSteem(method, params, retries = 3) {
+    // The Steem node intermittently returns transient errors: HTTP 429/5xx,
+    // empty/non-JSON bodies, and application-level RPC errors such as
+    // "Upstream temporarily unavailable". Long searches issue many RPC calls,
+    // so a brief upstream outage previously aborted the whole run after only
+    // ~2.4s of retries. Use exponential backoff with jitter and a larger
+    // budget so a short outage is ridden out instead of failing the search.
+    async callSteem(method, params, retries = 6) {
         const payload = {
             jsonrpc: "2.0",
             method: method,
             params: params,
             id: 1
         };
+        const RETRY_BASE_MS = 600;   // first retry delay
+        const RETRY_MAX_MS = 8000;   // per-attempt delay cap
         let lastErr;
         for (let attempt = 0; attempt <= retries; attempt++) {
             try {
@@ -54,8 +62,11 @@ class BlockchainAPI {
             } catch (e) {
                 lastErr = e;
                 if (attempt === retries) break;
-                // AbortController is not available in some very old runtimes; guard it.
-                await new Promise(r => setTimeout(r, 400 * (attempt + 1)));
+                // Exponential backoff with +/-25% jitter so concurrent retries
+                // don't line up and re-hammer the node at the same moment.
+                const base = Math.min(RETRY_BASE_MS * Math.pow(2, attempt), RETRY_MAX_MS);
+                const delay = Math.round(base * (0.75 + Math.random() * 0.5));
+                await new Promise(r => setTimeout(r, delay));
             }
         }
         throw lastErr;

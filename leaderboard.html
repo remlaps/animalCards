@@ -56,7 +56,8 @@
 
         <div id="loading" class="loader-container">
             <div class="spinner"></div>
-            <p>Scanning blockchain for recent burns...</p>
+            <p id="loading-status">Scanning blockchain for recent burns...</p>
+            <p id="loading-error" class="status-message" style="color: #ef4444; display: none;"></p>
         </div>
 
         <div id="leaderboard-content" style="display: none;">
@@ -111,8 +112,8 @@
     <script src="header.js?v=1"></script>
     <script src="card-resolver.js?v=1"></script>
 <script src="difficulty.js?v=6"></script>
-    <script src="blockchain-api.js?v=35"></script>
-    <script src="leaderboard.js?v=18"></script>
+    <script src="blockchain-api.js?v=36"></script>
+    <script src="leaderboard.js?v=19"></script>
     <script src="vaas.js?v=5"></script>
     <script>
         // Drop-in VAAS widget — adopts animalCards' glass design tokens.
