@@ -23,13 +23,21 @@ class BlockchainAPI {
         }
     }
 
-    async callSteem(method, params, retries = 3) {
+    // The Steem node intermittently returns transient errors: HTTP 429/5xx,
+    // empty/non-JSON bodies, and application-level RPC errors such as
+    // "Upstream temporarily unavailable". Long searches issue many RPC calls,
+    // so a brief upstream outage previously aborted the whole run after only
+    // ~2.4s of retries. Use exponential backoff with jitter and a larger
+    // budget so a short outage is ridden out instead of failing the search.
+    async callSteem(method, params, retries = 6) {
         const payload = {
             jsonrpc: "2.0",
             method: method,
             params: params,
             id: 1
         };
+        const RETRY_BASE_MS = 600;   // first retry delay
+        const RETRY_MAX_MS = 8000;   // per-attempt delay cap
         let lastErr;
         for (let attempt = 0; attempt <= retries; attempt++) {
             try {
@@ -54,8 +62,11 @@ class BlockchainAPI {
             } catch (e) {
                 lastErr = e;
                 if (attempt === retries) break;
-                // AbortController is not available in some very old runtimes; guard it.
-                await new Promise(r => setTimeout(r, 400 * (attempt + 1)));
+                // Exponential backoff with +/-25% jitter so concurrent retries
+                // don't line up and re-hammer the node at the same moment.
+                const base = Math.min(RETRY_BASE_MS * Math.pow(2, attempt), RETRY_MAX_MS);
+                const delay = Math.round(base * (0.75 + Math.random() * 0.5));
+                await new Promise(r => setTimeout(r, delay));
             }
         }
         throw lastErr;
@@ -222,20 +233,31 @@ class BlockchainAPI {
 
 const api = new BlockchainAPI();
 
-// --- Card image rendering helper -------------------------------------------
-// Shared by search.js and leaderboard.js so every rendered card <img> gets the
-// same lazy-loading, fade-in, and error-retry behavior. Prevents cards from
-// ever showing a raw black box while an image loads or after a failed /
-// hotlink-blocked request.
+// --- Card image loading ----------------------------------------------------
+// Shared by search.js and leaderboard.js. Every card image is loaded through
+// this one path and the URL is always taken from `cards-config.json`, so no
+// image source (postimg, an IPFS gateway, any CDN) is ever hard-coded.
 //
-// Images use a custom IntersectionObserver lazy loader (see __cardImgInit)
-// instead of the native `loading="lazy"` attribute: the cards are rendered
-// while their parent container is still `display:none` (search / leaderboard
-// only reveal the results container after the data arrives), and native lazy
-// images inside a hidden element never start loading. The observer re-evaluates
-// once the container is revealed, so visible cards load immediately while
-// off-screen cards stay unrequested until scrolled near — no pages firing
-// hundreds of simultaneous full-size image requests at once.
+// Design goals (from the "slow images" review):
+//   1. Never give up while the image is still reachable. Transient failures
+//      (network blips, 5xx, empty bodies, hotlink/rate limits) are retried
+//      indefinitely with exponential backoff. We only stop on a definitive
+//      404/410, or when the <img> leaves the DOM.
+//   2. Always show activity. Each card shows a spinner plus live download
+//      progress ("Loading… 42%") or a retry counter, so it never looks stuck.
+//   3. Optional local store. When the "store images locally" toggle is on
+//      (the default), images are kept in IndexedDB and served from there
+//      first, so repeat visits need no network at all.
+//
+// Loading stays lazy (a single IntersectionObserver assigns work only as a
+// card approaches the viewport) so we never fire hundreds of simultaneous
+// requests. For each visible image we try, in order:
+//   a. IndexedDB, when the local store is enabled and the image is cached;
+//   b. fetch() with a ReadableStream, which gives byte-level progress and lets
+//      us store the blob — this needs the host to allow CORS (postimg and the
+//      common IPFS gateways do);
+//   c. a plain <img src> fallback for hosts that send no CORS headers (the
+//      image still displays; only the progress bar / local store are skipped).
 function escapeHtml(str) {
     return String(str == null ? '' : str)
         .replace(/&/g, '&amp;')
@@ -245,77 +267,300 @@ function escapeHtml(str) {
         .replace(/'/g, '&#39;');
 }
 
-// Global handlers referenced by the inline onload/onerror attributes emitted
-// from cardImageTag().
-window.__cardImgLoaded = function (img) {
-    // A "successful" load can still be an empty/stale cached entry. If there
-    // are no actual pixels, route through the error path so the cache is
-    // busted and the image is re-fetched.
-    if (img.naturalWidth === 0) {
-        window.__cardImgError(img);
-        return;
+// The shared image loader, exposed as window.CardImages so page scripts can
+// render the store toggle and (re)drive loading.
+window.CardImages = (function () {
+    var PREF_KEY = 'animalCards.storeImages';
+    var DB_NAME = 'animalCards-image-cache';
+    var DB_VERSION = 1;
+    var STORE_NAME = 'images';
+    var RETRY_BASE_MS = 1500;   // first retry delay
+    var RETRY_MAX_MS = 30000;   // exponential-backoff cap
+    var dbPromise = null;
+
+    // ---- Local store (IndexedDB), keyed by image URL ------------------------
+    function dbSupported() {
+        return typeof indexedDB !== 'undefined' && indexedDB !== null;
     }
-    img.classList.add('loaded');
-};
-window.__cardImgError = function (img) {
-    // Retry once with a cache-busting query string so a previously-cached bad /
-    // blank response is re-fetched. On a second failure, hide the broken image
-    // and let the .card-image-fallback species initial show through.
-    if (img.dataset.retried !== '1') {
-        img.dataset.retried = '1';
-        var src = img.getAttribute('src') || '';
-        if (src) {
-            var sep = src.indexOf('?') === -1 ? '?' : '&';
-            img.classList.remove('loaded');
-            img.src = src + sep + 'retry=' + Date.now();
-            return;
+    function openDb() {
+        if (!dbSupported()) return Promise.reject(new Error('IndexedDB unavailable'));
+        return new Promise(function (resolve, reject) {
+            var req;
+            try { req = indexedDB.open(DB_NAME, DB_VERSION); }
+            catch (e) { reject(e); return; }
+            req.onupgradeneeded = function (e) {
+                var db = e.target.result;
+                if (!db.objectStoreNames.contains(STORE_NAME)) {
+                    db.createObjectStore(STORE_NAME, { keyPath: 'url' });
+                }
+            };
+            req.onsuccess = function (e) { resolve(e.target.result); };
+            req.onerror = function (e) { reject(e.target.error); };
+        });
+    }
+    function getDb() {
+        if (!dbPromise) dbPromise = openDb();
+        return dbPromise;
+    }
+    function getImage(url) {
+        return getDb().then(function (db) {
+            return new Promise(function (resolve) {
+                var tx = db.transaction(STORE_NAME, 'readonly');
+                var req = tx.objectStore(STORE_NAME).get(url);
+                req.onsuccess = function () { resolve(req.result ? req.result.blob : null); };
+                req.onerror = function () { resolve(null); };
+            });
+        }).catch(function () { return null; });
+    }
+    function putImage(url, blob) {
+        return getDb().then(function (db) {
+            return new Promise(function (resolve) {
+                var tx = db.transaction(STORE_NAME, 'readwrite');
+                tx.objectStore(STORE_NAME).put({ url: url, blob: blob, storedAt: Date.now() });
+                tx.oncomplete = function () { resolve(true); };
+                tx.onerror = function () { resolve(false); };
+                tx.onabort = function () { resolve(false); };
+            });
+        }).catch(function () { return false; });
+    }
+
+    // ---- Preference (default: on) -------------------------------------------
+    function isEnabled() {
+        try {
+            var raw = localStorage.getItem(PREF_KEY);
+            return raw === null ? true : raw === '1';
+        } catch (e) { return true; }
+    }
+    function setEnabled(on) {
+        try { localStorage.setItem(PREF_KEY, on ? '1' : '0'); } catch (e) { /* storage unavailable */ }
+    }
+    // Wire up any checkbox carrying data-store-images-toggle.
+    function initControls(root) {
+        (root || document).querySelectorAll('[data-store-images-toggle]').forEach(function (box) {
+            box.checked = isEnabled();
+            if (box.dataset.bound === '1') return;
+            box.dataset.bound = '1';
+            box.addEventListener('change', function () { setEnabled(box.checked); });
+        });
+    }
+    // ---- DOM state helpers --------------------------------------------------
+    // All of these tolerate images that have no .card-image-container (the
+    // leaderboard thumbnail chips), where the state lives on the <img> alone.
+    function containerOf(img) {
+        return img.closest ? img.closest('.card-image-container') : null;
+    }
+    function setStatusText(img, text) {
+        var c = containerOf(img);
+        var el = c && c.querySelector('.card-image-status-text');
+        if (el) el.textContent = text;
+    }
+    function setProgress(img, pct) {
+        var c = containerOf(img);
+        var bar = c && c.querySelector('.card-image-progress-bar');
+        if (!bar) return;
+        bar.style.width = (typeof pct === 'number' && isFinite(pct))
+            ? Math.max(3, Math.min(100, pct)) + '%'
+            : '0%';
+    }
+    function markLoading(img, on) {
+        var c = containerOf(img);
+        if (c) c.classList.toggle('card-image-loading', on);
+        img.classList.toggle('card-image-loading', on);
+    }
+    function markLoaded(img) {
+        markLoading(img, false);
+        img.classList.remove('card-image-error');
+        var c = containerOf(img);
+        if (c) c.classList.remove('card-image-error');
+        img.classList.add('loaded');
+        img.dataset.state = 'loaded';
+    }
+    function markError(img) {
+        markLoading(img, false);
+        img.classList.remove('loaded');
+        img.classList.add('card-image-error');
+        var c = containerOf(img);
+        if (c) {
+            c.classList.add('card-image-error');
+            setStatusText(img, 'Image unavailable');
+        }
+        img.dataset.state = 'error';
+    }
+    function isAlive(img) {
+        return !!(img && document.body && document.body.contains(img));
+    }
+    function formatBytes(n) {
+        if (!n) return '0 B';
+        if (n < 1024) return n + ' B';
+        if (n < 1048576) return Math.round(n / 1024) + ' KB';
+        return (n / 1048576).toFixed(1) + ' MB';
+    }
+
+    // ---- The loader ---------------------------------------------------------
+    // Load `img` from its data-src: local store first (when enabled), then the
+    // network. Retries forever on transient failures and reports progress.
+    function load(img) {
+        if (!img || img.dataset.ciLoading === '1' || img.dataset.state === 'loaded') return;
+        var url = img.getAttribute('data-src');
+        if (!url) return;
+        img.dataset.ciLoading = '1';
+        img.removeAttribute('data-src');   // __cardImgInit must not re-queue it
+        markLoading(img, true);
+        setStatusText(img, 'Loading…');
+        setProgress(img, 0);
+
+        var attempt = 0;
+        var objectUrl = null;
+
+        function showBlob(blob) {
+            if (!isAlive(img)) return;
+            if (objectUrl) { try { URL.revokeObjectURL(objectUrl); } catch (e) {} }
+            objectUrl = URL.createObjectURL(blob);
+            img.onload = function () { markLoaded(img); };
+            img.onerror = function () { retryLater(); };   // odd blob; re-fetch
+            img.src = objectUrl;
+        }
+        function showNetworkUrl() {
+            // Fallback for hosts without CORS headers: the browser can still
+            // display the image even though fetch() could not read the bytes.
+            if (!isAlive(img)) return;
+            img.onload = function () { markLoaded(img); };
+            img.onerror = function () { retryLater(); };
+            img.src = url;
+        }
+        function finish(blob) {
+            if (!blob || !blob.size) { retryLater(); return; }
+            showBlob(blob);
+            if (isEnabled()) putImage(url, blob);
+        }
+        function retryLater() {
+            if (!isAlive(img)) return;
+            attempt++;
+            var delay = Math.min(RETRY_BASE_MS * Math.pow(2, Math.min(attempt, 8)), RETRY_MAX_MS);
+            markLoading(img, true);
+            setStatusText(img, 'Still loading… retrying (' + attempt + ')');
+            setTimeout(function () { if (isAlive(img)) networkAttempt(); }, delay);
+        }
+        function networkAttempt() {
+            if (!isAlive(img)) return;
+            markLoading(img, true);
+            fetchWithProgress().then(function (result) {
+                // 'fallback' means fetch could not read the bytes (no CORS):
+                // let the browser load the image directly instead.
+                if (result === 'fallback') showNetworkUrl();
+            }).catch(function () { retryLater(); });
+        }
+        function fetchWithProgress() {
+            if (typeof fetch !== 'function' || typeof URL === 'undefined' || !URL.createObjectURL) {
+                return Promise.resolve('fallback');
+            }
+            return fetch(url, { method: 'GET', mode: 'cors', credentials: 'omit', referrerPolicy: 'no-referrer' })
+                .then(function (res) {
+                    if (!res.ok) {
+                        // 404/410 are definitive: stop, the image is gone.
+                        if (res.status === 404 || res.status === 410) { markError(img); return 'done'; }
+                        // 403/429/5xx are usually hotlink or rate limits: retry.
+                        var e1 = new Error('HTTP ' + res.status); e1.retry = true; throw e1;
+                    }
+                    var ct = (res.headers.get('content-type') || '').toLowerCase();
+                    if (ct && ct.indexOf('image/') !== 0 && ct.indexOf('application/octet-stream') !== 0) {
+                        var e2 = new Error('Not an image: ' + ct); e2.retry = true; throw e2;
+                    }
+                    var total = parseInt(res.headers.get('content-length') || '0', 10) || 0;
+                    if (!res.body || typeof res.body.getReader !== 'function') {
+                        return res.blob().then(function (b) { finish(b); return 'done'; });
+                    }
+                    var reader = res.body.getReader();
+                    var chunks = [];
+                    var received = 0;
+                    function pump() {
+                        return reader.read().then(function (chunk) {
+                            if (chunk.done) {
+                                finish(new Blob(chunks, { type: ct || 'image/png' }));
+                                return 'done';
+                            }
+                            chunks.push(chunk.value);
+                            received += chunk.value.length || 0;
+                            if (total) {
+                                var pct = received / total * 100;
+                                setStatusText(img, 'Loading… ' + Math.round(pct) + '%');
+                                setProgress(img, pct);
+                            } else {
+                                setStatusText(img, 'Loading… ' + formatBytes(received));
+                                setProgress(img, null);
+                            }
+                            return pump();
+                        });
+                    }
+                    return pump();
+                })
+                .catch(function (err) {
+                    if (err && err.retry) throw err;   // -> retryLater()
+                    return 'fallback';                 // no CORS / offline -> native <img>
+                });
+        }
+
+        // Kick off: local store first when enabled, otherwise straight to network.
+        if (isEnabled()) {
+            getImage(url).then(function (blob) {
+                if (blob && blob.size > 0) showBlob(blob);
+                else networkAttempt();
+            }).catch(function () { networkAttempt(); });
+        } else {
+            networkAttempt();
         }
     }
-    img.classList.add('card-image-error');
-};
 
-// Shared lazy-load machinery. Page images are emitted with `data-src` instead
-// of `src`, and __cardImgInit() asks a single IntersectionObserver to assign
-// `src` only once an image approaches the viewport (a 300px prefetch margin
-// so scrolling feels seamless). Works with images inserted into `display:none`
-// containers because the observer re-evaluates intersections each time layout
-// changes, including when the results container is revealed.
+    // ---- Public API ---------------------------------------------------------
+    return {
+        load: load,
+        isEnabled: isEnabled,
+        setEnabled: setEnabled,
+        initControls: initControls,
+        getImage: getImage,
+        putImage: putImage
+    };
+})();
+
+// Reflect the saved preference in any on-page checkbox once the DOM is ready.
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { window.CardImages.initControls(); });
+} else {
+    window.CardImages.initControls();
+}
+
+// Lazily start loading every not-yet-requested image under `root`. A single
+// IntersectionObserver assigns work only as an image approaches the viewport
+// (300px prefetch margin), so we never fire hundreds of requests at once.
 window.__cardImgIO = null;
 window.__cardImgLazyLoad = function (img) {
-    var src = img.getAttribute('data-src');
-    if (!src) return;
+    if (!img || !img.getAttribute('data-src')) return;
     if (!('IntersectionObserver' in window)) {
-        // No observer support: load everything eagerly so nothing stays blank.
-        img.removeAttribute('data-src');
-        img.src = src;
+        // No observer support: load it right away so nothing stays blank.
+        window.CardImages.load(img);
         return;
     }
     if (!window.__cardImgIO) {
         window.__cardImgIO = new IntersectionObserver(function (entries) {
             entries.forEach(function (entry) {
                 if (!entry.isIntersecting) return;
-                var el = entry.target;
-                var s = el.getAttribute('data-src');
-                if (s) {
-                    el.removeAttribute('data-src');
-                    el.src = s;
-                }
-                window.__cardImgIO.unobserve(el);
+                window.__cardImgIO.unobserve(entry.target);
+                window.CardImages.load(entry.target);
             });
         }, { rootMargin: '300px 0px' });
     }
     window.__cardImgIO.observe(img);
 };
 
-// Start lazy-loading every not-yet-requested image under `root`. Safe to call
-// repeatedly: already-loaded / already-observed images are no-ops.
+// Start loading every not-yet-requested image under `root`. Safe to call
+// repeatedly: already-loaded / already-queued images are no-ops.
 window.__cardImgInit = function (root) {
     (root || document).querySelectorAll('img[data-src]').forEach(window.__cardImgLazyLoad);
 };
 
-// Build the standard card-image block: a visible species-initial fallback plus
-// a lazily-loaded, async-decoded <img> that fades in only once it actually
-// loads. opts.badge is an optional HTML string to render inside the container.
+// Build a card image: a species-initial fallback, a live status overlay with a
+// spinner and progress bar, and the <img> itself. Only the URL is ever taken
+// from the card, so any host works. opts.badge is optional extra HTML.
 function cardImageTag(card, opts) {
     opts = opts || {};
     var src = (card && card.image_url) || '';
@@ -323,14 +568,31 @@ function cardImageTag(card, opts) {
     var initial = (alt.charAt(0) || '?').toUpperCase();
     var imgTag = src
         ? '<img data-src="' + escapeHtml(src) + '" alt="' + escapeHtml(alt) + '" class="card-image" ' +
-          'decoding="async" referrerpolicy="no-referrer" ' +
-          'onload="window.__cardImgLoaded(this)" onerror="window.__cardImgError(this)">'
+          'decoding="async" referrerpolicy="no-referrer">'
         : '';
     return '<div class="card-image-container">' +
         '<span class="card-image-fallback" aria-hidden="true">' + escapeHtml(initial) + '</span>' +
+        '<div class="card-image-status">' +
+            '<span class="card-image-spinner" aria-hidden="true"></span>' +
+            '<span class="card-image-status-text">Loading…</span>' +
+        '</div>' +
+        '<div class="card-image-progress" aria-hidden="true"><div class="card-image-progress-bar"></div></div>' +
         imgTag +
         (opts.badge || '') +
         '</div>';
+}
+
+// Thumbnail variant for the leaderboard chips / inline card lists. Same loader,
+// but no overlay: the element itself pulses until the image arrives.
+// opts.imgStyle lets a caller keep its own inline sizing.
+function cardThumbTag(card, opts) {
+    opts = opts || {};
+    var src = (card && card.image_url) || '';
+    if (!src) return '';
+    var alt = (card && card.species) || 'Card';
+    return '<img data-src="' + escapeHtml(src) + '" alt="' + escapeHtml(alt) + '" class="card-thumb-img"' +
+        (opts.imgStyle ? ' style="' + opts.imgStyle + '"' : '') +
+        ' decoding="async" referrerpolicy="no-referrer">';
 }
 // Render the RABD difficulty dashboard into `#difficulty-dashboard` (if present).
 // Shared by leaderboard.html and search.html. The element is a left sidebar

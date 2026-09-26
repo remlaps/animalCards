@@ -14,6 +14,9 @@ function beneficiaryTip(api, rarity) {
 document.addEventListener('DOMContentLoaded', async () => {
     const timeFilter = document.getElementById('time-filter');
     const loading = document.getElementById('loading');
+    const loadingStatus = document.getElementById('loading-status');
+    const loadingError = document.getElementById('loading-error');
+    const loadingSpinner = document.querySelector('#loading .spinner');
     const content = document.getElementById('leaderboard-content');
     const tbody = document.getElementById('leaderboard-body');
     const cardsGrid = document.getElementById('recent-cards-grid');
@@ -23,6 +26,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         content.style.display = 'none';
         tbody.innerHTML = '';
         cardsGrid.innerHTML = '';
+
+        // Reset the loader out of any previous error/run so a retry (e.g. a
+        // timeframe change) shows fresh progress instead of a stale failure.
+        loadingError.style.display = 'none';
+        loadingSpinner.style.display = '';
+        loadingStatus.style.display = '';
+        loadingStatus.textContent = 'Scanning blockchain for recent burns...';
 
         // Clear any previous mobile card rows
         const existingMobileRows = document.querySelectorAll('.leaderboard-card-row');
@@ -267,7 +277,7 @@ const weightedTotalByAccount = {};
 
                     const issuedHtml = uniqueCards.map(u => `
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;">
-                            <img data-src="${u.card.image_url}" alt="${u.card.species}" style="width: 28px; height: 28px; border-radius: 4px; object-fit: cover; flex-shrink: 0;" decoding="async" referrerpolicy="no-referrer" onerror="this.style.display='none'">
+                            ${cardThumbTag(u.card, { imgStyle: 'width: 28px; height: 28px; border-radius: 4px; object-fit: cover; flex-shrink: 0;' })}
                             <span style="font-weight: 600;">${u.card.species}</span>
                             ${u.card.is_generic ? `<span class="rarity-badge" style="font-size:0.7rem; color:var(--text-secondary); border:1px solid var(--border-color,rgba(128,128,128,0.3)); border-radius:4px; padding:1px 5px;">${u.rarity || u.card.rarity}</span>` : ''}
                         </div>`).join('');
@@ -298,7 +308,7 @@ const weightedTotalByAccount = {};
                     const mobileCardChips = (uniqueCards.length > 0 || pendingClasses.length > 0)
                         ? [...uniqueCards.map(u => `
                             <span class="leaderboard-card-chip">
-                                <img data-src="${u.card.image_url}" alt="${u.card.species}" decoding="async" referrerpolicy="no-referrer" onerror="this.style.display='none'">
+                                ${cardThumbTag(u.card)}
                                 ${u.card.species}${u.card.is_generic ? ` (${u.rarity})` : ''}
                             </span>`),
                             ...pendingClasses.map(c => `
@@ -434,7 +444,12 @@ loading.style.display = 'none';
 
         } catch (error) {
             console.error(error);
-            loading.innerHTML = `<p class="status-message" style="color: #ef4444;">Error loading leaderboard data: ${error.message}</p>`;
+            // Show the failure without wiping the loader markup, so a retry can
+            // reset cleanly and show progress again (references stay valid).
+            loadingSpinner.style.display = 'none';
+            loadingStatus.style.display = 'none';
+            loadingError.style.display = 'block';
+            loadingError.textContent = `Error loading leaderboard data: ${error.message}`;
         }
     }
 

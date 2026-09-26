@@ -33,6 +33,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const content = document.getElementById('collections-content');
     const loadingStatus = document.getElementById('loading-status');
     const loadingProgress = document.getElementById('loading-progress');
+    const loadingError = document.getElementById('loading-error');
+    const loadingSpinner = document.querySelector('#loading .spinner');
     const streakSection = document.getElementById('streak-section');
     const rarityContainer = document.getElementById('rarity-collections');
     const classContainer = document.getElementById('class-collections');
@@ -74,6 +76,15 @@ form.addEventListener('submit', async (e) => {
 
         loading.style.display = 'flex';
         content.style.display = 'none';
+
+        // Reset the loader out of any previous error/run so a retry shows
+        // fresh progress instead of instantly re-displaying the old failure.
+        loadingError.style.display = 'none';
+        loadingSpinner.style.display = '';
+        loadingStatus.style.display = '';
+        loadingProgress.style.display = '';
+        loadingStatus.textContent = 'Scanning blockchain for earned cards...';
+        loadingProgress.textContent = '';
 
         try {
             if (api.cardsConfig.length === 0) await api.loadConfig();
@@ -305,7 +316,13 @@ const tickingProcessBlock = async (blockNum) => {
 
         } catch (error) {
             console.error(error);
-            loading.innerHTML = '<p class="status-message" style="color: #ef4444;">Error: ' + error.message + '</p>';
+            // Show the failure without wiping the loader markup, so a retry can
+            // reset cleanly and show progress again (references stay valid).
+            loadingSpinner.style.display = 'none';
+            loadingStatus.style.display = 'none';
+            loadingProgress.style.display = 'none';
+            loadingError.style.display = 'block';
+            loadingError.textContent = 'Error: ' + error.message;
         }
     }); // end submit
 }); // end DOMContentLoaded

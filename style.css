@@ -467,6 +467,114 @@ a.logo span {
     opacity: 0;
 }
 
+/* Live load status: spinner + progress bar, shown only while loading */
+.card-image-status {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 0.75rem;
+    text-align: center;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.8rem;
+    letter-spacing: 0.3px;
+    color: var(--text-secondary);
+    background: rgba(15, 23, 42, 0.45);
+    pointer-events: none;
+}
+
+.card-image-container.card-image-loading .card-image-status,
+.card-image-container.card-image-error .card-image-status {
+    display: flex;
+}
+
+.card-image-spinner {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 3px solid rgba(148, 163, 184, 0.3);
+    border-top-color: var(--accent-primary);
+    animation: card-image-spin 0.9s linear infinite;
+}
+
+@keyframes card-image-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* A definitive failure stops the spinner but keeps the note visible. */
+.card-image-container.card-image-error .card-image-spinner {
+    display: none;
+}
+
+.card-image-progress {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 3;
+    height: 4px;
+    display: none;
+    background: rgba(148, 163, 184, 0.15);
+}
+
+.card-image-container.card-image-loading .card-image-progress {
+    display: block;
+}
+
+.card-image-progress-bar {
+    height: 100%;
+    width: 0;
+    border-radius: 0 2px 2px 0;
+    background: var(--accent-primary);
+    transition: width 0.2s ease;
+}
+
+/* Leaderboard thumbnails: a pulsing placeholder until the image arrives */
+.card-thumb-img {
+    border-radius: 4px;
+    object-fit: cover;
+    color: transparent;
+    background: linear-gradient(90deg, rgba(148, 163, 184, 0.12), rgba(148, 163, 184, 0.32), rgba(148, 163, 184, 0.12));
+    background-size: 200% 100%;
+    animation: card-thumb-pulse 1.4s ease-in-out infinite;
+}
+
+.card-thumb-img.loaded {
+    animation: none;
+    background: none;
+}
+
+.card-thumb-img.card-image-error {
+    display: none;
+}
+
+@keyframes card-thumb-pulse {
+    0%, 100% { background-position: 0% 0; }
+    50% { background-position: 100% 0; }
+}
+
+/* "Store images locally" checkbox */
+.store-images-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+}
+
+.store-images-toggle input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent-primary);
+    cursor: pointer;
+}
+
 .tribute-card:hover .card-image {
     transform: scale(1.1);
 }
