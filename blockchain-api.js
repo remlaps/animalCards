@@ -343,6 +343,13 @@ window.CardImages = (function () {
             box.addEventListener('change', function () { setEnabled(box.checked); });
         });
     }
+    // Keep open tabs in sync: the `storage` event fires only in *other* tabs
+    // when localStorage changes, so toggling the checkbox in one tab updates
+    // the checkboxes here too, without a reload.
+    window.addEventListener('storage', function (e) {
+        if (e.key === PREF_KEY) initControls();
+    });
+
     // ---- DOM state helpers --------------------------------------------------
     // All of these tolerate images that have no .card-image-container (the
     // leaderboard thumbnail chips), where the state lives on the <img> alone.
