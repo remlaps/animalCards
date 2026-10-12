@@ -401,7 +401,7 @@ const weightedTotalByAccount = {};
                                 ? `<span style="font-size:0.75rem;">Quantity: <strong style="color:var(--text-primary);">${qty}</strong></span>`
                                 : `<span style="font-size:0.75rem;">Serial: <strong style="color:var(--text-primary);">${u.serials[0]}</strong></span>`;
                             return `
-                            <div class="tribute-card">
+                            <div class="tribute-card" data-rarity="${u.rarity || u.card.rarity || ''}">
                                 ${cardImageTag(u.card, { badge: countBadge })}
                                 <div class="card-content">
                                     <div class="card-class">${u.card.class} • ${u.rarity || u.card.rarity}</div>

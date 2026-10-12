@@ -206,6 +206,7 @@
         var el = document.createElement('div');
         el.className = 'tribute-card deck-card';
         el.setAttribute('data-export-filename', deckFilename(card));
+        el.setAttribute('data-rarity', card.rarity || '');
 
         var species = escapeHtml(card.species || 'Card');
         var initial = (String(card.species || '?').charAt(0) || '?').toUpperCase();
