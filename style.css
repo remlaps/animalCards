@@ -605,6 +605,8 @@ a.logo span {
     font-size: 0.85rem;
     color: var(--text-secondary);
     display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
     justify-content: space-between;
     align-items: center;
     border-top: 1px solid var(--glass-border);
@@ -1247,3 +1249,36 @@ a.logo span {
     width: 1.1em;
     height: 1.1em;
 }
+
+/* Per-card "Download PNG" button (export feature). Hidden from the exported
+   image via the `.card-export-ctl` marker class used by card-export.js. */
+.card-download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.card-download-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: var(--accent-primary);
+    transform: translateY(-1px);
+}
+
+.card-download-btn:disabled {
+    opacity: 0.6;
+    cursor: wait;
+    transform: none;
+}
+

@@ -438,6 +438,13 @@ const verifyBadge = (c) => `<span class="verify-badge" title="Hash: ${c.trx_id}"
                         Verified
                     </span>`;
 
+            // Per-card "Download PNG" button (added by card-export.js). Safely
+            // no-ops if the export engine failed to load for any reason.
+            const dlButton = (c) => (typeof CardExport !== 'undefined' && CardExport.downloadButton)
+                ? CardExport.downloadButton(c, { kind: 'earned' })
+                : '';
+
+
             const renderCardEl = (c, count, serials) => {
                 const cardEl = document.createElement('div');
                 cardEl.className = 'tribute-card';
@@ -476,6 +483,7 @@ const verifyBadge = (c) => `<span class="verify-badge" title="Hash: ${c.trx_id}"
                                     ${showCount ? '' : serialSpan}
                                     ${showCount ? '' : timeSpan}
                                     ${verifyBadge(c)}
+                                    ${dlButton(c)}
                                 </div>
                             </div>`;
                 }
