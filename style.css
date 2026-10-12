@@ -408,28 +408,31 @@ a.logo span {
 }
 
 .tribute-card {
+    --rarity-color: var(--glass-border);
+    --rarity-glow: transparent;
     background: var(--glass-bg);
-    border: 2px solid var(--glass-border);
+    border: 3px solid var(--rarity-color);
     border-radius: 16px;
     overflow: hidden;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 0 16px var(--rarity-glow);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
     position: relative;
     display: flex;
     flex-direction: column;
 }
 
-/* Rarity-colored borders — drives both the live cards and the exported PNG */
-.tribute-card[data-rarity="Common"]    { border-color: #64748b; }
-.tribute-card[data-rarity="Rare"]      { border-color: #3b82f6; }
-.tribute-card[data-rarity="Epic"]      { border-color: #8b5cf6; }
-.tribute-card[data-rarity="Legendary"] { border-color: #f59e0b; }
-.tribute-card[data-rarity="Mythic"]    { border-color: #ef4444; }
-.tribute-card[data-rarity="Generic"]   { border-color: #475569; }
+/* Rarity-colored borders + glow (live cards; card-export.js mirrors these in the PNG) */
+.tribute-card[data-rarity="Common"]    { --rarity-color: #64748b; }
+.tribute-card[data-rarity="Rare"]      { --rarity-color: #3b82f6; --rarity-glow: rgba(59, 130, 246, 0.45); }
+.tribute-card[data-rarity="Epic"]      { --rarity-color: #8b5cf6; --rarity-glow: rgba(139, 92, 246, 0.50); }
+.tribute-card[data-rarity="Legendary"] { --rarity-color: #f59e0b; --rarity-glow: rgba(245, 158, 11, 0.55); }
+.tribute-card[data-rarity="Mythic"]    { --rarity-color: #ef4444; --rarity-glow: rgba(239, 68, 68, 0.60); }
+.tribute-card[data-rarity="Generic"]   { --rarity-color: #475569; }
 
 .tribute-card:hover {
     transform: translateY(-10px) scale(1.02);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px var(--accent-glow);
-    border-color: var(--accent-secondary);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 24px var(--rarity-glow);
+    border-color: var(--rarity-color);
 }
 
 .card-image-container {

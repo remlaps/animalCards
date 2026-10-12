@@ -107,35 +107,59 @@
         return Promise.all(jobs);
     }
 
-    // Snapshot `node` to a PNG data URL. Applies a temporary "export style" so the
-    // PNG is self-contained (opaque dark background, no :hover transform/zoom and
-    // no backdrop blur) regardless of what the live page looks like behind it.
+    // Rarity → border colour + glow (kept in sync with style.css). Used to make
+    // the exported PNG match the on-screen card regardless of how html-to-image
+    // resolves styles.
+    var RARITY_STYLE = {
+        Common:    { color: '#64748b', glow: '' },
+        Rare:      { color: '#3b82f6', glow: 'rgba(59, 130, 246, 0.45)' },
+        Epic:      { color: '#8b5cf6', glow: 'rgba(139, 92, 246, 0.50)' },
+        Legendary: { color: '#f59e0b', glow: 'rgba(245, 158, 11, 0.55)' },
+        Mythic:    { color: '#ef4444', glow: 'rgba(239, 68, 68, 0.60)' },
+        Generic:   { color: '#475569', glow: '' }
+    };
+    var EXPORT_BORDER_PX = 3;
+    var EXPORT_GLOW = '0 0 16px ';
+    var EXPORT_PAD_PX = 28;   // padding around the card so the glow isn't clipped
+
+    // Snapshot `node` to a PNG data URL. Captures an offscreen clone so the live
+    // card is never mutated or reflowed. The clone gets an explicit border + glow
+    // and a padded wrapper, producing a self-contained PNG with the rarity frame.
     function captureNode(node) {
         if (!window.htmlToImage) {
             return Promise.reject(new Error('html-to-image is not loaded'));
         }
-        var saved = {};
-        var props = ['background', 'backdropFilter', 'webkitBackdropFilter', 'transform', 'boxShadow'];
-        props.forEach(function (p) { saved[p] = node.style[p]; });
 
-        var imgTransforms = [];
-        Array.prototype.slice.call(node.querySelectorAll('.card-image')).forEach(function (img) {
-            imgTransforms.push([img, img.style.transform]);
+        var rarity = node.getAttribute('data-rarity') || '';
+        var rs = RARITY_STYLE[rarity] || { color: 'rgba(255, 255, 255, 0.12)', glow: '' };
+
+        var clone = node.cloneNode(true);
+        clone.style.boxSizing = 'border-box';
+        clone.style.width = node.offsetWidth + 'px';
+        clone.style.background = 'linear-gradient(160deg, #1e293b 0%, #0f172a 100%)';
+        clone.style.backdropFilter = 'none';
+        clone.style.webkitBackdropFilter = 'none';
+        clone.style.transform = 'none';
+        clone.style.border = EXPORT_BORDER_PX + 'px solid ' + rs.color;
+        clone.style.boxShadow = rs.glow ? (EXPORT_GLOW + rs.glow) : 'none';
+        Array.prototype.slice.call(clone.querySelectorAll('.card-image')).forEach(function (img) {
             img.style.transform = 'none';
         });
 
-        node.style.background = 'linear-gradient(160deg, #1e293b 0%, #0f172a 100%)';
-        node.style.backdropFilter = 'none';
-        node.style.webkitBackdropFilter = 'none';
-        node.style.transform = 'none';
-        node.style.boxShadow = 'none';
+        // Padded wrapper: gives the glow room so it isn't clipped by the SVG bounds.
+        var wrap = document.createElement('div');
+        wrap.style.position = 'fixed';
+        wrap.style.left = '-100000px';
+        wrap.style.top = '0';
+        wrap.style.padding = EXPORT_PAD_PX + 'px';
+        wrap.appendChild(clone);
+        document.body.appendChild(wrap);
 
-        function restore() {
-            props.forEach(function (p) { node.style[p] = saved[p]; });
-            imgTransforms.forEach(function (pair) { pair[0].style.transform = pair[1]; });
+        function cleanup() {
+            if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
         }
 
-        return window.htmlToImage.toPng(node, {
+        return window.htmlToImage.toPng(wrap, {
             pixelRatio: Math.max(window.devicePixelRatio || 1, 2),
             cacheBust: false,
             backgroundColor: '#0f172a',
@@ -144,10 +168,10 @@
                 return !(n && n.classList && n.classList.contains('card-export-ctl'));
             }
         }).then(function (dataUrl) {
-            restore();
+            cleanup();
             return dataUrl;
         }).catch(function (err) {
-            restore();
+            cleanup();
             throw err;
         });
     }
