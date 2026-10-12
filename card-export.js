@@ -137,7 +137,7 @@
 
         return window.htmlToImage.toPng(node, {
             pixelRatio: Math.max(window.devicePixelRatio || 1, 2),
-            cacheBust: true,
+            cacheBust: false,
             backgroundColor: '#0f172a',
             filter: function (n) {
                 // Never draw the download control itself into the exported image.
