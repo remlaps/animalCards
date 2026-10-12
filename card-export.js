@@ -163,6 +163,10 @@
             pixelRatio: Math.max(window.devicePixelRatio || 1, 2),
             cacheBust: false,
             backgroundColor: '#0f172a',
+            // The wrapper is parked off-screen to avoid flashing in the page, but
+            // html-to-image copies that offset into the image — so reset the
+            // position on the captured copy to render the card in-view.
+            style: { position: 'static', left: '0px', top: '0px' },
             filter: function (n) {
                 // Never draw the download control itself into the exported image.
                 return !(n && n.classList && n.classList.contains('card-export-ctl'));
