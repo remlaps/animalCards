@@ -11,6 +11,18 @@ function beneficiaryTip(api, rarity) {
     return `If you blog about this card, please consider setting a beneficiary for the photographer: ${list}. (This card: ${rarity || 'Unknown'} — ${pct}%)`;
 }
 
+// Per-card "Download PNG" button (added by card-export.js). Safely no-ops if the
+// export engine failed to load for any reason.
+function dlButton(u, account) {
+    if (typeof CardExport === 'undefined' || !CardExport.downloadButton) return '';
+    return CardExport.downloadButton(u.card, {
+        kind: 'earned',
+        account: account,
+        serial: u.serials && u.serials[0],
+        cls: u.card.class
+    });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     const timeFilter = document.getElementById('time-filter');
     const loading = document.getElementById('loading');
@@ -389,7 +401,7 @@ const weightedTotalByAccount = {};
                                 ? `<span style="font-size:0.75rem;">Quantity: <strong style="color:var(--text-primary);">${qty}</strong></span>`
                                 : `<span style="font-size:0.75rem;">Serial: <strong style="color:var(--text-primary);">${u.serials[0]}</strong></span>`;
                             return `
-                            <div class="tribute-card">
+                            <div class="tribute-card" data-rarity="${u.rarity || u.card.rarity || ''}">
                                 ${cardImageTag(u.card, { badge: countBadge })}
                                 <div class="card-content">
                                     <div class="card-class">${u.card.class} • ${u.rarity || u.card.rarity}</div>
@@ -398,6 +410,7 @@ const weightedTotalByAccount = {};
                                     <p class="card-attribution" title="${beneficiaryTip(api, u.rarity || u.card.rarity)}">Winner: @${account} • Generation: ${u.card.generation} • Photo by ${u.card.photo_credit}</p>
                                     <div class="card-meta">
                                         ${serialOrQty}
+                                        ${dlButton(u, account)}
                                     </div>
                                 </div>
                             </div>`;

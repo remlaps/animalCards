@@ -408,20 +408,31 @@ a.logo span {
 }
 
 .tribute-card {
+    --rarity-color: var(--glass-border);
+    --rarity-glow: transparent;
     background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
+    border: 3px solid var(--rarity-color);
     border-radius: 16px;
     overflow: hidden;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 0 16px var(--rarity-glow);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
     position: relative;
     display: flex;
     flex-direction: column;
 }
 
+/* Rarity-colored borders + glow (live cards; card-export.js mirrors these in the PNG) */
+.tribute-card[data-rarity="Common"]    { --rarity-color: #64748b; }
+.tribute-card[data-rarity="Rare"]      { --rarity-color: #3b82f6; --rarity-glow: rgba(59, 130, 246, 0.45); }
+.tribute-card[data-rarity="Epic"]      { --rarity-color: #8b5cf6; --rarity-glow: rgba(139, 92, 246, 0.50); }
+.tribute-card[data-rarity="Legendary"] { --rarity-color: #f59e0b; --rarity-glow: rgba(245, 158, 11, 0.55); }
+.tribute-card[data-rarity="Mythic"]    { --rarity-color: #ef4444; --rarity-glow: rgba(239, 68, 68, 0.60); }
+.tribute-card[data-rarity="Generic"]   { --rarity-color: #475569; }
+
 .tribute-card:hover {
     transform: translateY(-10px) scale(1.02);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px var(--accent-glow);
-    border-color: var(--accent-secondary);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 24px var(--rarity-glow);
+    border-color: var(--rarity-color);
 }
 
 .card-image-container {
@@ -605,6 +616,8 @@ a.logo span {
     font-size: 0.85rem;
     color: var(--text-secondary);
     display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
     justify-content: space-between;
     align-items: center;
     border-top: 1px solid var(--glass-border);
@@ -1247,3 +1260,36 @@ a.logo span {
     width: 1.1em;
     height: 1.1em;
 }
+
+/* Per-card "Download PNG" button (export feature). Hidden from the exported
+   image via the `.card-export-ctl` marker class used by card-export.js. */
+.card-download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.card-download-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: var(--accent-primary);
+    transform: translateY(-1px);
+}
+
+.card-download-btn:disabled {
+    opacity: 0.6;
+    cursor: wait;
+    transform: none;
+}
+
