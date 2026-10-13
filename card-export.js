@@ -86,31 +86,37 @@
                 if (window.CardImages && window.CardImages.load) window.CardImages.load(img);
                 else if (window.__cardImgLazyLoad) window.__cardImgLazyLoad(img);
             }
-            return new Promise(function (resolve) {
-                var finalize = function () {
-                    // Bake the loaded image into an inline data URL so the export
-                    // engine never has to re-fetch a blob:/remote URL (a blank spot
-                    // in the PNG when that re-fetch is slow, blocked, or revoked).
-                    dataURLify(img).then(resolve, resolve);
-                };
-                if (img.dataset.state === 'loaded' || (img.complete && img.naturalWidth > 0)) {
-                    finalize();
-                    return;
-                }
-                var settled = false;
-                var finish = function () {
-                    if (settled) return;
-                    settled = true;
-                    img.removeEventListener('load', finish);
-                    img.removeEventListener('error', finish);
-                    finalize();
-                };
-                img.addEventListener('load', finish);
-                img.addEventListener('error', finish);
-                setTimeout(finish, 60000); // never hang forever on a stalled image
-            });
+            return waitForImage(img);
         });
         return Promise.all(jobs);
+    }
+
+    // Wait until img is fully loaded (or has definitively failed), then bake it
+    // into a data URL. Polls rather than using a fixed timeout so the shared
+    // loader's own retry loop (exponential backoff up to 30s per attempt) gets
+    // every chance to finish: a slow/hotlinked photo is never captured early.
+    // The only give-up is a definitive failure (HTTP 404/410, which sets
+    // dataset.state to 'error'); there is intentionally no time cap.
+    function waitForImage(img) {
+        return new Promise(function (resolve) {
+            var finalize = function () {
+                if (window.console) {
+                    var s = img.currentSrc || img.src || img.getAttribute('src') || '';
+                    if (img.dataset.state === 'error') console.warn('[animalCards-export] image failed (404/410):', String(s).slice(0, 60));
+                    else console.log('[animalCards-export] image loaded:', String(s).slice(0, 60));
+                }
+                dataURLify(img).then(resolve, resolve);
+            };
+            var isLoaded = function () {
+                return img.dataset.state === 'loaded' || (img.complete && img.naturalWidth > 0);
+            };
+            var isFailed = function () { return img.dataset.state === 'error'; };
+            var tick = function () {
+                if (isLoaded() || isFailed()) { finalize(); return; }
+                setTimeout(tick, 200);
+            };
+            tick();
+        });
     }
 
     // Draw a loaded image to a canvas and swap its src for an inline data URL so
@@ -119,26 +125,32 @@
     // tainted canvas it leaves the original src in place.
     function dataURLify(img) {
         return new Promise(function (resolve) {
-            try {
-                var src = img.currentSrc || img.src || img.getAttribute('src') || '';
-                if (!src || src.indexOf('data:') === 0) { resolve(); return; }
-                var w = img.naturalWidth, h = img.naturalHeight;
-                if (!w || !h) { resolve(); return; }
-                var MAX = 1200;
-                var scale = Math.min(1, MAX / Math.max(w, h));
-                var canvas = document.createElement('canvas');
-                canvas.width = Math.max(1, Math.round(w * scale));
-                canvas.height = Math.max(1, Math.round(h * scale));
-                var ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                img.src = canvas.toDataURL('image/png');
-                img.classList.add('loaded');
-                img.style.transition = 'none';
-                img.style.opacity = '1';
-                resolve();
-            } catch (e) {
-                resolve();
-            }
+            var src = img.currentSrc || img.src || img.getAttribute('src') || '';
+            if (!src || src.indexOf('data:') === 0) { resolve(); return; }
+            var w = img.naturalWidth, h = img.naturalHeight;
+            if (!w || !h) { resolve(); return; }
+            var draw = function () {
+                try {
+                    var MAX = 1200;
+                    var scale = Math.min(1, MAX / Math.max(w, h));
+                    var canvas = document.createElement('canvas');
+                    canvas.width = Math.max(1, Math.round(w * scale));
+                    canvas.height = Math.max(1, Math.round(h * scale));
+                    var ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    img.src = canvas.toDataURL('image/png');
+                    img.classList.add('loaded');
+                    img.style.transition = 'none';
+                    img.style.opacity = '1';
+                    resolve();
+                } catch (e) {
+                    resolve();
+                }
+            };
+            // Make sure the frame is fully decoded before drawing, so a still-
+            // decoding image is never painted partially.
+            if (typeof img.decode === 'function') img.decode().then(draw, draw);
+            else draw();
         });
     }
 
