@@ -87,8 +87,14 @@
                 else if (window.__cardImgLazyLoad) window.__cardImgLazyLoad(img);
             }
             return new Promise(function (resolve) {
+                var finalize = function () {
+                    // Bake the loaded image into an inline data URL so the export
+                    // engine never has to re-fetch a blob:/remote URL (a blank spot
+                    // in the PNG when that re-fetch is slow, blocked, or revoked).
+                    dataURLify(img).then(resolve, resolve);
+                };
                 if (img.dataset.state === 'loaded' || (img.complete && img.naturalWidth > 0)) {
-                    resolve();
+                    finalize();
                     return;
                 }
                 var settled = false;
@@ -97,7 +103,7 @@
                     settled = true;
                     img.removeEventListener('load', finish);
                     img.removeEventListener('error', finish);
-                    resolve();
+                    finalize();
                 };
                 img.addEventListener('load', finish);
                 img.addEventListener('error', finish);
@@ -105,6 +111,35 @@
             });
         });
         return Promise.all(jobs);
+    }
+
+    // Draw a loaded image to a canvas and swap its src for an inline data URL so
+    // html-to-image doesn't have to re-fetch the source (a blob:/remote URL that
+    // can be slow, blocked, or revoked). Resolves regardless of outcome; on a
+    // tainted canvas it leaves the original src in place.
+    function dataURLify(img) {
+        return new Promise(function (resolve) {
+            try {
+                var src = img.currentSrc || img.src || img.getAttribute('src') || '';
+                if (!src || src.indexOf('data:') === 0) { resolve(); return; }
+                var w = img.naturalWidth, h = img.naturalHeight;
+                if (!w || !h) { resolve(); return; }
+                var MAX = 1200;
+                var scale = Math.min(1, MAX / Math.max(w, h));
+                var canvas = document.createElement('canvas');
+                canvas.width = Math.max(1, Math.round(w * scale));
+                canvas.height = Math.max(1, Math.round(h * scale));
+                var ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                img.src = canvas.toDataURL('image/png');
+                img.classList.add('loaded');
+                img.style.transition = 'none';
+                img.style.opacity = '1';
+                resolve();
+            } catch (e) {
+                resolve();
+            }
+        });
     }
 
     // Rarity → border colour + glow (kept in sync with style.css). Used to make
@@ -144,10 +179,17 @@
         clone.style.boxShadow = rs.glow ? (EXPORT_GLOW + rs.glow) : 'none';
         Array.prototype.slice.call(clone.querySelectorAll('.card-image')).forEach(function (img) {
             img.style.transform = 'none';
+            img.style.transition = 'none';
+            img.style.opacity = '1';
             // Drop images that never loaded (slow/failed) so html-to-image does not
             // try to embed an empty source and produce a corrupt PNG.
             var src = img.getAttribute('src') || img.currentSrc || '';
-            if (!src && img.parentNode) img.parentNode.removeChild(img);
+            if (!src && img.parentNode) {
+                img.parentNode.removeChild(img);
+                if (window.console) console.warn('[animalCards-export] dropped image with no src');
+            } else if (window.console) {
+                console.log('[animalCards-export] image src:', String(src).slice(0, 60));
+            }
         });
         // The loading spinner / progress overlay should never appear in the export.
         Array.prototype.slice.call(clone.querySelectorAll('.card-image-status, .card-image-progress')).forEach(function (el) {
