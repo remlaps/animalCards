@@ -101,7 +101,7 @@
                 };
                 img.addEventListener('load', finish);
                 img.addEventListener('error', finish);
-                setTimeout(finish, 10000); // never hang forever on a stalled image
+                setTimeout(finish, 60000); // never hang forever on a stalled image
             });
         });
         return Promise.all(jobs);
@@ -144,6 +144,14 @@
         clone.style.boxShadow = rs.glow ? (EXPORT_GLOW + rs.glow) : 'none';
         Array.prototype.slice.call(clone.querySelectorAll('.card-image')).forEach(function (img) {
             img.style.transform = 'none';
+            // Drop images that never loaded (slow/failed) so html-to-image does not
+            // try to embed an empty source and produce a corrupt PNG.
+            var src = img.getAttribute('src') || img.currentSrc || '';
+            if (!src && img.parentNode) img.parentNode.removeChild(img);
+        });
+        // The loading spinner / progress overlay should never appear in the export.
+        Array.prototype.slice.call(clone.querySelectorAll('.card-image-status, .card-image-progress')).forEach(function (el) {
+            if (el.parentNode) el.parentNode.removeChild(el);
         });
 
         // Padded wrapper: gives the glow room so it isn't clipped by the SVG bounds.
