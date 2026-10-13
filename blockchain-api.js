@@ -25,19 +25,25 @@ class BlockchainAPI {
 
     // The Steem node intermittently returns transient errors: HTTP 429/5xx,
     // empty/non-JSON bodies, and application-level RPC errors such as
-    // "Upstream temporarily unavailable". Long searches issue many RPC calls,
-    // so a brief upstream outage previously aborted the whole run after only
-    // ~2.4s of retries. Use exponential backoff with jitter and a larger
+    // "Upstream temporarily unavailable" and "Unable to acquire database lock".
+    // Long searches issue many RPC calls, so a brief upstream hiccup previously
+    // aborted the whole run. Use exponential backoff with jitter and a generous
     // budget so a short outage is ridden out instead of failing the search.
-    async callSteem(method, params, retries = 6) {
+    async callSteem(method, params, retries = 8) {
         const payload = {
             jsonrpc: "2.0",
             method: method,
             params: params,
             id: 1
         };
-        const RETRY_BASE_MS = 600;   // first retry delay
-        const RETRY_MAX_MS = 8000;   // per-attempt delay cap
+        const RETRY_BASE_MS = 600;    // first retry delay
+        const RETRY_MAX_MS = 8000;    // per-attempt delay cap
+        // "Unable to acquire database lock" is a temporary, self-clearing steemd
+        // condition (the node is mid-snapshot or briefly overloaded). It is never
+        // our request's fault and it always clears, so wait it out with a longer,
+        // gentler backoff instead of aborting a multi-minute scan.
+        const LOCK_BASE_MS = 1500;
+        const LOCK_MAX_MS = 30000;
         let lastErr;
         for (let attempt = 0; attempt <= retries; attempt++) {
             try {
@@ -62,9 +68,13 @@ class BlockchainAPI {
             } catch (e) {
                 lastErr = e;
                 if (attempt === retries) break;
+                const locked = /database lock/i.test(String((e && e.message) || e));
                 // Exponential backoff with +/-25% jitter so concurrent retries
                 // don't line up and re-hammer the node at the same moment.
-                const base = Math.min(RETRY_BASE_MS * Math.pow(2, attempt), RETRY_MAX_MS);
+                const base = Math.min(
+                    (locked ? LOCK_BASE_MS : RETRY_BASE_MS) * Math.pow(2, attempt),
+                    locked ? LOCK_MAX_MS : RETRY_MAX_MS
+                );
                 const delay = Math.round(base * (0.75 + Math.random() * 0.5));
                 await new Promise(r => setTimeout(r, delay));
             }
