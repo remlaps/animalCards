@@ -148,8 +148,15 @@
                 }
             };
             // Make sure the frame is fully decoded before drawing, so a still-
-            // decoding image is never painted partially.
-            if (typeof img.decode === 'function') img.decode().then(draw, draw);
+            // decoding image is never painted partially. If the bytes cannot be
+            // decoded at all (corrupt/truncated), flag it and drop the source so
+            // the export falls back to the placeholder instead of a broken image.
+            var onUndecodable = function () {
+                img.dataset.state = 'error';
+                try { img.removeAttribute('src'); } catch (e) {}
+                resolve();
+            };
+            if (typeof img.decode === 'function') img.decode().then(draw, onUndecodable);
             else draw();
         });
     }
@@ -196,9 +203,9 @@
             // Drop images that never loaded (slow/failed) so html-to-image does not
             // try to embed an empty source and produce a corrupt PNG.
             var src = img.getAttribute('src') || img.currentSrc || '';
-            if (!src && img.parentNode) {
+            if ((!src || img.dataset.state === 'error') && img.parentNode) {
                 img.parentNode.removeChild(img);
-                if (window.console) console.warn('[animalCards-export] dropped image with no src');
+                if (window.console) console.warn('[animalCards-export] dropped unusable image');
             } else if (window.console) {
                 console.log('[animalCards-export] image src:', String(src).slice(0, 60));
             }

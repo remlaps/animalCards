@@ -276,6 +276,7 @@ window.CardImages = (function () {
     var STORE_NAME = 'images';
     var RETRY_BASE_MS = 1500;   // first retry delay
     var RETRY_MAX_MS = 30000;   // exponential-backoff cap
+    var MAX_BAD_DOWNLOADS = 3;  // give up after this many truncated downloads in a row
     var dbPromise = null;
 
     // ---- Local store (IndexedDB), keyed by image URL ------------------------
@@ -322,6 +323,55 @@ window.CardImages = (function () {
                 tx.onabort = function () { resolve(false); };
             });
         }).catch(function () { return false; });
+    }
+    function deleteImage(url) {
+        return getDb().then(function (db) {
+            return new Promise(function (resolve) {
+                var tx = db.transaction(STORE_NAME, 'readwrite');
+                tx.objectStore(STORE_NAME).delete(url);
+                tx.oncomplete = function () { resolve(true); };
+                tx.onerror = function () { resolve(false); };
+                tx.onabort = function () { resolve(false); };
+            });
+        }).catch(function () { return false; });
+    }
+
+    // Cheap integrity check for a cached/downloaded image blob. A truncated file
+    // is missing its format trailer (PNG IEND / JPEG EOI / GIF trailer / WebP
+    // length), so a partial download is easy to spot without decoding it. Formats
+    // we do not recognise are trusted (true) so nothing valid is ever rejected.
+    function blobLooksComplete(blob) {
+        if (!blob || blob.size < 32) return Promise.resolve(false);
+        return Promise.all([
+            blob.slice(0, 16).arrayBuffer(),
+            blob.slice(blob.size - 32).arrayBuffer()
+        ]).then(function (parts) {
+            var h = new Uint8Array(parts[0]);
+            var t = new Uint8Array(parts[1]);
+            // PNG: 89 50 4E 47 ... IEND chunk near the end of the file.
+            if (h.length >= 4 && h[0] === 0x89 && h[1] === 0x50 && h[2] === 0x4E && h[3] === 0x47) {
+                for (var i = t.length - 8; i >= 0; i--) {
+                    if (t[i] === 0x49 && t[i+1] === 0x45 && t[i+2] === 0x4E && t[i+3] === 0x44 &&
+                        t[i+4] === 0xAE && t[i+5] === 0x42 && t[i+6] === 0x60 && t[i+7] === 0x82) return true;
+                }
+                return false;
+            }
+            // JPEG: FF D8 FF ... ends with EOI (FF D9).
+            if (h.length >= 3 && h[0] === 0xFF && h[1] === 0xD8 && h[2] === 0xFF) {
+                return t.length >= 2 && t[t.length - 2] === 0xFF && t[t.length - 1] === 0xD9;
+            }
+            // GIF: 47 49 46 ... ends with the trailer byte 0x3B.
+            if (h.length >= 3 && h[0] === 0x47 && h[1] === 0x49 && h[2] === 0x46) {
+                return t.length >= 1 && t[t.length - 1] === 0x3B;
+            }
+            // WebP: RIFF....WEBP whose declared size matches the actual length.
+            if (h.length >= 12 && h[0] === 0x52 && h[1] === 0x49 && h[2] === 0x46 && h[3] === 0x46 &&
+                h[8] === 0x57 && h[9] === 0x45 && h[10] === 0x42 && h[11] === 0x50) {
+                var declared = (h[4] | (h[5] << 8) | (h[6] << 16) | (h[7] << 24)) >>> 0;
+                return (declared + 8) === blob.size;
+            }
+            return true;
+        }).catch(function () { return true; });
     }
 
     // ---- Preference (default: on) -------------------------------------------
@@ -417,6 +467,7 @@ window.CardImages = (function () {
         setProgress(img, 0);
 
         var attempt = 0;
+        var badDownloads = 0;
         var objectUrl = null;
 
         function showBlob(blob) {
@@ -437,8 +488,18 @@ window.CardImages = (function () {
         }
         function finish(blob) {
             if (!blob || !blob.size) { retryLater(); return; }
-            showBlob(blob);
-            if (isEnabled()) putImage(url, blob);
+            // Refuse to show or cache a truncated download; retry a few times, then
+            // give up so a persistently broken source cannot loop forever.
+            blobLooksComplete(blob).then(function (ok) {
+                if (!ok) {
+                    badDownloads++;
+                    if (badDownloads >= MAX_BAD_DOWNLOADS) { markError(img); return; }
+                    retryLater();
+                    return;
+                }
+                showBlob(blob);
+                if (isEnabled()) putImage(url, blob);
+            });
         }
         function retryLater() {
             if (!isAlive(img)) return;
@@ -510,8 +571,15 @@ window.CardImages = (function () {
         // Kick off: local store first when enabled, otherwise straight to network.
         if (isEnabled()) {
             getImage(url).then(function (blob) {
-                if (blob && blob.size > 0) showBlob(blob);
-                else networkAttempt();
+                if (!blob || !blob.size) { networkAttempt(); return; }
+                // Trust-but-verify: a cached blob can be truncated (an interrupted
+                // download) or otherwise corrupt. If it looks incomplete, evict it
+                // and re-fetch so a broken photo is never displayed or exported.
+                blobLooksComplete(blob).then(function (ok) {
+                    if (ok) { showBlob(blob); return; }
+                    deleteImage(url);
+                    networkAttempt();
+                });
             }).catch(function () { networkAttempt(); });
         } else {
             networkAttempt();
@@ -525,7 +593,8 @@ window.CardImages = (function () {
         setEnabled: setEnabled,
         initControls: initControls,
         getImage: getImage,
-        putImage: putImage
+        putImage: putImage,
+        deleteImage: deleteImage
     };
 })();
 
