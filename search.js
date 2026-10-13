@@ -57,6 +57,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     const loadingError = document.getElementById('loading-error');
     const loadingSpinner = document.querySelector('#loading .spinner');
 
+    let lastAccount = '';
+    const downloadAllBtn = document.getElementById('download-all');
+    if (downloadAllBtn) {
+        downloadAllBtn.addEventListener('click', function () {
+            const nodes = grid.querySelectorAll('.tribute-card');
+            if (!nodes.length) return;
+            if (typeof CardExport === 'undefined' || !CardExport.downloadAll) {
+                if (typeof alert === 'function') alert('Export engine is not loaded.');
+                return;
+            }
+            const baseName = 'animalCards-' + (lastAccount || 'results');
+            const label = downloadAllBtn.textContent;
+            downloadAllBtn.disabled = true;
+            CardExport.downloadAll(nodes, baseName, function (done, total) {
+                downloadAllBtn.textContent = 'Preparing ' + done + '/' + total + '...';
+            }).catch(function (err) {
+                console.error(err);
+                if (typeof alert === 'function') alert('Export failed: ' + ((err && err.message) || err));
+            }).then(function () {
+                downloadAllBtn.disabled = false;
+                downloadAllBtn.textContent = label;
+            });
+        });
+    }
+
     // Default to the user's input if coming from another page with a query param? Optional.
 
     renderDifficultyDashboard();
@@ -66,6 +91,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         const account = accountInput.value.trim().toLowerCase();
         if (!account) return;
+        lastAccount = account;
 
         const timeConstraint = parseInt(timeFilter.value, 10);
         
@@ -449,6 +475,9 @@ const verifyBadge = (c) => `<span class="verify-badge" title="Hash: ${c.trx_id}"
                 const cardEl = document.createElement('div');
                 cardEl.className = 'tribute-card';
                 cardEl.setAttribute('data-rarity', c.rarity || '');
+                if (typeof CardExport !== 'undefined' && CardExport.earnedFilename) {
+                    cardEl.setAttribute('data-export-filename', CardExport.earnedFilename(c));
+                }
                 const showCount = count > 1;
                 const serialSpan = showCount
                     ? `<span style="font-size:0.75rem;">Serials: ${serials.join(', ')}</span>`
@@ -525,6 +554,10 @@ const verifyBadge = (c) => `<span class="verify-badge" title="Hash: ${c.trx_id}"
                 // Start lazy-loading the freshly rendered cards: visible ones
                 // load right away, off-screen ones load as they're scrolled to.
                 if (window.__cardImgInit) window.__cardImgInit(grid);
+                if (downloadAllBtn) {
+                    const count = grid.querySelectorAll('.tribute-card').length;
+                    downloadAllBtn.textContent = (state.view === 'unique' ? 'Download unique' : 'Download all') + ' (' + count + ')';
+                }
             };
 
             viewToggle.addEventListener('click', (e) => {

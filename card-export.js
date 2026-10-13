@@ -229,6 +229,27 @@
             .then(function () { return zip.generateAsync({ type: 'blob', compression: 'DEFLATE' }); })
             .then(function (blob) { downloadBlob(blob, baseName + '.zip'); });
     }
+    // Render an array of raw card-config objects as catalogue cards in a hidden
+    // container (so their images can load), then download them as a single ZIP.
+    // Used by the Collections page, which has card data but not rendered cards.
+    function downloadCardData(cards, baseName, onProgress) {
+        if (!cards || !cards.length) return Promise.resolve();
+        var container = document.createElement('div');
+        container.style.position = 'fixed';
+        container.style.left = '-100000px';
+        container.style.top = '0';
+        cards.forEach(function (card) { container.appendChild(renderDeckCard(card)); });
+        document.body.appendChild(container);
+
+        function cleanup() {
+            if (container.parentNode) container.parentNode.removeChild(container);
+        }
+
+        return downloadAll(container.querySelectorAll('.tribute-card'), baseName, onProgress)
+            .then(function () { cleanup(); })
+            .catch(function (err) { cleanup(); throw err; });
+    }
+
     // Build a catalogue card element (deck/gallery) from a raw cards-config entry.
     function renderDeckCard(card) {
         var el = document.createElement('div');
@@ -303,6 +324,7 @@
         renderDeckCard: renderDeckCard,
         downloadNode: downloadNode,
         downloadAll: downloadAll,
+        downloadCardData: downloadCardData,
         ensureImagesLoaded: ensureImagesLoaded,
         captureNode: captureNode,
         init: initDelegation
