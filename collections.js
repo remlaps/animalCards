@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const baseName = 'animalCards-' + lastAccount + '-' + slugify(label);
         const orig = btn.textContent;
         btn.disabled = true;
-        CardExport.downloadCardData(owned, baseName, function (done, total) {
+        CardExport.downloadEarnedCards(owned, baseName, function (done, total) {
             btn.textContent = 'Preparing ' + done + '/' + total + '...';
         }).catch(function (err) {
             console.error('animalCards export failed:', err);
@@ -234,6 +234,17 @@ const tickingProcessBlock = async (blockNum) => {
                 }
             }
 
+            // Per-card earned info (owner + serials) for the collections download.
+            const earnedByCardId = new Map();
+            for (const m of wonCards) {
+                if (m.status === 'released' && m.card) {
+                    if (!earnedByCardId.has(m.card.card_id)) {
+                        earnedByCardId.set(m.card.card_id, { card: m.card, account: m.account, serials: [], timestamp: m.timestamp, trx_id: m.trx_id });
+                    }
+                    earnedByCardId.get(m.card.card_id).serials.push(m.serial);
+                }
+            }
+
             // --- Streak calculation ---
             const winDays = new Set();
             for (const m of wonCards) {
@@ -293,7 +304,7 @@ const tickingProcessBlock = async (blockNum) => {
             // --- Render collection cards ---
             function renderCollectionCard(label, totalCards, ownedIds, allCardsInSet, fillClass) {
                 const owned = allCardsInSet.filter(c => ownedIds.has(c.card_id));
-                collOwnedMap[label] = owned;
+                collOwnedMap[label] = owned.map(function (c) { return earnedByCardId.get(c.card_id); }).filter(Boolean);
                 const missing = allCardsInSet.filter(c => !ownedIds.has(c.card_id));
                 const pct = totalCards > 0 ? Math.round(owned.length / totalCards * 100) : 0;
 

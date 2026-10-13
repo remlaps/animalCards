@@ -229,16 +229,66 @@
             .then(function () { return zip.generateAsync({ type: 'blob', compression: 'DEFLATE' }); })
             .then(function (blob) { downloadBlob(blob, baseName + '.zip'); });
     }
-    // Render an array of raw card-config objects as catalogue cards in a hidden
-    // container (so their images can load), then download them as a single ZIP.
-    // Used by the Collections page, which has card data but not rendered cards.
-    function downloadCardData(cards, baseName, onProgress) {
-        if (!cards || !cards.length) return Promise.resolve();
+    // Build an earned card (photo + owner + serial/quantity) from a resolved entry:
+    // { card, account, serials, timestamp, trx_id }. Mirrors the portfolio search cards.
+    function renderEarnedCard(entry) {
+        var card = entry.card || {};
+        var account = entry.account || '';
+        var serials = entry.serials || [];
+        var count = serials.length;
+
+        var el = document.createElement('div');
+        el.className = 'tribute-card';
+        el.setAttribute('data-rarity', card.rarity || '');
+        el.setAttribute('data-export-filename',
+            ['animalcard', account, card.class, card.species].map(slug).filter(Boolean).join('-') + '.png');
+
+        var species = escapeHtml(card.species || 'Card');
+        var initial = (String(card.species || '?').charAt(0) || '?').toUpperCase();
+        var imgTag = card.image_url
+            ? '<img data-src="' + escapeHtml(card.image_url) + '" alt="' + species +
+              '" class="card-image" decoding="async" referrerpolicy="no-referrer">'
+            : '';
+        var badge = count > 1 ? '<span class="card-count-badge">&times;' + count + '</span>' : '';
+        var classLine = escapeHtml(card.class || '') + (card.rarity ? ' • ' + escapeHtml(card.rarity) : '');
+        var attribution = 'Winner: @' + escapeHtml(account) + ' • Generation: ' + escapeHtml(card.generation || '-') + ' • Photo by ' + escapeHtml(card.photo_credit || '-');
+        var metaLeft = count > 1
+            ? '<span style="font-size:0.75rem;">Quantity: <strong style="color:var(--text-primary);">' + count + '</strong></span>'
+            : '<span style="font-size:0.75rem;">Serial: <strong style="color:var(--text-primary);">' + escapeHtml(serials[0] || '') + '</strong></span>';
+
+        el.innerHTML =
+            '<div class="card-image-container">' +
+                '<span class="card-image-fallback" aria-hidden="true">' + initial + '</span>' +
+                '<div class="card-image-status">' +
+                    '<span class="card-image-spinner" aria-hidden="true"></span>' +
+                    '<span class="card-image-status-text">Loading...</span>' +
+                '</div>' +
+                '<div class="card-image-progress" aria-hidden="true"><div class="card-image-progress-bar"></div></div>' +
+                imgTag + badge +
+            '</div>' +
+            '<div class="card-content">' +
+                '<div class="card-class">' + classLine + '</div>' +
+                '<h3 class="card-species">' + species + '</h3>' +
+                (card.is_generic ? '<p style="color: var(--text-secondary); font-size: 0.8rem; font-style: italic; margin-top: 0.25rem;">Generic placeholder</p>' : '') +
+                '<p class="card-attribution">' + attribution + '</p>' +
+                '<div class="card-meta">' +
+                    metaLeft +
+                    '<span class="verify-badge">Verified</span>' +
+                '</div>' +
+            '</div>';
+        return el;
+    }
+
+    // Render earned-card entries into a fixed-width offscreen container (so their
+    // images load and lay out correctly), then download them as a single ZIP.
+    function downloadEarnedCards(entries, baseName, onProgress) {
+        if (!entries || !entries.length) return Promise.resolve();
         var container = document.createElement('div');
         container.style.position = 'fixed';
         container.style.left = '-100000px';
         container.style.top = '0';
-        cards.forEach(function (card) { container.appendChild(renderDeckCard(card)); });
+        container.style.width = '300px';
+        entries.forEach(function (entry) { container.appendChild(renderEarnedCard(entry)); });
         document.body.appendChild(container);
 
         function cleanup() {
@@ -322,9 +372,10 @@
         earnedFilename: earnedFilename,
         downloadButton: downloadButton,
         renderDeckCard: renderDeckCard,
+        renderEarnedCard: renderEarnedCard,
         downloadNode: downloadNode,
         downloadAll: downloadAll,
-        downloadCardData: downloadCardData,
+        downloadEarnedCards: downloadEarnedCards,
         ensureImagesLoaded: ensureImagesLoaded,
         captureNode: captureNode,
         init: initDelegation
