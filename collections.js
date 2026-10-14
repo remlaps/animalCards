@@ -25,6 +25,10 @@ async function mapWithConcurrency(items, concurrency, fn) {
     await Promise.all(Array.from({ length: n }, () => worker()));
     return results;
 }
+function slugify(str) {
+    return String(str == null ? '' : str).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     const form = document.getElementById('collections-form');
     const accountInput = document.getElementById('account-input');
@@ -41,6 +45,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     const deckContainer = document.getElementById('deck-collection');
 
     renderDifficultyDashboard();
+
+    let lastAccount = '';
+    let collOwnedMap = {};
+
+    function onCollectionDownload(btn) {
+        const label = btn.getAttribute('data-coll-label');
+        const owned = collOwnedMap[label] || [];
+        if (!owned.length) return;
+        const baseName = 'animalCards-' + lastAccount + '-' + slugify(label);
+        const orig = btn.textContent;
+        btn.disabled = true;
+        CardExport.downloadEarnedCards(owned, baseName, function (done, total) {
+            btn.textContent = 'Preparing ' + done + '/' + total + '...';
+        }).catch(function (err) {
+            console.error('animalCards export failed:', err);
+            if (typeof alert === 'function') alert('Export failed: ' + ((err && err.message) || err));
+        }).then(function () {
+            btn.disabled = false;
+            btn.textContent = orig;
+        });
+    }
+
+    [rarityContainer, classContainer, deckContainer].forEach(function (container) {
+        container.addEventListener('click', function (e) {
+            const btn = e.target && e.target.closest ? e.target.closest('[data-coll-download]') : null;
+            if (!btn) return;
+            onCollectionDownload(btn);
+        });
+    });
 
     // --- Build the "current deck" from cards-config.json ---
     function buildDeck(cards) {
@@ -73,6 +106,7 @@ form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const account = accountInput.value.trim().toLowerCase();
         if (!account) return;
+        lastAccount = account;
 
         loading.style.display = 'flex';
         content.style.display = 'none';
@@ -200,6 +234,17 @@ const tickingProcessBlock = async (blockNum) => {
                 }
             }
 
+            // Per-card earned info (owner + serials) for the collections download.
+            const earnedByCardId = new Map();
+            for (const m of wonCards) {
+                if (m.status === 'released' && m.card) {
+                    if (!earnedByCardId.has(m.card.card_id)) {
+                        earnedByCardId.set(m.card.card_id, { card: m.card, account: m.account, serials: [], timestamp: m.timestamp, trx_id: m.trx_id });
+                    }
+                    earnedByCardId.get(m.card.card_id).serials.push(m.serial);
+                }
+            }
+
             // --- Streak calculation ---
             const winDays = new Set();
             for (const m of wonCards) {
@@ -259,6 +304,7 @@ const tickingProcessBlock = async (blockNum) => {
             // --- Render collection cards ---
             function renderCollectionCard(label, totalCards, ownedIds, allCardsInSet, fillClass) {
                 const owned = allCardsInSet.filter(c => ownedIds.has(c.card_id));
+                collOwnedMap[label] = owned.map(function (c) { return earnedByCardId.get(c.card_id); }).filter(Boolean);
                 const missing = allCardsInSet.filter(c => !ownedIds.has(c.card_id));
                 const pct = totalCards > 0 ? Math.round(owned.length / totalCards * 100) : 0;
 
@@ -279,11 +325,16 @@ const tickingProcessBlock = async (blockNum) => {
 
                 return '<div class="coll-card">' +
                     '<div class="coll-card-header"><span>' + label + '</span>' +
-                    '<span style="font-size:0.9rem;">' + owned.length + ' / ' + totalCards + '</span></div>' +
+                    '<span style="display:inline-flex;align-items:center;gap:0.6rem;">' +
+                    '<span style="font-size:0.9rem;">' + owned.length + ' / ' + totalCards + '</span>' +
+                    (owned.length > 0 ? '<button type="button" class="card-download-btn" data-coll-download data-coll-label="' + label + '">Download (' + owned.length + ')</button>' : '') +
+                    '</span></div>' +
                     '<div class="coll-card-sub">' + pct + '% complete</div>' +
                     '<div class="coll-progress-bar-bg"><div class="coll-progress-bar-fill ' + fillClass + '" style="width:' + pct + '%;"></div></div>' +
                     toggleHtml + '</div>';
             }
+
+            collOwnedMap = {};
 
             // --- Entire Deck collection ---
             const allDeckCards = [];

@@ -86,25 +86,79 @@
                 if (window.CardImages && window.CardImages.load) window.CardImages.load(img);
                 else if (window.__cardImgLazyLoad) window.__cardImgLazyLoad(img);
             }
-            return new Promise(function (resolve) {
-                if (img.dataset.state === 'loaded' || (img.complete && img.naturalWidth > 0)) {
-                    resolve();
-                    return;
-                }
-                var settled = false;
-                var finish = function () {
-                    if (settled) return;
-                    settled = true;
-                    img.removeEventListener('load', finish);
-                    img.removeEventListener('error', finish);
-                    resolve();
-                };
-                img.addEventListener('load', finish);
-                img.addEventListener('error', finish);
-                setTimeout(finish, 10000); // never hang forever on a stalled image
-            });
+            return waitForImage(img);
         });
         return Promise.all(jobs);
+    }
+
+    // Wait until img is fully loaded (or has definitively failed), then bake it
+    // into a data URL. Polls rather than using a fixed timeout so the shared
+    // loader's own retry loop (exponential backoff up to 30s per attempt) gets
+    // every chance to finish: a slow/hotlinked photo is never captured early.
+    // The only give-up is a definitive failure (HTTP 404/410, which sets
+    // dataset.state to 'error'); there is intentionally no time cap.
+    function waitForImage(img) {
+        return new Promise(function (resolve) {
+            var finalize = function () {
+                if (window.console) {
+                    var s = img.currentSrc || img.src || img.getAttribute('src') || '';
+                    if (img.dataset.state === 'error') console.warn('[animalCards-export] image failed (404/410):', String(s).slice(0, 60));
+                    else console.log('[animalCards-export] image loaded:', String(s).slice(0, 60));
+                }
+                dataURLify(img).then(resolve, resolve);
+            };
+            var isLoaded = function () {
+                return img.dataset.state === 'loaded' || (img.complete && img.naturalWidth > 0);
+            };
+            var isFailed = function () { return img.dataset.state === 'error'; };
+            var tick = function () {
+                if (isLoaded() || isFailed()) { finalize(); return; }
+                setTimeout(tick, 200);
+            };
+            tick();
+        });
+    }
+
+    // Draw a loaded image to a canvas and swap its src for an inline data URL so
+    // html-to-image doesn't have to re-fetch the source (a blob:/remote URL that
+    // can be slow, blocked, or revoked). Resolves regardless of outcome; on a
+    // tainted canvas it leaves the original src in place.
+    function dataURLify(img) {
+        return new Promise(function (resolve) {
+            var src = img.currentSrc || img.src || img.getAttribute('src') || '';
+            if (!src || src.indexOf('data:') === 0) { resolve(); return; }
+            var w = img.naturalWidth, h = img.naturalHeight;
+            if (!w || !h) { resolve(); return; }
+            var draw = function () {
+                try {
+                    var MAX = 1200;
+                    var scale = Math.min(1, MAX / Math.max(w, h));
+                    var canvas = document.createElement('canvas');
+                    canvas.width = Math.max(1, Math.round(w * scale));
+                    canvas.height = Math.max(1, Math.round(h * scale));
+                    var ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    img.src = canvas.toDataURL('image/png');
+                    img.classList.add('loaded');
+                    img.style.transition = 'none';
+                    img.style.opacity = '1';
+                    resolve();
+                } catch (e) {
+                    resolve();
+                }
+            };
+            // Make sure the frame is fully decoded before drawing, so a still-
+            // decoding image is never painted partially. If the bytes cannot be
+            // decoded at all (corrupt/truncated), flag it and drop the source so
+            // the export falls back to the placeholder instead of a broken image.
+            var onUndecodable = function () {
+                img.dataset.state = 'error';
+                try { img.removeAttribute('src'); } catch (e) {}
+                resolve();
+            };
+            if (typeof img.decode === 'function') img.decode().then(draw, onUndecodable);
+            else draw();
+        });
     }
 
     // Rarity → border colour + glow (kept in sync with style.css). Used to make
@@ -144,6 +198,21 @@
         clone.style.boxShadow = rs.glow ? (EXPORT_GLOW + rs.glow) : 'none';
         Array.prototype.slice.call(clone.querySelectorAll('.card-image')).forEach(function (img) {
             img.style.transform = 'none';
+            img.style.transition = 'none';
+            img.style.opacity = '1';
+            // Drop images that never loaded (slow/failed) so html-to-image does not
+            // try to embed an empty source and produce a corrupt PNG.
+            var src = img.getAttribute('src') || img.currentSrc || '';
+            if ((!src || img.dataset.state === 'error') && img.parentNode) {
+                img.parentNode.removeChild(img);
+                if (window.console) console.warn('[animalCards-export] dropped unusable image');
+            } else if (window.console) {
+                console.log('[animalCards-export] image src:', String(src).slice(0, 60));
+            }
+        });
+        // The loading spinner / progress overlay should never appear in the export.
+        Array.prototype.slice.call(clone.querySelectorAll('.card-image-status, .card-image-progress')).forEach(function (el) {
+            if (el.parentNode) el.parentNode.removeChild(el);
         });
 
         // Padded wrapper: gives the glow room so it isn't clipped by the SVG bounds.
@@ -229,6 +298,77 @@
             .then(function () { return zip.generateAsync({ type: 'blob', compression: 'DEFLATE' }); })
             .then(function (blob) { downloadBlob(blob, baseName + '.zip'); });
     }
+    // Build an earned card (photo + owner + serial/quantity) from a resolved entry:
+    // { card, account, serials, timestamp, trx_id }. Mirrors the portfolio search cards.
+    function renderEarnedCard(entry) {
+        var card = entry.card || {};
+        var account = entry.account || '';
+        var serials = entry.serials || [];
+        var count = serials.length;
+
+        var el = document.createElement('div');
+        el.className = 'tribute-card';
+        el.setAttribute('data-rarity', card.rarity || '');
+        el.setAttribute('data-export-filename',
+            ['animalcard', account, card.class, card.species].map(slug).filter(Boolean).join('-') + '.png');
+
+        var species = escapeHtml(card.species || 'Card');
+        var initial = (String(card.species || '?').charAt(0) || '?').toUpperCase();
+        var imgTag = card.image_url
+            ? '<img data-src="' + escapeHtml(card.image_url) + '" alt="' + species +
+              '" class="card-image" decoding="async" referrerpolicy="no-referrer">'
+            : '';
+        var badge = count > 1 ? '<span class="card-count-badge">&times;' + count + '</span>' : '';
+        var classLine = escapeHtml(card.class || '') + (card.rarity ? ' • ' + escapeHtml(card.rarity) : '');
+        var attribution = 'Winner: @' + escapeHtml(account) + ' • Generation: ' + escapeHtml(card.generation || '-') + ' • Photo by ' + escapeHtml(card.photo_credit || '-');
+        var metaLeft = count > 1
+            ? '<span style="font-size:0.75rem;">Quantity: <strong style="color:var(--text-primary);">' + count + '</strong></span>'
+            : '<span style="font-size:0.75rem;">Serial: <strong style="color:var(--text-primary);">' + escapeHtml(serials[0] || '') + '</strong></span>';
+
+        el.innerHTML =
+            '<div class="card-image-container">' +
+                '<span class="card-image-fallback" aria-hidden="true">' + initial + '</span>' +
+                '<div class="card-image-status">' +
+                    '<span class="card-image-spinner" aria-hidden="true"></span>' +
+                    '<span class="card-image-status-text">Loading...</span>' +
+                '</div>' +
+                '<div class="card-image-progress" aria-hidden="true"><div class="card-image-progress-bar"></div></div>' +
+                imgTag + badge +
+            '</div>' +
+            '<div class="card-content">' +
+                '<div class="card-class">' + classLine + '</div>' +
+                '<h3 class="card-species">' + species + '</h3>' +
+                (card.is_generic ? '<p style="color: var(--text-secondary); font-size: 0.8rem; font-style: italic; margin-top: 0.25rem;">Generic placeholder</p>' : '') +
+                '<p class="card-attribution">' + attribution + '</p>' +
+                '<div class="card-meta">' +
+                    metaLeft +
+                    '<span class="verify-badge">Verified</span>' +
+                '</div>' +
+            '</div>';
+        return el;
+    }
+
+    // Render earned-card entries into a fixed-width offscreen container (so their
+    // images load and lay out correctly), then download them as a single ZIP.
+    function downloadEarnedCards(entries, baseName, onProgress) {
+        if (!entries || !entries.length) return Promise.resolve();
+        var container = document.createElement('div');
+        container.style.position = 'fixed';
+        container.style.left = '-100000px';
+        container.style.top = '0';
+        container.style.width = '300px';
+        entries.forEach(function (entry) { container.appendChild(renderEarnedCard(entry)); });
+        document.body.appendChild(container);
+
+        function cleanup() {
+            if (container.parentNode) container.parentNode.removeChild(container);
+        }
+
+        return downloadAll(container.querySelectorAll('.tribute-card'), baseName, onProgress)
+            .then(function () { cleanup(); })
+            .catch(function (err) { cleanup(); throw err; });
+    }
+
     // Build a catalogue card element (deck/gallery) from a raw cards-config entry.
     function renderDeckCard(card) {
         var el = document.createElement('div');
@@ -301,8 +441,10 @@
         earnedFilename: earnedFilename,
         downloadButton: downloadButton,
         renderDeckCard: renderDeckCard,
+        renderEarnedCard: renderEarnedCard,
         downloadNode: downloadNode,
         downloadAll: downloadAll,
+        downloadEarnedCards: downloadEarnedCards,
         ensureImagesLoaded: ensureImagesLoaded,
         captureNode: captureNode,
         init: initDelegation
