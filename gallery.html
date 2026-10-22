@@ -45,6 +45,10 @@
         </div>
         <div class="gallery-toolbar">
             <button type="button" id="download-all" class="btn btn-primary">Download all (ZIP)</button>
+            <label class="store-images-toggle" title="Keep card images in your browser and load them from there first">
+                <input type="checkbox" data-store-images-toggle checked>
+                Store card images locally
+            </label>
             <span id="gallery-count" class="gallery-count"></span>
         </div>
         <div class="cards-grid" id="gallery-grid">
@@ -92,6 +96,19 @@
             }
         }).mount('#vaas-mount');
 
+        // Build the "please support the photographer" tooltip text from the beneficiaries
+        // map (loaded from cards-config.json into api.beneficiaries).
+        function beneficiaryTip(api, rarity) {
+            const beneficiaries = (api && api.beneficiaries) || {};
+            const pct = beneficiaries[rarity] || 1;
+            const parts = [];
+            for (const [name, percent] of Object.entries(beneficiaries)) {
+                parts.push(`${percent}% for ${name.toLowerCase()} species`);
+            }
+            const list = parts.join(', ');
+            return `If you blog about this card, please consider setting a beneficiary for the photographer: ${list}. (This card: ${rarity || 'Unknown'} — ${pct}%)`;
+        }
+
         (function () {
             var RARITY_RANK = { Common: 0, Rare: 1, Epic: 2, Legendary: 3, Mythic: 4 };
 
@@ -114,7 +131,10 @@
 
                     grid.innerHTML = '';
                     cards.forEach(function (card) {
-                        grid.appendChild(CardExport.renderDeckCard(card));
+                        var el = CardExport.renderDeckCard(card);
+                        var attribution = el.querySelector('.card-attribution');
+                        if (attribution) attribution.title = beneficiaryTip(api, card.rarity);
+                        grid.appendChild(el);
                     });
                     document.getElementById('gallery-count').textContent = cards.length + ' cards';
                     if (window.__cardImgInit) window.__cardImgInit(grid);

@@ -13,7 +13,8 @@
     "Mythic": 16
   },
 "slot_layouts": [
-    { "block": 0, "Common": 8, "Rare": 3, "Epic": 2, "Legendary": 2, "Mythic": 1 }
+    { "block": 0, "Common": 8, "Rare": 3, "Epic": 2, "Legendary": 2, "Mythic": 1 },
+    { "block": 110611473 , "Common": 12, "Rare": 5, "Epic": 4, "Legendary": 3, "Mythic": 2 }
   ],
   "rarity_difficulty": {
     "enabled_block": 108954600,
@@ -715,6 +716,50 @@
       "image_url": "https://i.postimg.cc/yYKfqSb5/Manu-Poison-Frog.png",
       "generation": "unstable-test",
       "photo_credit": "CC0 iNaturalist (#120896894)"
+    },
+    {
+      "card_id": 71,
+      "species": "Harpy Eagle",
+      "class": "Bird",
+      "rarity": "Mythic",
+      "slot": 1,
+      "image_url": "https://i.postimg.cc/bw4bvdXc/Harpy-Eagle.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#83817359)",
+      "starting_block": 110611473
+    },
+    {
+      "card_id": 72,
+      "species": "Northern Bald Ibis",
+      "class": "Bird",
+      "rarity": "Mythic",
+      "slot": 2,
+      "image_url": "https://i.postimg.cc/x1sQGbf4/Northern-Bald-Ibis.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#67298343)",
+      "starting_block": 110611473
+    },
+    {
+      "card_id": 73,
+      "species": "Grizzly Bear",
+      "class": "Mammal",
+      "rarity": "Rare",
+      "slot": 3,
+      "image_url": "https://i.postimg.cc/tR1qNsbs/Grizzly_Bear.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#377524389)",
+      "starting_block": 110611473
+    },
+    {
+      "card_id": 74,
+      "species": "Giant Panda",
+      "class": "Mammal",
+      "rarity": "Mythic",
+      "slot": 4,
+      "image_url": "https://i.postimg.cc/Kjs3Vwzn/Giant-Panda.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#199176824)",
+      "starting_block": 110611473
     }
   ]
 }
