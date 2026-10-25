@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard - animalCards</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=16">
+    <link rel="stylesheet" href="vaas.css?v=2">
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <header class="glass-header">
+        <div class="container header-container">
+            <a href="index.html" class="logo">animal<span>Cards</span></a>
+            <nav class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="leaderboard.html" class="active">Leaderboard</a>
+                <a href="search.html">Portfolio Search</a>
+                <a href="collections.html">Collections</a>
+                <a href="deck.html">Card Deck</a>
+                <a href="gallery.html">Gallery</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="page-layout">
+            <aside id="difficulty-dashboard" class="difficulty-dashboard difficulty-sidebar">
+                <!-- Populated via JS -->
+            </aside>
+            <div class="page-content">
+        <div class="page-header">
+            <h2 class="page-title">animalCards Leaderboard</h2>
+            <div class="controls-section">
+                <label for="time-filter">Timeframe:</label>
+                <select id="time-filter" class="time-select">
+                    <option value="3600000">Past 1 Hour</option>
+                    <option value="86400000">Past 1 Day</option>
+                    <option value="604800000">Past 7 Days</option>
+                    <option value="2592000000">Past 30 Days</option>
+                    <option value="7776000000">Past 90 Days</option>
+                    <option value="31536000000">Past 1 Year</option>
+                </select>
+
+                <label class="store-images-toggle" title="Keep card images in your browser and load them from there first">
+                    <input type="checkbox" data-store-images-toggle checked>
+                    Store card images locally
+                </label>
+            </div>
+        </div>
+
+        <div id="loading" class="loader-container">
+            <div class="spinner"></div>
+            <p id="loading-status">Scanning blockchain for recent burns...</p>
+            <p id="loading-error" class="status-message" style="color: #ef4444; display: none;"></p>
+        </div>
+
+        <div id="leaderboard-content" style="display: none;">
+            <h3 style="margin-bottom: 1.5rem; font-family: 'Outfit';">Current Streaks — Top 10</h3>
+<div id="streaks-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem; margin-bottom: 2rem;">
+    <!-- Populated via JS -->
+</div><h3 style="margin-bottom: 1.5rem; font-family: 'Outfit';">Summary Table — Top 10</h3>
+<div class="leaderboard-table-container">
+                <table class="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th data-sort="account" class="sortable">Account</th>
+                            <th data-sort="titles" class="sortable">Titles Won</th>
+                            <th data-sort="weighted" class="sortable sort-active">Weighted</th>
+                            <th data-sort="steem" class="sortable">Total STEEM</th>
+                            <th data-sort="sbd" class="sortable">Total SBD</th>
+                            <th data-sort="cards" class="sortable">Cards Won</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body">
+                        <!-- Populated via JS -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <h3 style="margin-bottom: 1.5rem; font-family: 'Outfit';">Card Winners — Top 10</h3>
+            <div id="recent-cards-grid">
+                <!-- Populated via JS -->
+            </div>
+        </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="vaas-footer">
+        <div class="container">
+            <div id="vaas-mount"></div>
+        </div>
+    </footer>
+
+    <footer class="site-footer">
+        <div class="container footer-container">
+            <span>animalCards</span>
+            <span>•</span>
+            <a href="https://github.com/remlaps/animalCards" target="_blank" rel="noopener noreferrer">
+                <svg class="footer-github-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.5-.3-5.1-1.2-5.1-5.5 0-1.2.4-2.2 1.1-3-.1-.3-.5-1.4.1-2.9 0 0 .9-.3 3 1.1a10 10 0 0 1 5.5 0c2.1-1.4 3-1.1 3-1.1.6 1.5.2 2.6.1 2.9.7.8 1.1 1.8 1.1 3 0 4.3-2.6 5.2-5.1 5.5.4.3.8 1 .8 2.1v3c0 .3.2.7.8.6A11.5 11.5 0 0 0 23.5 12C23.5 5.7 18.3.5 12 .5z"/>
+                </svg>
+                GitHub
+            </a>
+    <script src="header.js?v=1"></script>
+    <script src="card-resolver.js?v=1"></script>
+<script src="difficulty.js?v=6"></script>
+    <script src="blockchain-api.js?v=39"></script>
+    <script src="vendor/html-to-image.js?v=1"></script>
+    <script src="card-export.js?v=10"></script>
+    <script src="leaderboard.js?v=20"></script>
+    <script src="vaas.js?v=6"></script>
+    <script>
+        // Drop-in VAAS widget — adopts animalCards' glass design tokens.
+        // scope: 'origin' shares one widget state across all animalCards pages
+        // so the ticker stays consistent when navigating between them.
+        VAAS.init({
+            scope: 'origin',
+            theme: {
+                cardBg: 'var(--glass-bg)',
+                muted: 'var(--text-secondary)',
+                border: 'var(--glass-border)'
+            }
+        }).mount('#vaas-mount');
+    </script>
+</body>
+</html>
