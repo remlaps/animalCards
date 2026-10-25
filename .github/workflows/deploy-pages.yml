@@ -20,7 +20,7 @@ on:
   push:
     branches:
       - master
-      - new-cards-for-2026Q4-111812273
+      - new-cards-for-2026Q4
       # - 'new-cards-*'      # uncomment to preview every new-cards branch
   workflow_dispatch:
 
@@ -33,6 +33,8 @@ concurrency:
 
 jobs:
   deploy:
+    # Ignore branch-deletion pushes (no commit to check out).
+    if: ${{ !github.event.deleted }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
