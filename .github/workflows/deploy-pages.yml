@@ -1,0 +1,78 @@
+# Deploy the animalCards static site to GitHub Pages.
+#
+#   master              -> https://remlaps.github.io/animalCards/             (production)
+#   <listed branch>     -> https://remlaps.github.io/animalCards/<branch>/    (preview)
+#
+# A preview is a full copy of that branch (including its own cards-config.json),
+# so it resolves cards with the branch's test configuration while production keeps
+# serving master.
+#
+# One-time setup (repo -> Settings -> Pages):
+#   Source = "Deploy from a branch", Branch = "gh-pages", Folder = "/ (root)"
+#   Run the master deploy at least once BEFORE that switch, so the root of
+#   gh-pages is populated and production keeps working without interruption.
+#
+# To preview another branch, add its name under on.push.branches below.
+
+name: Deploy Pages
+
+on:
+  push:
+    branches:
+      - master
+      - new-cards-for-2026Q4-111812273
+      # - 'new-cards-*'      # uncomment to preview every new-cards branch
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: deploy-pages        # master + previews all push to the same gh-pages branch
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Stage only the runtime site files (no dev tooling or scratch data).
+      - name: Stage site files
+        run: |
+          mkdir -p _site
+          rsync -a \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude '.gitignore' \
+            --exclude '.clinerules' \
+            --exclude 'README.md' \
+            --exclude 'validate-cards.js' \
+            --exclude 'resolve-card.js' \
+            --exclude 'test-cards.js' \
+            --exclude 'test-snapshots.json' \
+            --exclude 't1.json' \
+            --exclude 't2.json' \
+            --exclude 'chain_api_test.txt' \
+            --exclude 'render_block.txt' \
+            ./ _site/
+
+      - name: Deploy master to site root
+        if: github.ref_name == 'master'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_site
+          publish_branch: gh-pages
+          keep_files: true     # keep the preview subfolders
+
+      - name: Deploy branch to preview subfolder
+        if: github.ref_name != 'master'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_site
+          publish_branch: gh-pages
+          destination_dir: ${{ github.ref_name }}
+          keep_files: true     # keep the root and the other previews
