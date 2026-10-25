@@ -82,7 +82,6 @@ function loadConfig() { return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
 
 function loadSnapshots() { return JSON.parse(fs.readFileSync(SNAPSHOT_PATH, 'utf8')); }
 
-var RARITY_SLOT_COUNTS = { Common: 16, Rare: 8, Epic: 4, Legendary: 2, Mythic: 1 };
 // ---------------------------------------------------------------------------
 // 1) Structural integrity
 // ---------------------------------------------------------------------------
