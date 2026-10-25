@@ -64,7 +64,7 @@ is hashed with the block hash to produce a deterministic integer. The algorithm 
    > ⚠️ **Test placeholder — do not merge as-is.** Block `110611473` is a temporary
    > value used while developing the 2026Q4 generation. Before merging into
    > `master`, replace it with the real activation block **both** in the 2026Q4
-   > `slot_layouts` entry's `block` and in the `starting_block` of every 2026Q4
+   > `slot_layouts` entry's `block` and in the `start_block` of every 2026Q4
    > card (`#71`–`#84`). Because the site resolves every block with the *current*
    > config, shipping a placeholder block remaps what past blocks resolve to.
 
@@ -281,7 +281,7 @@ other slots, so unrelated past winners are undisturbed.
 
 ### Current batch: 2026Q4 (cards #71–#84)
 
-Every card in this batch carries `starting_block: 110611473` — the **test placeholder**
+Every card in this batch carries `start_block: 110611473` — the **test placeholder**
 flagged above — and uses the 2026Q4 layout (28 slots). Slots are per-rarity and shared
 across classes, so two classes may occupy the same slot number.
 
@@ -296,7 +296,7 @@ across classes, so two classes may occupy the same slot number.
 The 2026Q4 layout raised Legendary from 3 to 4 slots and Mythic from 2 to 3 slots so
 that Legendary slot 3 and Mythic slot 2 became addressable; Common (12), Rare (5), and
 Epic (4) already had room. Update the placeholder block in the `slot_layouts` entry
-**and** in every card's `starting_block` together — they must stay in sync.
+**and** in every card's `start_block` together — they must stay in sync.
 
 ### Adding a new species (fills an empty slot)
 
