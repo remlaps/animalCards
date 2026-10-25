@@ -200,9 +200,13 @@
         const generic = classCards.find(c => c.is_generic);
 
         // Step 2 — Fixed slot-based rarity selection per class, weighted.
-        // Common: 16, Rare: 8, Epic: 4, Legendary: 2, Mythic: 1 (slot counts).
-        // Each slot is then weighted by its rarity multiplier (16/8/4/2/1).
-        // Total weight = 16*16 + 8*8 + 4*4 + 2*2 + 1*1 = 341.
+        // Slot counts come from the block's active slot_layouts entry (slotCounts,
+        // chosen in Step 0) — e.g. 8/3/2/2/1 at block 0, 12/5/4/4/3 for 2026Q4.
+        // Each slot is then weighted by its rarity multiplier
+        // (Common 16, Rare 8, Epic 4, Legendary 2, Mythic 1), so
+        // totalWeight = Σ (slotCounts[r] * RARITY_WEIGHT[r]) — 165 for the block-0
+        // layout, 259 for the 2026Q4 layout. Both totals are derived from config;
+        // nothing below is hard-coded to a particular generation.
         const rarityOrder = Object.keys(slotCounts);
         const rarityRanges = {};
         const slotWeights = []; // one entry (the rarity multiplier) per slot
@@ -218,7 +222,7 @@
             totalSlots += count;
             totalWeight += count * RARITY_WEIGHT[r];
         }
-        // Weighted pick over the 31 slots.
+        // Weighted pick over every slot in the active layout (slotWeights.length).
         const pickWeight = Number(hashInt % BigInt(totalWeight));
         let slotPick = null;
         let acc = 0;

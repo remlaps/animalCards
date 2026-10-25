@@ -50,22 +50,32 @@ is hashed with the block hash to produce a deterministic integer. The algorithm 
 
 1. **Picks a class** from `class_weights` (must sum to 100).
 2. **Picks a rarity slot from a fixed pool** shared by every class. The slot counts
-   come from `slot_layouts` in `cards-config.json` (currently):
-   | Rarity | Slots (current `slot_layouts`) |
-   |--------|-------|
-   | Common | 8 |
-   | Rare | 3 |
-   | Epic | 2 |
-   | Legendary | 2 |
-   | Mythic | 1 |
-   | **Total** | **16** |
+   come from `slot_layouts` in `cards-config.json`. The entry with the highest
+   `block` that is ≤ the winning block applies, so layouts are **append-only**:
+   | Rarity | Slots @ block 0 | Slots @ 2026Q4 (block 110611473) |
+   |--------|-----------------|----------------------------------|
+   | Common | 8 | 12 |
+   | Rare | 3 | 5 |
+   | Epic | 2 | 4 |
+   | Legendary | 2 | 4 |
+   | Mythic | 1 | 3 |
+   | **Total** | **16** | **28** |
+
+   > ⚠️ **Test placeholder — do not merge as-is.** Block `110611473` is a temporary
+   > value used while developing the 2026Q4 generation. Before merging into
+   > `master`, replace it with the real activation block **both** in the 2026Q4
+   > `slot_layouts` entry's `block` and in the `starting_block` of every 2026Q4
+   > card (`#71`–`#84`). Because the site resolves every block with the *current*
+   > config, shipping a placeholder block remaps what past blocks resolve to.
 
    Each slot is then **weighted by its rarity's multiplier** (`Common` 16,
    `Rare` 8, `Epic` 4, `Legendary` 2, `Mythic` 1). A Common slot is chosen 16×
    as often as a Mythic slot and 2× as often as a Rare slot. Total weight =
-   8·16 + 3·8 + 2·4 + 2·2 + 1·1 = **165**. This is the **second dimension of
-   scarcity**: more species exist at lower rarities (the slot counts), *and*
-   lower-rarity slots are more likely to be chosen (the weighting).
+   8·16 + 3·8 + 2·4 + 2·2 + 1·1 = **165** for the block-0 layout, and
+   12·16 + 5·8 + 4·4 + 4·2 + 3·1 = **259** for the 2026Q4 layout. This is the
+   **second dimension of scarcity**: more species exist at lower rarities (the
+   slot counts), *and* lower-rarity slots are more likely to be chosen (the
+   weighting).
 
 3. **Picks the card** that fills the chosen slot at the winning block. Each card
    declares the rarity slot it occupies (`slot`) and the block window during which it
@@ -208,7 +218,7 @@ backward, so very old blocks may be slow.
       "species": "Turkey Vulture",
       "class": "Bird",
       "rarity": "Common",    // Common | Rare | Epic | Legendary | Mythic | Generic
-      "slot": 0,             // 0-based index within this rarity's slot band (0..7 Common)
+      "slot": 0,             // 0-based index within this rarity's slot band (0..11 Common in 2026Q4)
       "start_block": null,   // inclusive; null = active from the beginning
       "end_block": null,     // inclusive; null = active forever
       "image_url": "https://...png",
@@ -233,7 +243,7 @@ this one map — no code changes needed.
 | `species` | ✅ | Display name. |
 | `class` | ✅ | Must match one of the keys in `class_weights`. |
 | `rarity` | ✅ | One of `Common`, `Rare`, `Epic`, `Legendary`, `Mythic`, or `Generic`. |
-| `slot` | ✅ (non-generic) | 0-based index within the rarity's slot band (Common 0–7, Rare 0–2, Epic 0–1, Legendary 0–1, Mythic 0). The **stable identity** a card occupies. |
+| `slot` | ✅ (non-generic) | 0-based index within the rarity's slot band, where the band width comes from the active generation's `slot_layouts` entry (block 0: Common 0–7, Rare 0–2, Epic 0–1, Legendary 0–1, Mythic 0; 2026Q4: Common 0–11, Rare 0–4, Epic 0–3, Legendary 0–3, Mythic 0–2). The **stable identity** a card occupies. |
 | `start_block` | ⬜ | First awardable block (inclusive). Omit/null = active from the beginning. |
 | `end_block` | ⬜ | Last awardable block (inclusive). Omit/null = active forever. |
 | `image_url` | ✅ | Card image. |
@@ -244,7 +254,9 @@ this one map — no code changes needed.
 ### How the slot-to-card mapping works
 
 A card's **`slot`** is its stable identity — the 0-based position within its rarity's
-fixed slot band (Common 0–7, Rare 0–2, Epic 0–1, Legendary 0–1, Mythic 0). At a given
+fixed slot band for its generation's layout (block 0: Common 0–7, Rare 0–2, Epic 0–1,
+Legendary 0–1, Mythic 0; 2026Q4: Common 0–11, Rare 0–4, Epic 0–3, Legendary 0–3,
+Mythic 0–2). At a given
 block, the slot resolves to the card whose `[start_block, end_block]` window contains
 that block. Current Bird **Common** cards:
 
@@ -258,10 +270,33 @@ that block. Current Bird **Common** cards:
 | 5 | Blue Jay | forever |
 | 6 | White-breasted Nuthatch | forever |
 | 7 | Black Vulture | forever |
+| 8 | House Sparrow | block ≥ 110611473 (test) |
+| 9 | Northern Mockingbird | block ≥ 110611473 (test) |
+| 10 | European Starling | block ≥ 110611473 (test) |
+| 11 | European Goldfinch | block ≥ 110611473 (test) |
 
 Every slot — filled or empty — carries the same per-slot weight **within its rarity**
-(e.g. all 8 Common slots are weight 16). Changing one card's window never touches
+(e.g. every Common slot is weight 16). Changing one card's window never touches
 other slots, so unrelated past winners are undisturbed.
+
+### Current batch: 2026Q4 (cards #71–#84)
+
+Every card in this batch carries `starting_block: 110611473` — the **test placeholder**
+flagged above — and uses the 2026Q4 layout (28 slots). Slots are per-rarity and shared
+across classes, so two classes may occupy the same slot number.
+
+| Rarity | 2026Q4 cards (class slot) |
+|--------|---------------------------|
+| Common | House Sparrow (Bird 8), Northern Mockingbird (Bird 9), European Starling (Bird 10), European Goldfinch (Bird 11) |
+| Rare | Grizzly Bear (Mammal 3), European Turtle Dove (Bird 3), European Roller (Bird 4) |
+| Epic | Chilean Flamingo (Bird 2), Atlantic Puffin (Bird 3) |
+| Legendary | Andean Condor (Bird 2), Black Crowned Crane (Bird 3) |
+| Mythic | Harpy Eagle (Bird 1), Giant Panda (Mammal 1), Northern Bald Ibis (Bird 2) |
+
+The 2026Q4 layout raised Legendary from 3 to 4 slots and Mythic from 2 to 3 slots so
+that Legendary slot 3 and Mythic slot 2 became addressable; Common (12), Rare (5), and
+Epic (4) already had room. Update the placeholder block in the `slot_layouts` entry
+**and** in every card's `starting_block` together — they must stay in sync.
 
 ### Adding a new species (fills an empty slot)
 
@@ -356,7 +391,8 @@ non-zero on structural errors, making it easy to drop into CI.
   `card_id`.
 - **Run `node validate-cards.js` after every change** to `cards-config.json`.
 - Rarity values are case-sensitive: `Common`, `Rare`, `Epic`, `Legendary`, `Mythic`, `Generic`.
-- A rarity can never exceed its slot band from `slot_layouts` (8 Common, 3 Rare, 2 Epic, 2 Legendary,
-  1 Mythic) **per generation**. Later generations may re-fill the same slots.
+- A rarity can never exceed its slot band from the active `slot_layouts` entry (block 0:
+  8 Common, 3 Rare, 2 Epic, 2 Legendary, 1 Mythic; 2026Q4: 12 Common, 5 Rare, 4 Epic,
+  4 Legendary, 3 Mythic) **per generation**. Later generations may re-fill the same slots.
 - `rarity_difficulty` is **optional**; leave `enabled_block` null to keep it off. Set it
   to a future block to enable RABD from that block forward — past cards are untouched.

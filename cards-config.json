@@ -14,7 +14,7 @@
   },
 "slot_layouts": [
     { "block": 0, "Common": 8, "Rare": 3, "Epic": 2, "Legendary": 2, "Mythic": 1 },
-    { "block": 110611473 , "Common": 12, "Rare": 5, "Epic": 4, "Legendary": 3, "Mythic": 2 }
+    { "block": 110611473 , "Common": 12, "Rare": 5, "Epic": 4, "Legendary": 4, "Mythic": 3 }
   ],
   "rarity_difficulty": {
     "enabled_block": 108954600,
@@ -755,10 +755,120 @@
       "species": "Giant Panda",
       "class": "Mammal",
       "rarity": "Mythic",
-      "slot": 4,
+      "slot": 1,
       "image_url": "https://i.postimg.cc/Kjs3Vwzn/Giant-Panda.png",
       "generation": "unstable-test",
       "photo_credit": "CC0 iNaturalist (#199176824)",
+      "starting_block": 110611473
+    },
+    {
+      "card_id": 75,
+      "species": "House Sparrow",
+      "class": "Bird",
+      "rarity": "Common",
+      "slot": 8,
+      "image_url": "https://i.postimg.cc/15j7J1f2/House-Sparrow.png",
+      "generation": "unstable-test",
+      "photo_credit": "remlaps",
+      "starting_block": 110611473
+    },
+    {
+      "card_id": 76,
+      "species": "Northern Mockingbird",
+      "class": "Bird",
+      "rarity": "Common",
+      "slot": 9,
+      "image_url": "https://i.postimg.cc/sxB72qsK/Northern-Mckingbird.png",
+      "generation": "unstable-test",
+      "photo_credit": "remlaps",
+      "starting_block": 110611473
+    },
+    {
+      "card_id": 77,
+      "species": "European Starling",
+      "class": "Bird",
+      "rarity": "Common",
+      "slot": 10,
+      "image_url": "https://i.postimg.cc/t4z580Tn/European-Starling.png",
+      "generation": "unstable-test",
+      "photo_credit": "remlaps",
+      "starting_block": 110611473
+    },
+    {
+      "card_id": 78,
+      "species": "European Goldfinch",
+      "class": "Bird",
+      "rarity": "Common",
+      "slot": 11,
+      "image_url": "https://i.postimg.cc/jq1W92KD/European-Goldfinch.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#329471410)",
+      "starting_block": 110611473
+    },
+    {
+      "card_id": 79,
+      "species": "European Turtle Dove",
+      "class": "Bird",
+      "rarity": "Rare",
+      "slot": 3,
+      "image_url": "https://i.postimg.cc/wMBs8R4r/European-Turtle-Dove.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#162716302)",
+      "starting_block": 110611473
+    },
+    {
+      "card_id": 80,
+      "species": "Chilean Flamingo",
+      "class": "Bird",
+      "rarity": "Epic",
+      "slot": 2,
+      "image_url": "https://i.postimg.cc/bv7hf76F/Chilean-Flamingo.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#305515629)",
+      "starting_block": 110611473
+    },
+    {
+      "card_id": 81,
+      "species": "Andean Condor",
+      "class": "Bird",
+      "rarity": "Legendary",
+      "slot": 2,
+      "image_url": "https://i.postimg.cc/mZcmHcgv/Andean-Condor.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#332169450)",
+      "starting_block": 110611473
+    },
+    {
+      "card_id": 82,
+      "species": "Black Crowned Crane",
+      "class": "Bird",
+      "rarity": "Legendary",
+      "slot": 3,
+      "image_url": "https://i.postimg.cc/Gm9tL1QX/Black-Crowned-Crane.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#204246294)",
+      "starting_block": 110611473
+    },
+    {
+      "card_id": 83,
+      "species": "Atlantic Puffin",
+      "class": "Bird",
+      "rarity": "Epic",
+      "slot": 3,
+      "image_url": "https://i.postimg.cc/YSpXGbv0/Atlantic-Puffin.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#381000455)",
+      "starting_block": 110611473
+    },
+    {
+      "card_id": 84,
+      "species": "European Roller",
+      "class": "Bird",
+      "rarity": "Rare",
+      "slot": 4,
+      "image_url": "https://i.postimg.cc/Wb1gkC8t/European-Roller.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#78254768)",
       "starting_block": 110611473
     }
   ]
