@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Blockchain Wildlife Card System - View top token burners and search for earned wildlife cards verifiable on the Steem blockchain.">
+    <title>animalCards</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=16">
+    <link rel="stylesheet" href="vaas.css?v=2">
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <header class="glass-header">
+        <div class="container header-container">
+            <a href="index.html" class="logo">animal<span>Cards</span></a>
+            <nav class="nav-links">
+                <a href="index.html" class="active">Home</a>
+                <a href="leaderboard.html">Leaderboard</a>
+                <a href="search.html">Portfolio Search</a>
+                <a href="collections.html">Collections</a>
+                <a href="deck.html">Card Deck</a>
+                <a href="gallery.html">Gallery</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container hero-section">
+        <div class="hero-content glass-panel">
+            <h2 class="hero-title">Immutable Rewards on the Blockchain</h2>
+            <p class="hero-subtitle">Burn tokens, earn unique species cards, and verify your collection deterministically. Welcome to the future of transparent collecting.</p>
+            <div class="hero-actions">
+                <a href="leaderboard.html" class="btn btn-primary">View Leaderboard</a>
+                <a href="search.html" class="btn btn-secondary">Search My Portfolio</a>
+                <a href="collections.html" class="btn btn-secondary">View Collections</a>
+                <a href="deck.html" class="btn btn-secondary">View Card Deck</a>
+            </div>
+        </div>
+    </main>
+
+    <footer class="vaas-footer">
+        <div class="container">
+            <div id="vaas-mount"></div>
+        </div>
+    </footer>
+
+    <footer class="site-footer">
+        <div class="container footer-container">
+            <span>animalCards</span>
+            <span>•</span>
+            <a href="https://github.com/remlaps/animalCards" target="_blank" rel="noopener noreferrer">
+                <svg class="footer-github-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.5-.3-5.1-1.2-5.1-5.5 0-1.2.4-2.2 1.1-3-.1-.3-.5-1.4.1-2.9 0 0 .9-.3 3 1.1a10 10 0 0 1 5.5 0c2.1-1.4 3-1.1 3-1.1.6 1.5.2 2.6.1 2.9.7.8 1.1 1.8 1.1 3 0 4.3-2.6 5.2-5.1 5.5.4.3.8 1 .8 2.1v3c0 .3.2.7.8.6A11.5 11.5 0 0 0 23.5 12C23.5 5.7 18.3.5 12 .5z"/>
+                </svg>
+                GitHub
+            </a>
+        </div>
+    </footer>
+
+    <script src="header.js?v=1"></script>
+    <script src="card-resolver.js?v=1"></script>
+<script src="difficulty.js?v=6"></script>
+    <script src="blockchain-api.js?v=39"></script>
+    <script src="vaas.js?v=6"></script>
+    <script>
+        // Drop-in VAAS widget — adopts animalCards' glass design tokens.
+        // scope: 'origin' shares one widget state across all animalCards pages
+        // so the ticker stays consistent when navigating between them.
+        VAAS.init({
+            scope: 'origin',
+            theme: {
+                cardBg: 'var(--glass-bg)',
+                muted: 'var(--text-secondary)',
+                border: 'var(--glass-border)'
+            }
+        }).mount('#vaas-mount');
+    </script>
+</body>
+</html>
