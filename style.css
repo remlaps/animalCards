@@ -474,6 +474,12 @@ a.logo span {
     opacity: 1;
 }
 
+/* Wide/flat photos (e.g. a sideways fish) letterbox instead of losing the head
+   and tail to the side crop. Toggled by the image loader (CardImages). */
+.card-image.card-image-contain {
+    object-fit: contain;
+}
+
 .card-image.card-image-error {
     opacity: 0;
 }
@@ -1292,4 +1298,25 @@ a.logo span {
     cursor: wait;
     transform: none;
 }
+
+/* PNG export normalization. card-export.js adds `.export-clone` to the card it
+   snapshots, so these rules only affect the exported image, never the live site.
+   A canonical width plus a minimum height keeps every exported card the same
+   size; making the content a flex column pins the meta row to the bottom so a
+   field that wraps onto a second line can't shift the layout. */
+.export-clone .card-content {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Keep the photo box at its fixed height so the content absorbs the slack. */
+.export-clone .card-image-container {
+    flex-shrink: 0;
+}
+
+/* Reserve room for a wrapped second line in the fields most likely to wrap, so
+   a long species / class / attribution can't change the card's total height. */
+.export-clone .card-class { min-height: 3.2em; }
+.export-clone .card-species { min-height: 3.2em; }
+.export-clone .card-attribution { min-height: 3.2em; }
 

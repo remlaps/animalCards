@@ -434,6 +434,18 @@ window.CardImages = (function () {
         if (c) c.classList.toggle('card-image-loading', on);
         img.classList.toggle('card-image-loading', on);
     }
+    // Wide/flat photos (a fish photographed side-on) get their head and tail
+    // cropped by `object-fit: cover` inside the fixed-height image box. When the
+    // image is wider than its box, flag it so CSS can switch it to `contain` and
+    // show the whole subject; portrait/square photos keep the full-bleed cover.
+    function applyImageFit(img) {
+        var c = containerOf(img);
+        if (!c || !img.naturalWidth || !img.naturalHeight) return;
+        var boxW = c.clientWidth, boxH = c.clientHeight;
+        if (!boxW || !boxH) return;
+        var wider = (img.naturalWidth / img.naturalHeight) > (boxW / boxH);
+        img.classList.toggle('card-image-contain', wider);
+    }
     function markLoaded(img) {
         markLoading(img, false);
         img.classList.remove('card-image-error');
@@ -441,6 +453,7 @@ window.CardImages = (function () {
         if (c) c.classList.remove('card-image-error');
         img.classList.add('loaded');
         img.dataset.state = 'loaded';
+        applyImageFit(img);
     }
     function markError(img) {
         markLoading(img, false);
