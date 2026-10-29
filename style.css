@@ -438,7 +438,7 @@ a.logo span {
 .card-image-container {
     position: relative;
     width: 100%;
-    aspect-ratio: 3 / 2; /* standard photo shape so every card photo fills the same box */
+    aspect-ratio: 4 / 3; /* standard photo shape so every card photo fills the same box */
     background: linear-gradient(145deg, #1e293b, #0f172a);
     overflow: hidden;
 }
