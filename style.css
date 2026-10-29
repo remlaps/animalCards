@@ -1308,9 +1308,13 @@ a.logo span {
     flex-shrink: 0;
 }
 
-/* Reserve room for a wrapped second line in the fields most likely to wrap, so
-   a long species / class / attribution can't change the card's total height. */
+/* Reserve room for wrapped lines in the fields most likely to wrap, so a long
+   species / class / attribution can't change the card's total height. */
 .export-clone .card-class { min-height: 3.2em; }
 .export-clone .card-species { min-height: 3.2em; }
-.export-clone .card-attribution { min-height: 3.2em; }
+.export-clone .card-attribution {
+    font-size: 0.9rem;   /* bigger than the on-screen 0.8rem */
+    line-height: 1.5;
+    min-height: 4.5em;   /* reserve 3 wrapped lines */
+}
 
