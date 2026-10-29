@@ -177,14 +177,13 @@
     var EXPORT_PAD_PX = 28;   // padding around the card so the glow isn't clipped
     // Canonical export geometry. Fixing the width means text always wraps at the
     // same point (the live card's width depends on the viewport / grid), and the
-    // fixed photo-box height keeps the box at the same aspect as the live card —
-    // so wide/flat photos (sideways fish) letterbox instead of being cropped. The
-    // minimum card height, together with the reserved line heights in style.css,
-    // makes every exported PNG the same size even when a field wraps to 2 lines.
+    // 3:2 photo box (matching the on-screen card) makes every photo the same size
+    // and scale. The minimum card height, together with the reserved line heights
+    // in style.css, makes every exported PNG the same size even when a field wraps.
     var EXPORT_CARD_WIDTH = 480;
-    var EXPORT_IMAGE_ASPECT = 1.15;  // photo box width ÷ height (matches the live card)
+    var EXPORT_IMAGE_ASPECT = 3 / 2;  // standard photo box shape (matches style.css)
     var EXPORT_IMAGE_HEIGHT = Math.round((EXPORT_CARD_WIDTH - 2 * EXPORT_BORDER_PX) / EXPORT_IMAGE_ASPECT);
-    var EXPORT_CARD_HEIGHT = 700;    // canonical minimum card height (px)
+    var EXPORT_CARD_HEIGHT = 600;    // canonical minimum card height (px)
 
     // Snapshot `node` to a PNG data URL. Captures an offscreen clone so the live
     // card is never mutated or reflowed. The clone gets an explicit border + glow
@@ -206,8 +205,8 @@
         // instead of clipping its text.
         clone.style.width = EXPORT_CARD_WIDTH + 'px';
         clone.style.minHeight = EXPORT_CARD_HEIGHT + 'px';
-        // Keep the photo box at the live card's aspect ratio at the new width, so
-        // the crop/letterbox decision matches what's on screen.
+        // Standard 3:2 photo box at the canonical width (matches style.css), so
+        // every photo is cropped to the same size and scale.
         var imageBox = clone.querySelector('.card-image-container');
         if (imageBox) imageBox.style.height = EXPORT_IMAGE_HEIGHT + 'px';
         clone.style.background = 'linear-gradient(160deg, #1e293b 0%, #0f172a 100%)';
@@ -220,16 +219,6 @@
             img.style.transform = 'none';
             img.style.transition = 'none';
             img.style.opacity = '1';
-            // Re-decide the fit against the canonical export width: a wide/flat
-            // photo (sideways fish) letterboxes so its head and tail aren't cropped
-            // by the fixed-height image box.
-            var box = img.closest ? img.closest('.card-image-container') : null;
-            if (box && img.naturalWidth && img.naturalHeight) {
-                var boxW = box.clientWidth || EXPORT_CARD_WIDTH;
-                var boxH = box.clientHeight || 250;
-                img.style.objectFit =
-                    (img.naturalWidth / img.naturalHeight) > (boxW / boxH) ? 'contain' : 'cover';
-            }
             // Drop images that never loaded (slow/failed) so html-to-image does not
             // try to embed an empty source and produce a corrupt PNG.
             var src = img.getAttribute('src') || img.currentSrc || '';
