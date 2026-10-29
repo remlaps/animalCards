@@ -175,6 +175,15 @@
     var EXPORT_BORDER_PX = 3;
     var EXPORT_GLOW = '0 0 16px ';
     var EXPORT_PAD_PX = 28;   // padding around the card so the glow isn't clipped
+    // Canonical export geometry. Fixing the width means text always wraps at the
+    // same point (the live card's width depends on the viewport / grid), and the
+    // 4:3 photo box (matching the on-screen card) makes every photo the same size
+    // and scale. The minimum card height, together with the reserved line heights
+    // in style.css, makes every exported PNG the same size even when a field wraps.
+    var EXPORT_CARD_WIDTH = 320;
+    var EXPORT_IMAGE_ASPECT = 4 / 3;  // standard photo box shape (matches style.css)
+    var EXPORT_IMAGE_HEIGHT = Math.round((EXPORT_CARD_WIDTH - 2 * EXPORT_BORDER_PX) / EXPORT_IMAGE_ASPECT);
+    var EXPORT_CARD_HEIGHT = 560;    // canonical minimum card height (px)
 
     // Snapshot `node` to a PNG data URL. Captures an offscreen clone so the live
     // card is never mutated or reflowed. The clone gets an explicit border + glow
@@ -188,8 +197,18 @@
         var rs = RARITY_STYLE[rarity] || { color: 'rgba(255, 255, 255, 0.12)', glow: '' };
 
         var clone = node.cloneNode(true);
+        clone.classList.add('export-clone');
         clone.style.boxSizing = 'border-box';
-        clone.style.width = node.offsetWidth + 'px';
+        // Canonical size. The width is fixed (the live card's width depends on the
+        // viewport / grid), and `minHeight` — rather than a hard height — keeps
+        // cards uniform while still letting the occasional extra-long card grow
+        // instead of clipping its text.
+        clone.style.width = EXPORT_CARD_WIDTH + 'px';
+        clone.style.minHeight = EXPORT_CARD_HEIGHT + 'px';
+        // Standard 4:3 photo box at the canonical width (matches style.css), so
+        // every photo is cropped to the same size and scale.
+        var imageBox = clone.querySelector('.card-image-container');
+        if (imageBox) imageBox.style.height = EXPORT_IMAGE_HEIGHT + 'px';
         clone.style.background = 'linear-gradient(160deg, #1e293b 0%, #0f172a 100%)';
         clone.style.backdropFilter = 'none';
         clone.style.webkitBackdropFilter = 'none';
