@@ -930,11 +930,44 @@
       "card_id": 90,
       "species": "European Spiny Lobster",
       "class": "Fish, Mollusk & Crustacean",
-      "rarity": "Mythic",
-      "slot": 1,
+      "rarity": "Rare",
+      "slot": 4,
       "image_url": "https://i.postimg.cc/XJDmk2C9/European-Spiny-Lobster.png",
       "generation": "unstable-test",
       "photo_credit": "CC0 iNaturalist (#398566072)",
+      "start_block": 110611473
+    },
+    {
+      "card_id": 91,
+      "species": "Nassau Grouper",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Mythic",
+      "slot": 1,
+      "image_url": "https://i.postimg.cc/s2BTR5H5/Nassau-Grouper.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#374732175)",
+      "start_block": 110611473
+    },
+    {
+      "card_id": 92,
+      "species": "Dusky Grouper",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Mythic",
+      "slot": 2,
+      "image_url": "https://i.postimg.cc/RC3JQX6G/Dusky-Grouper.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#178184667)",
+      "start_block": 110611473
+    },
+    {
+      "card_id": 93,
+      "species": "Atlantic Tarpon",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Legendary",
+      "slot": 3,
+      "image_url": "https://i.postimg.cc/8P0yXytz/Atlantic-Tarpon.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#232402720)",
       "start_block": 110611473
     }
   ]
