@@ -870,6 +870,72 @@
       "generation": "unstable-test",
       "photo_credit": "CC0 iNaturalist (#78254768)",
       "start_block": 110611473
+    },
+    {
+      "card_id": 85,
+      "species": "Common Carp",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Common",
+      "slot": 8,
+      "image_url": "https://i.postimg.cc/90V9fxvM/Common-Carp.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#126515455)",
+      "start_block": 110611473
+    },
+    {
+      "card_id": 86,
+      "species": "Saddled Seabream",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Common",
+      "slot": 9,
+      "image_url": "https://i.postimg.cc/g2M1qQDN/Saddled-Seabream.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#330109457)",
+      "start_block": 110611473
+    },
+    {
+      "card_id": 87,
+      "species": "European Seabass",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Rare",
+      "slot": 3,
+      "image_url": "https://i.postimg.cc/ZnRNGw2L/European-Seabass.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#321182659)",
+      "start_block": 110611473
+    },
+    {
+      "card_id": 88,
+      "species": "Brown Trout",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Epic",
+      "slot": 2,
+      "image_url": "https://i.postimg.cc/nhv1YPJc/Brown-Trout.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#235538863)",
+      "start_block": 110611473
+    },
+    {
+      "card_id": 89,
+      "species": "Short-snouted Seahorse",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Legendary",
+      "slot": 2,
+      "image_url": "https://i.postimg.cc/QMQyv8WX/Short-snouted-Seahorse.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#307620202)",
+      "start_block": 110611473
+    },
+    {
+      "card_id": 90,
+      "species": "European Spiny Lobster",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Mythic",
+      "slot": 1,
+      "image_url": "https://i.postimg.cc/XJDmk2C9/European-Spiny-Lobster.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#398566072)",
+      "start_block": 110611473
     }
   ]
 }
