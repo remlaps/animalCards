@@ -963,11 +963,77 @@
       "card_id": 93,
       "species": "Atlantic Tarpon",
       "class": "Fish, Mollusk & Crustacean",
-      "rarity": "Legendary",
+      "rarity": "Epic",
       "slot": 3,
       "image_url": "https://i.postimg.cc/8P0yXytz/Atlantic-Tarpon.png",
       "generation": "unstable-test",
       "photo_credit": "CC0 iNaturalist (#232402720)",
+      "start_block": 110611473
+    },
+    {
+      "card_id": 94,
+      "species": "Candy Cane Snail",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Legendary",
+      "slot": 3,
+      "image_url": "https://i.postimg.cc/brr6M7SJ/Candy-Cane-Snail.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#93352265)",
+      "start_block": 110611473
+    },
+    {
+      "card_id": 95,
+      "species": "Powder Blue Tang",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Common",
+      "slot": 10,
+      "image_url": "https://i.postimg.cc/G2L8crQR/Powder-Blue-Tang.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#235681034)",
+      "start_block": 110611473
+    },
+    {
+      "card_id": 96,
+      "species": "Red Swamp Crayfish",
+      "class": "Fish, Mollusk & Crustacean",
+      "rarity": "Common",
+      "slot": 11,
+      "image_url": "https://i.postimg.cc/brTdW5b1/Red-Swamp-Crayfish.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#135654717)",
+      "start_block": 110611473
+    },
+    {
+      "card_id": 97,
+      "species": "White-lipped Deer",
+      "class": "Mammal",
+      "rarity": "Mythic",
+      "slot": 2,
+      "image_url": "https://i.postimg.cc/JnTjBtYL/White-lipped-Deer.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#339551476)",
+      "start_block": 110611473
+    },
+    {
+      "card_id": 98,
+      "species": "Purus Red Howler Monkey",
+      "class": "Mammal",
+      "rarity": "Legendary",
+      "slot": 2,
+      "image_url": "https://i.postimg.cc/sDPpRV7H/Purus-Red-Howler-Monkey.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#326609546)",
+      "start_block": 110611473
+    },
+    {
+      "card_id": 99,
+      "species": "Eastern Chimpanzee",
+      "class": "Mammal",
+      "rarity": "Legendary",
+      "slot": 3,
+      "image_url": "https://i.postimg.cc/jq71P7Yh/Eastern-Chimpanzee.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#144416131)",
       "start_block": 110611473
     }
   ]
