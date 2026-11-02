@@ -11,3 +11,8 @@
 - Prefer small, focused commits with clear conventional-commit style messages
   (e.g. `feat:`, `fix:`, `chore:`, `docs:`).
 
+- When making git commits, do the following:
+  1. If changes in the update are cumulative or supercede one another, only describe the cumulative result.
+    - For example, it doesn't make sense to describe a fix for a bug that appearned and disappeared in the same coding cycle but didn't exist at the time of the previous commit/push.
+  2. Include an entry that it was committed by Cline, on behalf of the git account owner.
+
