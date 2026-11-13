@@ -8,6 +8,8 @@
   2. If on `master`, create and switch to a new branch first (`git checkout -b <branch-name>`).
   3. Only stage and commit on the non-master branch.
 
+- **Push the feature branch** when the work is ready. The git account owner opens the PR on GitHub and merges it; Cline does not create or merge PRs.
+
 - Prefer small, focused commits with clear conventional-commit style messages
   (e.g. `feat:`, `fix:`, `chore:`, `docs:`).
 

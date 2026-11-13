@@ -1035,6 +1035,28 @@
       "generation": "unstable-test",
       "photo_credit": "CC0 iNaturalist (#144416131)",
       "start_block": 110611473
+    },
+    {
+      "card_id": 100,
+      "species": "",
+      "class": "Mammal",
+      "rarity": "Epic",
+      "slot": 2,
+      "image_url": "https://i.postimg.cc/nhLx0TRq/African-Leopard.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#412702521)",
+      "start_block": 110611473
+    },
+    {
+      "card_id": 101,
+      "species": "Eurasian Otter",
+      "class": "Mammal",
+      "rarity": "Epic",
+      "slot": 3,
+      "image_url": "https://i.postimg.cc/TwdB33z1/Eurasian-Otter.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#393839479)",
+      "start_block": 110611473
     }
   ]
 }
