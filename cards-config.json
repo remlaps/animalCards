@@ -99,7 +99,7 @@
     },
     {
       "card_id": 9,
-      "species": "American Bald Eagle",
+      "species": "Bald Eagle",
       "class": "Bird",
       "rarity": "Legendary",
       "slot": 0,
@@ -539,7 +539,7 @@
     },
     {
       "card_id": 53,
-      "species": "Indian Longnosed Parrotfish",
+      "species": "Indian Longnose Parrotfish",
       "class": "Fish, Mollusk & Crustacean",
       "rarity": "Common",
       "slot": 1,
@@ -840,7 +840,7 @@
     },
     {
       "card_id": 82,
-      "species": "Black Crowned Crane",
+      "species": "Black-crowned Crane",
       "class": "Bird",
       "rarity": "Legendary",
       "slot": 3,
