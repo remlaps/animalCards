@@ -1112,6 +1112,138 @@
       "generation": "unstable-test",
       "photo_credit": "CC0 iNaturalist (#283875081)",
       "start_block": 110611473
+    },
+    {
+      "card_id": 107,
+      "species": "TBD (Reptile & Amphibian)",
+      "class": "Reptile & Amphibian",
+      "rarity": "Common",
+      "slot": 8,
+      "image_url": "",
+      "generation": "unstable-test",
+      "photo_credit": "TBD",
+      "start_block": 999999999
+    },
+    {
+      "card_id": 108,
+      "species": "TBD (Reptile & Amphibian)",
+      "class": "Reptile & Amphibian",
+      "rarity": "Common",
+      "slot": 9,
+      "image_url": "",
+      "generation": "unstable-test",
+      "photo_credit": "TBD",
+      "start_block": 999999999
+    },
+    {
+      "card_id": 109,
+      "species": "TBD (Reptile & Amphibian)",
+      "class": "Reptile & Amphibian",
+      "rarity": "Common",
+      "slot": 10,
+      "image_url": "",
+      "generation": "unstable-test",
+      "photo_credit": "TBD",
+      "start_block": 999999999
+    },
+    {
+      "card_id": 110,
+      "species": "TBD (Reptile & Amphibian)",
+      "class": "Reptile & Amphibian",
+      "rarity": "Common",
+      "slot": 11,
+      "image_url": "",
+      "generation": "unstable-test",
+      "photo_credit": "TBD",
+      "start_block": 999999999
+    },
+    {
+      "card_id": 111,
+      "species": "TBD (Reptile & Amphibian)",
+      "class": "Reptile & Amphibian",
+      "rarity": "Rare",
+      "slot": 3,
+      "image_url": "",
+      "generation": "unstable-test",
+      "photo_credit": "TBD",
+      "start_block": 999999999
+    },
+    {
+      "card_id": 112,
+      "species": "TBD (Reptile & Amphibian)",
+      "class": "Reptile & Amphibian",
+      "rarity": "Rare",
+      "slot": 4,
+      "image_url": "",
+      "generation": "unstable-test",
+      "photo_credit": "TBD",
+      "start_block": 999999999
+    },
+    {
+      "card_id": 113,
+      "species": "TBD (Reptile & Amphibian)",
+      "class": "Reptile & Amphibian",
+      "rarity": "Epic",
+      "slot": 2,
+      "image_url": "",
+      "generation": "unstable-test",
+      "photo_credit": "TBD",
+      "start_block": 999999999
+    },
+    {
+      "card_id": 114,
+      "species": "TBD (Reptile & Amphibian)",
+      "class": "Reptile & Amphibian",
+      "rarity": "Epic",
+      "slot": 3,
+      "image_url": "",
+      "generation": "unstable-test",
+      "photo_credit": "TBD",
+      "start_block": 999999999
+    },
+    {
+      "card_id": 115,
+      "species": "TBD (Reptile & Amphibian)",
+      "class": "Reptile & Amphibian",
+      "rarity": "Legendary",
+      "slot": 2,
+      "image_url": "",
+      "generation": "unstable-test",
+      "photo_credit": "TBD",
+      "start_block": 999999999
+    },
+    {
+      "card_id": 116,
+      "species": "TBD (Reptile & Amphibian)",
+      "class": "Reptile & Amphibian",
+      "rarity": "Legendary",
+      "slot": 3,
+      "image_url": "",
+      "generation": "unstable-test",
+      "photo_credit": "TBD",
+      "start_block": 999999999
+    },
+    {
+      "card_id": 117,
+      "species": "TBD (Reptile & Amphibian)",
+      "class": "Reptile & Amphibian",
+      "rarity": "Mythic",
+      "slot": 1,
+      "image_url": "",
+      "generation": "unstable-test",
+      "photo_credit": "TBD",
+      "start_block": 999999999
+    },
+    {
+      "card_id": 118,
+      "species": "TBD (Reptile & Amphibian)",
+      "class": "Reptile & Amphibian",
+      "rarity": "Mythic",
+      "slot": 2,
+      "image_url": "",
+      "generation": "unstable-test",
+      "photo_credit": "TBD",
+      "start_block": 999999999
     }
   ]
 }
