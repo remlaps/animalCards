@@ -1057,6 +1057,61 @@
       "generation": "unstable-test",
       "photo_credit": "CC0 iNaturalist (#393839479)",
       "start_block": 110611473
+    },
+    {
+      "card_id": 102,
+      "species": "Alpine Marmot",
+      "class": "Mammal",
+      "rarity": "Common",
+      "slot": 8,
+      "image_url": "https://i.postimg.cc/tTP9n7cw/Alpine-Marmot.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#283354369)",
+      "start_block": 110611473
+    },
+    {
+      "card_id": 103,
+      "species": "Rhesus Macaque",
+      "class": "Mammal",
+      "rarity": "Common",
+      "slot": 9,
+      "image_url": "https://i.postimg.cc/R0Ss20Kq/Rhesus-Macaque.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#387880707)",
+      "start_block": 110611473
+    },
+    {
+      "card_id": 104,
+      "species": "Common Marmoset",
+      "class": "Mammal",
+      "rarity": "Common",
+      "slot": 10,
+      "image_url": "https://i.postimg.cc/QCGpG6wy/Common-Marmoset.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#362135349)",
+      "start_block": 110611473
+    },
+    {
+      "card_id": 105,
+      "species": "Agile Wallaby",
+      "class": "Mammal",
+      "rarity": "Common",
+      "slot": 11,
+      "image_url": "https://i.postimg.cc/C1HK5md3/Agile-Wallaby.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#361887915)",
+      "start_block": 110611473
+    },
+    {
+      "card_id": 106,
+      "species": "Steller Sea Lion",
+      "class": "Mammal",
+      "rarity": "Rare",
+      "slot": 4,
+      "image_url": "https://i.postimg.cc/RFCTNnhy/Steller-Sea-Lion.png",
+      "generation": "unstable-test",
+      "photo_credit": "CC0 iNaturalist (#283875081)",
+      "start_block": 110611473
     }
   ]
 }
