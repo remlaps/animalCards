@@ -222,6 +222,16 @@ if (rd) {
         }
     }
     const rar = rd.rarities || {};
+    // Every rarity must be explicitly declared. difficulty.js coerces a missing
+    // rarity to a 0 floor (Number(x) || 0) while the monotonicity checks below
+    // skip null/undefined values, so an omitted tier could silently become
+    // cheaper than a lower tier without being flagged. Require all five.
+    for (const r of MONOTONIC_ORDER) {
+        if (!Object.prototype.hasOwnProperty.call(rar, r)) {
+            errors.push(`rarity_difficulty.rarities is missing "${r}". All five rarities (` +
+                'Common, Rare, Epic, Legendary, Mythic) must be declared.');
+        }
+    }
     for (const [r, s] of Object.entries(rar)) {
         if (!VALID_RARITIES.has(r) || r === 'Generic') {
             errors.push(`rarity_difficulty.rarities has unknown rarity "${r}".`);

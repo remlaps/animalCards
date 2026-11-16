@@ -116,6 +116,9 @@ Everything is deterministic and fully computable from the chain:
   asset: Common ≤ Rare ≤ Epic ≤ Legendary ≤ Mythic. Equal values across tiers are
   allowed. Setting a lower tier higher than an upper tier causes nonsensical cascade
   results — the validator (`validate-cards.js`) rejects non-monotonic configs as errors.
+  All five rarities (`Common`, `Rare`, `Epic`, `Legendary`, `Mythic`) must be declared in
+  `rarities`; an omitted tier would default to a 0 floor in the resolver while escaping
+  the monotonicity check, so the validator rejects a config that leaves any tier out.
 - **Schedule `base_min_burns`** — the schedule can raise a rarity's tiered floor
   for both assets via per-rarity `base_min_burns_steem` and `base_min_burns_sbd`,
   falling back to the root values. Once activated, this is the **only** per-rarity
