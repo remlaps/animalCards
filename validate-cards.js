@@ -222,10 +222,11 @@ if (rd) {
         }
     }
     const rar = rd.rarities || {};
-    // Every rarity must be explicitly declared. difficulty.js coerces a missing
-    // rarity to a 0 floor (Number(x) || 0) while the monotonicity checks below
-    // skip null/undefined values, so an omitted tier could silently become
-    // cheaper than a lower tier without being flagged. Require all five.
+    // Every rarity must be explicitly declared, with both asset floors. difficulty.js
+    // coerces a missing rarity OR a missing asset value to a 0 floor (Number(x) || 0)
+    // while the monotonicity checks below skip null/undefined values, so an omitted
+    // tier/asset could silently become cheaper than a lower tier without being flagged.
+    // Require all five tiers, and (per the checks below) both assets per tier.
     for (const r of MONOTONIC_ORDER) {
         if (!Object.prototype.hasOwnProperty.call(rar, r)) {
             errors.push(`rarity_difficulty.rarities is missing "${r}". All five rarities (` +
@@ -240,8 +241,8 @@ if (rd) {
         if (typeof s.base_min_burn_steem !== 'number' || s.base_min_burn_steem < 0) {
             errors.push(`rarity_difficulty.rarities["${r}"].base_min_burn_steem must be a number >= 0.`);
         }
-        if (s.base_min_burn_sbd != null && (typeof s.base_min_burn_sbd !== 'number' || s.base_min_burn_sbd < 0)) {
-            errors.push(`rarity_difficulty.rarities["${r}"].base_min_burn_sbd must be a number >= 0 or omitted.`);
+        if (typeof s.base_min_burn_sbd !== 'number' || s.base_min_burn_sbd < 0) {
+            errors.push(`rarity_difficulty.rarities["${r}"].base_min_burn_sbd must be a number >= 0.`);
         }
     }
     
