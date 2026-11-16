@@ -27,6 +27,10 @@
         "base_min_burns_steem": { "Common": 0.001, "Rare": 0.019, "Epic": 0.038, "Legendary": 0.076, "Mythic": 0.152 },
         "base_min_burns_sbd": { "Common": 0.001, "Rare": 0.002, "Epic": 0.004, "Legendary": 0.008, "Mythic": 0.016 }
 
+      },
+      { "block": 111801316,
+        "base_min_burns_steem": { "Common": 0.001, "Rare": 0.019, "Epic": 0.019, "Legendary": 0.038, "Mythic": 0.038 },
+        "base_min_burns_sbd": { "Common": 0.001, "Rare": 0.002, "Epic": 0.002, "Legendary": 0.004, "Mythic": 0.004 }
       }
     ],
     "rarities": {
