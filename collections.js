@@ -234,6 +234,10 @@ const tickingProcessBlock = async (blockNum) => {
                 }
             }
 
+            // Total individual cards owned (with duplicates) vs. distinct cards.
+            const totalCards = Array.from(ownedSerials.values()).reduce((sum, serials) => sum + serials.length, 0);
+            const uniqueCards = ownedCardIds.size;
+
             // Per-card earned info (owner + serials) for the collections download.
             const earnedByCardId = new Map();
             for (const m of wonCards) {
@@ -300,6 +304,10 @@ const tickingProcessBlock = async (blockNum) => {
                     ? '<div class="coll-streak-days">Last win: ' + formatGMT(streakResult.days[streakResult.days.length - 1]) +
                     ' | Consecutive since ' + formatGMT(streakResult.days[0]) + '</div>'
                     : '<div class="coll-streak-days">No consecutive daily wins found \u2014 check back after a win</div>');
+
+            // Show the account's total card count alongside the unique card count.
+            streakSection.innerHTML += '<div class="coll-streak-days" style="margin-top:0.5rem;">Cards collected: <strong>' +
+                totalCards + ' total</strong> &middot; <strong>' + uniqueCards + ' unique</strong></div>';
 
             // --- Render collection cards ---
             function renderCollectionCard(label, totalCards, ownedIds, allCardsInSet, fillClass) {
