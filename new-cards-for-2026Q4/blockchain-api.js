@@ -723,7 +723,8 @@ async function renderDifficultyDashboard() {
                 `<i class="dash-dot" data-r="${r.toLowerCase()}"></i>` +
                 `<span class="dash-name">${r}</span>` +
                 `<span class="dash-val">${fmtRange(info.minBurnsSteem[r], info.minBurnsSbd[r])}</span>`
-            ).join('') + `</div>`;
+            ).join('') + `</div>` +
+                `<p class="dash-note" style="margin-top:0.6rem;">Meeting the minimum doesn't guarantee a card of that rarity.</p>`;
         }
 
         const foot = info.nextFloorBlock != null
