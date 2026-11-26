@@ -327,6 +327,9 @@ const tickingProcessBlock = async (blockNum) => {
                 collOwnedMap[label] = owned.map(function (c) { return earnedByCardId.get(c.card_id); }).filter(Boolean);
                 const pct = totalCards > 0 ? Math.round(owned.length / totalCards * 100) : 0;
 
+                // Total physical cards owned in this set (counting duplicate copies).
+                const ownedTotal = owned.reduce((sum, c) => sum + (ownedSerials.get(c.card_id) || []).length, 0);
+
                 // Sex breakdown: only species with distinct sexes count toward the
                 // Male/Female targets (unsexed/sex-changing species never get a label).
                 const sexed = allCardsInSet.filter(c => cardIsSexed(c));
@@ -375,6 +378,7 @@ const tickingProcessBlock = async (blockNum) => {
                     '<div class="coll-card-header"><span>' + label + '</span>' +
                     '<span style="display:inline-flex;align-items:center;gap:0.6rem;">' +
                     '<span style="font-size:0.9rem;">' + owned.length + ' / ' + totalCards + '</span>' +
+                    '<span style="font-size:0.9rem;color:var(--text-secondary);">' + ownedTotal + ' total</span>' +
                     (owned.length > 0 ? '<button type="button" class="card-download-btn" data-coll-download data-coll-label="' + label + '">Download (' + owned.length + ')</button>' : '') +
                     '</span></div>' +
                     '<div class="coll-card-sub">' + pct + '% complete</div>' +

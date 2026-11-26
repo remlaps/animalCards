@@ -767,7 +767,7 @@ async function renderDifficultyDashboard() {
                 `<span class="dash-name">${r}</span>` +
                 `<span class="dash-val">${fmtRange(info.minBurnsSteem[r], info.minBurnsSbd[r])}</span>`
             ).join('') + `</div>` +
-                `<p class="dash-note" style="margin-top:0.6rem;">Meeting the minimum doesn't guarantee a card of that rarity.</p>`;
+                `<p class="dash-note" style="margin-top:0.6rem;">These are the minimum burns needed to qualify for each rarity. Your winning burn sets the highest rarity you're eligible for; your card is then drawn from the rarities you qualify for — so clearing a minimum doesn't guarantee that exact rarity.</p>`;
         }
 
         const foot = info.nextFloorBlock != null
