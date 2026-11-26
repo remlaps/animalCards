@@ -243,6 +243,49 @@ class BlockchainAPI {
 
 const api = new BlockchainAPI();
 
+// --- Sex designation -------------------------------------------------------
+// Every earned card's serial is "<BLOCK>.<SUFFIX>" (suffix ".0" = STEEM, ".1" = SBD).
+// Ignoring the asset suffix, the block number's parity decides the designation:
+// odd block -> Male, even block -> Female. A species can opt out via an optional
+// `reproduction` field in cards-config.json ("sexed" = default/absent, "unsexed",
+// "sex-changing", "sex-changing-m2f", "sex-changing-f2m"); any value other than
+// absent/"sexed" suppresses the designation for now.
+function sexFromSerial(serial) {
+    const block = parseInt(String(serial == null ? '' : serial).split('.')[0], 10);
+    if (isNaN(block)) return null;
+    return (block % 2 === 1) ? 'Male' : 'Female';
+}
+
+// Whether a resolved card's species shows a Male/Female designation. Generic cards,
+// placeholders, and any species flagged unsexed/sex-changing are excluded.
+function cardIsSexed(card) {
+    if (!card || card.is_generic || card.isPlaceholder) return false;
+    const r = card.reproduction;
+    return r == null || r === '' || r === 'sexed';
+}
+
+// Label for a card: "♂ Male"/"♀ Female" for a single serial, or a "2♂ · 1♀" tally
+// when several serials are grouped. Returns '' when the card is not sexed.
+function cardSexLabel(card, serials) {
+    if (!cardIsSexed(card)) return '';
+    const list = (serials || []).filter(Boolean);
+    if (!list.length) return '';
+    if (list.length === 1) {
+        const s = sexFromSerial(list[0]);
+        return s === 'Male' ? '♂ Male' : s === 'Female' ? '♀ Female' : '';
+    }
+    let males = 0, females = 0;
+    for (const ser of list) {
+        const s = sexFromSerial(ser);
+        if (s === 'Male') males++;
+        else if (s === 'Female') females++;
+    }
+    const parts = [];
+    if (males) parts.push('♂' + males);
+    if (females) parts.push('♀' + females);
+    return parts.join(' · ');
+}
+
 // --- Card image loading ----------------------------------------------------
 // Shared by search.js and leaderboard.js. Every card image is loaded through
 // this one path and the URL is always taken from `cards-config.json`, so no

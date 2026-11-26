@@ -370,7 +370,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return { isPlaceholder: true, species: `${m.className} — placeholder`, cls: m.className, rarity: m.rarity || '', image_url: null, is_generic: false, generation: '', photo_credit: '', account: m.account, serial: m.serial, timestamp: m.timestamp, trx_id: m.trx_id, generic_reason: m.generic_reason || null };
                 }
                 const rarity = m.status === 'generic' ? (m.rarity || m.card.rarity) : m.card.rarity;
-                return { isPlaceholder: false, species: m.card.species, cls: m.card.class, rarity, image_url: m.card.image_url, is_generic: m.card.is_generic, generation: m.card.generation, photo_credit: m.card.photo_credit, account: m.account, serial: m.serial, timestamp: m.timestamp, trx_id: m.trx_id, generic_reason: m.generic_reason || null };
+                return { isPlaceholder: false, species: m.card.species, cls: m.card.class, rarity, image_url: m.card.image_url, is_generic: m.card.is_generic, reproduction: m.card.reproduction, generation: m.card.generation, photo_credit: m.card.photo_credit, account: m.account, serial: m.serial, timestamp: m.timestamp, trx_id: m.trx_id, generic_reason: m.generic_reason || null };
             };
             const displayCards = wonCards.map(normalizeCard);
 
@@ -484,6 +484,8 @@ const verifyBadge = (c) => `<span class="verify-badge" title="Hash: ${c.trx_id}"
                     : `<span style="font-size:0.75rem;">Serial: <strong style="color:var(--text-primary);">${c.serial}</strong></span>`;
                 const timeSpan = `<span style="font-size:0.75rem;">${formatGMT(c.timestamp)}</span>`;
                 const countSpan = showCount ? `<span style="font-size:0.75rem;">Quantity: <strong style="color:var(--text-primary);">${count}</strong></span>` : '';
+                const sexLabel = cardSexLabel(c, serials);
+                const sexSpan = sexLabel ? `<span style="font-size:0.75rem; font-weight:600;">${sexLabel}</span>` : '';
                 if (c.isPlaceholder) {
                     cardEl.innerHTML = `
                             <div class="card-image-container pending-card-image">
@@ -510,6 +512,7 @@ const verifyBadge = (c) => `<span class="verify-badge" title="Hash: ${c.trx_id}"
                                 <p class="card-attribution" title="${beneficiaryTip(api, c.rarity)}">Winner: @${c.account} • Generation: ${c.generation} • Photo by ${c.photo_credit}</p>
                                 <div class="card-meta">
                                     ${countSpan}
+                                    ${sexSpan}
                                     ${showCount ? '' : serialSpan}
                                     ${showCount ? '' : timeSpan}
                                     ${verifyBadge(c)}
