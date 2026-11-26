@@ -343,7 +343,7 @@
         var metaLeft = count > 1
             ? '<span style="font-size:0.75rem;">Quantity: <strong style="color:var(--text-primary);">' + count + '</strong></span>'
             : '<span style="font-size:0.75rem;">Serial: <strong style="color:var(--text-primary);">' + escapeHtml(serials[0] || '') + '</strong></span>';
-        var sexLabel = (typeof cardSexLabel === 'function') ? cardSexLabel(card, serials) : '';
+        var sexLabel = (typeof cardSexLabel === 'function') ? cardSexLabel(card, serials, (typeof getSexLabels === 'function' ? getSexLabels() : null)) : '';
         var sexSpan = sexLabel ? '<span style="font-size:0.75rem; font-weight:600;">' + escapeHtml(sexLabel) + '</span>' : '';
 
         el.innerHTML =

@@ -12,6 +12,7 @@
     "Legendary": 8,
     "Mythic": 16
   },
+  "sex_labels": { "odd": "Male", "even": "Female" },
 "slot_layouts": [
     { "block": 0, "Common": 8, "Rare": 3, "Epic": 2, "Legendary": 2, "Mythic": 1 },
     { "block": 110611473 , "Common": 12, "Rare": 5, "Epic": 4, "Legendary": 4, "Mythic": 3 }
