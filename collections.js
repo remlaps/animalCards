@@ -234,6 +234,18 @@ const tickingProcessBlock = async (blockNum) => {
                 }
             }
 
+            // Which card_ids the account holds at least one Male / Female copy of.
+            // (Sex comes from the owning serial's block parity: odd block -> Male, even block -> Female.)
+            const ownedMaleIds = new Set();
+            const ownedFemaleIds = new Set();
+            for (const [cardId, serials] of ownedSerials) {
+                for (const serial of serials) {
+                    const sex = (typeof sexFromSerial === 'function') ? sexFromSerial(serial) : null;
+                    if (sex === 'Male') ownedMaleIds.add(cardId);
+                    else if (sex === 'Female') ownedFemaleIds.add(cardId);
+                }
+            }
+
             // Total individual cards owned (with duplicates) vs. distinct cards.
             const totalCards = Array.from(ownedSerials.values()).reduce((sum, serials) => sum + serials.length, 0);
             const uniqueCards = ownedCardIds.size;
@@ -313,23 +325,51 @@ const tickingProcessBlock = async (blockNum) => {
             function renderCollectionCard(label, totalCards, ownedIds, allCardsInSet, fillClass) {
                 const owned = allCardsInSet.filter(c => ownedIds.has(c.card_id));
                 collOwnedMap[label] = owned.map(function (c) { return earnedByCardId.get(c.card_id); }).filter(Boolean);
-                const missing = allCardsInSet.filter(c => !ownedIds.has(c.card_id));
                 const pct = totalCards > 0 ? Math.round(owned.length / totalCards * 100) : 0;
 
-                const ownedHtml = owned.length > 0
-                    ? '<ul class="coll-card-list" style="list-style:none;padding:0;margin:0;">' +
-                    owned.map(c => '<li class="coll-owned">\u2713 ' + c.species + '</li>').join('') + '</ul>'
-                    : '<span style="color:var(--text-secondary);font-style:italic;">None owned</span>';
+                // Sex breakdown: only species with distinct sexes count toward the
+                // Male/Female targets (unsexed/sex-changing species never get a label).
+                const sexed = allCardsInSet.filter(c => cardIsSexed(c));
+                const maleOwned = sexed.filter(c => ownedMaleIds.has(c.card_id));
+                const femaleOwned = sexed.filter(c => ownedFemaleIds.has(c.card_id));
+                const malePct = sexed.length > 0 ? Math.round(maleOwned.length / sexed.length * 100) : 0;
+                const femalePct = sexed.length > 0 ? Math.round(femaleOwned.length / sexed.length * 100) : 0;
 
-                const missingHtml = missing.length > 0
-                    ? '<hr class="coll-separator"><div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:0.25rem;">Missing:</div>' +
-                    '<ul class="coll-card-list" style="list-style:none;padding:0;margin:0;">' +
-                    missing.map(c => '<li class="coll-missing">\u2717 ' + c.species + '</li>').join('') + '</ul>'
-                    : '';
+                // Sex-status table: one row per card, owned first, then missing.
+                // Any = owned at all; Male/Female = that sex held (?), missing (?), or n/a (-).
+                const cell = (held, applicable) => applicable
+                    ? (held ? '<span class="sex-yes">✓</span>' : '<span class="sex-no">✗</span>')
+                    : '<span class="sex-na">—</span>';
+                const rowHtml = (c) => {
+                    const isOwned = ownedIds.has(c.card_id);
+                    const sexable = cardIsSexed(c);
+                    return '<tr class="' + (isOwned ? '' : 'sex-row-missing') + '">' +
+                        '<td class="sex-species">' + c.species + '</td>' +
+                        '<td>' + cell(isOwned, true) + '</td>' +
+                        '<td>' + cell(ownedMaleIds.has(c.card_id), sexable) + '</td>' +
+                        '<td>' + cell(ownedFemaleIds.has(c.card_id), sexable) + '</td>' +
+                    '</tr>';
+                };
+                const missing = allCardsInSet.filter(c => !ownedIds.has(c.card_id));
+                const ordered = owned.concat(missing);
+                const tableHtml = ordered.length > 0
+                    ? '<table class="coll-sex-table"><thead><tr>' +
+                        '<th>Species</th><th title="Any copy owned">Any</th>' +
+                        '<th title="A male copy is owned">♂ Male</th><th title="A female copy is owned">♀ Female</th>' +
+                      '</tr></thead><tbody>' + ordered.map(rowHtml).join('') + '</tbody></table>'
+                    : '<span style="color:var(--text-secondary);font-style:italic;">No cards in this collection</span>';
 
                 const toggleHtml = '<details class="coll-details">' +
-                    '<summary>Show cards \u25bc</summary>' +
-                    ownedHtml + missingHtml + '</details>';
+                    '<summary>Show cards ▼</summary>' +
+                    tableHtml + '</details>';
+
+                // Male/Female mini progress bars (only when the set has sexed cards).
+                const sexBars = sexed.length > 0
+                    ? '<div class="coll-card-sub" style="margin-top:0.6rem;">♂ Males: ' + maleOwned.length + ' / ' + sexed.length + ' (' + malePct + '%)</div>' +
+                      '<div class="coll-progress-bar-bg"><div class="coll-progress-bar-fill" style="width:' + malePct + '%;background:#3b82f6;"></div></div>' +
+                      '<div class="coll-card-sub" style="margin-top:0.6rem;">♀ Females: ' + femaleOwned.length + ' / ' + sexed.length + ' (' + femalePct + '%)</div>' +
+                      '<div class="coll-progress-bar-bg"><div class="coll-progress-bar-fill" style="width:' + femalePct + '%;background:#ec4899;"></div></div>'
+                    : '';
 
                 return '<div class="coll-card">' +
                     '<div class="coll-card-header"><span>' + label + '</span>' +
@@ -339,6 +379,7 @@ const tickingProcessBlock = async (blockNum) => {
                     '</span></div>' +
                     '<div class="coll-card-sub">' + pct + '% complete</div>' +
                     '<div class="coll-progress-bar-bg"><div class="coll-progress-bar-fill ' + fillClass + '" style="width:' + pct + '%;"></div></div>' +
+                    sexBars +
                     toggleHtml + '</div>';
             }
 
