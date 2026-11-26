@@ -418,7 +418,7 @@ const weightedTotalByAccount = {};
                             const serialOrQty = qty > 1
                                 ? `<span style="font-size:0.75rem;">Quantity: <strong style="color:var(--text-primary);">${qty}</strong></span>`
                                 : `<span style="font-size:0.75rem;">Serial: <strong style="color:var(--text-primary);">${u.serials[0]}</strong></span>`;
-                            const sexLabel = cardSexLabel(u.card, u.serials);
+                            const sexLabel = cardSexLabel(u.card, u.serials, getSexLabels());
                             const sexSpan = sexLabel ? `<span style="font-size:0.75rem; font-weight:600;">${sexLabel}</span>` : '';
                             return `
                             <div class="tribute-card" data-rarity="${u.rarity || u.card.rarity || ''}">

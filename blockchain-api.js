@@ -244,19 +244,33 @@ class BlockchainAPI {
 const api = new BlockchainAPI();
 
 // --- Sex designation -------------------------------------------------------
-// Every earned card's serial is "<BLOCK>.<SUFFIX>" (suffix ".0" = STEEM, ".1" = SBD).
-// Ignoring the asset suffix, the block number's parity decides the designation:
-// odd block -> Male, even block -> Female. A species can opt out via an optional
-// `reproduction` field in cards-config.json ("sexed" = default/absent, "unsexed",
-// "sex-changing", "sex-changing-m2f", "sex-changing-f2m"); any value other than
-// absent/"sexed" suppresses the designation for now.
-function sexFromSerial(serial) {
-    const block = parseInt(String(serial == null ? '' : serial).split('.')[0], 10);
-    if (isNaN(block)) return null;
-    return (block % 2 === 1) ? 'Male' : 'Female';
+// A card's sex is a pure function of its serial's block parity, mapped through a
+// game-level vocabulary defined in cards-config.json:
+//     "sex_labels": { "odd": "Male", "even": "Female" }
+// (falls back to that default when the config omits it). The asset suffix (".0" =
+// STEEM, ".1" = SBD) is ignored. A species opts out via an optional per-card
+// `reproduction` field ("sexed" = default/absent, "unsexed", "sex-changing",
+// "sex-changing-m2f", "sex-changing-f2m"); any value other than absent/"sexed"
+// suppresses the designation for now.
+const DEFAULT_SEX_LABELS = { odd: 'Male', even: 'Female' };
+
+// The parity -> label mapping from config, or the default when absent/unloaded.
+function getSexLabels() {
+    return (typeof api !== 'undefined' && api && api.rawConfig && api.rawConfig.sex_labels) || DEFAULT_SEX_LABELS;
 }
 
-// Whether a resolved card's species shows a Male/Female designation. Generic cards,
+// Map a serial's block parity to its sex label. `labels` comes from config.
+function sexFromSerial(serial, labels) {
+    labels = labels || DEFAULT_SEX_LABELS;
+    const block = parseInt(String(serial == null ? '' : serial).split('.')[0], 10);
+    if (isNaN(block)) return null;
+    return (block % 2 === 1) ? labels.odd : labels.even;
+}
+
+// Sex label -> on-card glyph (presentation detail).
+const SEX_GLYPHS = { Male: '♂', Female: '♀' };
+
+// Whether a resolved card's species shows a sex designation. Generic cards,
 // placeholders, and any species flagged unsexed/sex-changing are excluded.
 function cardIsSexed(card) {
     if (!card || card.is_generic || card.isPlaceholder) return false;
@@ -264,25 +278,27 @@ function cardIsSexed(card) {
     return r == null || r === '' || r === 'sexed';
 }
 
-// Label for a card: "♂ Male"/"♀ Female" for a single serial, or a "2♂ · 1♀" tally
-// when several serials are grouped. Returns '' when the card is not sexed.
-function cardSexLabel(card, serials) {
+// Label for a card: "<glyph> <sex>" for a single serial, or a "<glyph>N · <glyph>N"
+// tally when several serials are grouped. Returns '' when the card is not sexed.
+function cardSexLabel(card, serials, labels) {
     if (!cardIsSexed(card)) return '';
+    labels = labels || DEFAULT_SEX_LABELS;
     const list = (serials || []).filter(Boolean);
     if (!list.length) return '';
     if (list.length === 1) {
-        const s = sexFromSerial(list[0]);
-        return s === 'Male' ? '♂ Male' : s === 'Female' ? '♀ Female' : '';
+        const s = sexFromSerial(list[0], labels);
+        if (!s) return '';
+        return SEX_GLYPHS[s] ? (SEX_GLYPHS[s] + ' ' + s) : s;
     }
-    let males = 0, females = 0;
+    const counts = {};
     for (const ser of list) {
-        const s = sexFromSerial(ser);
-        if (s === 'Male') males++;
-        else if (s === 'Female') females++;
+        const s = sexFromSerial(ser, labels);
+        if (s) counts[s] = (counts[s] || 0) + 1;
     }
+    const order = [labels.odd, labels.even];
+    for (const k of Object.keys(counts)) { if (order.indexOf(k) === -1) order.push(k); }
     const parts = [];
-    if (males) parts.push('♂' + males);
-    if (females) parts.push('♀' + females);
+    for (const k of order) { if (counts[k]) parts.push((SEX_GLYPHS[k] || '') + counts[k]); }
     return parts.join(' · ');
 }
 

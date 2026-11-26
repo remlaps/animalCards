@@ -61,6 +61,22 @@ Every burn (a `transfer` to `null`) earns a card:
 - **OPEN.** A protocol version tag, with the rule that *past blocks resolve under the rules in
   force at their block*. Must be defined before external implementers build against this.
 
+### 1.5 Sex designation *(implemented 2026-11-25)*
+A card's sex is a pure function of its serial's **block parity**, mapped through a game-level
+vocabulary in `cards-config.json`:
+
+```jsonc
+"sex_labels": { "odd": "Male", "even": "Female" }
+```
+
+- `sexFromSerial(serial, labels)` → `labels[block % 2 ? "odd" : "even"]`; the `.0`/`.1` asset
+  suffix is ignored.
+- Only *sexed* species get a designation. A per-card optional `reproduction` field
+  (`"sexed"` = default/absent, `"unsexed"`, `"sex-changing"`, `"sex-changing-m2f"`,
+  `"sex-changing-f2m"`) suppresses it.
+- Rendering (♂/♀ glyphs, layout) is **presentation**; the parity→label *fact* is protocol +
+  config, so every front-end must reproduce it identically.
+
 ---
 
 ## 2. Card-instance identity — **OPEN**

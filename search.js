@@ -492,7 +492,7 @@ const verifyBadge = (c) => `<span class="verify-badge" title="Hash: ${c.trx_id}"
                     : `<span style="font-size:0.75rem;">Serial: <strong style="color:var(--text-primary);">${c.serial}</strong></span>`;
                 const timeSpan = `<span style="font-size:0.75rem;">${formatGMT(c.timestamp)}</span>`;
                 const countSpan = showCount ? `<span style="font-size:0.75rem;">Quantity: <strong style="color:var(--text-primary);">${count}</strong></span>` : '';
-                const sexLabel = cardSexLabel(c, serials);
+                const sexLabel = cardSexLabel(c, serials, getSexLabels());
                 const sexSpan = sexLabel ? `<span style="font-size:0.75rem; font-weight:600;">${sexLabel}</span>` : '';
                 if (c.isPlaceholder) {
                     cardEl.innerHTML = `

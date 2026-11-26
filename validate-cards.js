@@ -81,6 +81,14 @@ if (weightSum !== 100) {
     errors.push(`class_weights sum to ${weightSum}, expected 100.`);
 }
 
+// sex_labels (optional): parity -> label vocabulary, e.g. { odd: "Male", even: "Female" }.
+if (cfg.sex_labels != null) {
+    const sl = cfg.sex_labels;
+    if (typeof sl !== 'object' || typeof sl.odd !== 'string' || typeof sl.even !== 'string') {
+        errors.push('sex_labels must be an object with string "odd" and "even" (e.g. { "odd": "Male", "even": "Female" }).');
+    }
+}
+
 // 2. unique card_id
 const seenIds = new Map();
 for (const c of cards) {
