@@ -50,6 +50,7 @@ jobs:
             --exclude '.gitignore' \
             --exclude '.clinerules' \
             --exclude 'README.md' \
+            --exclude 'docs' \
             --exclude 'validate-cards.js' \
             --exclude 'resolve-card.js' \
             --exclude 'test-cards.js' \

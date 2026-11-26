@@ -9,9 +9,9 @@ third-party front-end can implement to reproduce animalCards exactly. It is inte
 skeleton: sections marked **OPEN** are undecided, and each significant decision has an ADR
 under `docs/decisions/`.
 
-> The existing `docs/REARCHITECTURE.md` (draft, on the `rearchitecture-plan` branch) sketched
-> the three-layer split. This document supersedes it as the *protocol* spec and links to the
-> decisions made since (notably the 2026-11-25 award-rule change).
+> **Related:** [`ARCHITECTURE.md`](./ARCHITECTURE.md) covers the repository / layer split
+> (imported from the earlier `rearchitecture-plan` draft). This document covers the *rules*
+> themselves and links to the decisions made since (notably the 2026-11-25 award-rule change).
 
 ---
 
@@ -109,4 +109,4 @@ references the offer's op id. The authoritative result is produced by reducing t
 - `docs/decisions/0001-layer-split.md` … `0005-transfer-protocol.md`
 - `README.md` — "CRITICAL — Determinism Warning"
 - `card-resolver.js`, `difficulty.js` — the current engine
-- `docs/REARCHITECTURE.md` — earlier 3-repo draft (on `rearchitecture-plan`)
+- `docs/ARCHITECTURE.md` — repository / layer structure (imported from the earlier 3-repo draft)
