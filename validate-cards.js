@@ -42,6 +42,9 @@ if (Array.isArray(slotLayouts) && slotLayouts.length > 0) {
 }
 const VALID_RARITIES = new Set(['Generic', ...Object.keys(RARITY_SLOT_COUNTS)]);
 const MONOTONIC_ORDER = ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic'];
+// Optional per-card reproduction field. Absent (or "sexed") = ordinary sexed species;
+// "unsexed"/"sex-changing"/"sex-changing-m2f"/"sex-changing-f2m" suppress the Male/Female label.
+const VALID_REPRODUCTION = new Set(['sexed', 'unsexed', 'sex-changing', 'sex-changing-m2f', 'sex-changing-f2m']);
 
 const errors = [];
 const warnings = [];
@@ -111,6 +114,9 @@ for (const c of cards) {
     }
     if (!Object.keys(weights).includes(c.class)) {
         errors.push(`Card #${c.card_id} (${c.species}) class "${c.class}" is not a key in class_weights.`);
+    }
+    if (c.reproduction != null && !VALID_REPRODUCTION.has(c.reproduction)) {
+        errors.push(`Card #${c.card_id} (${c.species}) has unknown reproduction "${c.reproduction}" (allowed: ${[...VALID_REPRODUCTION].join(', ')}).`);
     }
 }
 

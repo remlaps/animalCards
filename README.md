@@ -328,6 +328,23 @@ You may freely change `species`, `image_url`, `generation`, `photo_credit` — t
 `rarity`, or `slot` (that remaps what past winning blocks resolve to), and do **not**
 narrow an existing window.
 
+#### Male/Female designation (`reproduction`)
+
+Each earned card is labeled **Male** or **Female** from its serial: the block number's
+parity decides (odd block → Male, even → Female), ignoring the `.0`/`.1` asset suffix.
+The optional `reproduction` field on a species card controls this:
+
+| Value | Meaning |
+| --- | --- |
+| *(absent)* or `"sexed"` | dioecious — gets a Male/Female label (this is the default) |
+| `"unsexed"` | hermaphrodite / no distinct sexes — no label |
+| `"sex-changing"` | sex-changing (direction unspecified) — no label |
+| `"sex-changing-m2f"` | male→female (protandrous) — no label |
+| `"sex-changing-f2m"` | female→male (protogynous) — no label |
+
+Leave the field **out** for the normal case; `"sexed"` is accepted but not required.
+`validate-cards.js` rejects any other value.
+
 ### Generic cards
 
 Each class should have exactly **one** generic placeholder card

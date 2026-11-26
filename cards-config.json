@@ -304,6 +304,7 @@
     {
       "card_id": 29,
       "species": "Atlantic Goliath Grouper",
+      "reproduction": "sex-changing-f2m",
       "class": "Fish, Mollusk & Crustacean",
       "rarity": "Legendary",
       "slot": 0,
@@ -544,6 +545,7 @@
     {
       "card_id": 53,
       "species": "Indian Longnose Parrotfish",
+      "reproduction": "sex-changing-f2m",
       "class": "Fish, Mollusk & Crustacean",
       "rarity": "Common",
       "slot": 1,
@@ -554,6 +556,7 @@
     {
       "card_id": 54,
       "species": "Mahsena Emperor",
+      "reproduction": "sex-changing-f2m",
       "class": "Fish, Mollusk & Crustacean",
       "rarity": "Common",
       "slot": 2,
@@ -944,6 +947,7 @@
     {
       "card_id": 91,
       "species": "Nassau Grouper",
+      "reproduction": "sex-changing-f2m",
       "class": "Fish, Mollusk & Crustacean",
       "rarity": "Mythic",
       "slot": 1,
@@ -955,6 +959,7 @@
     {
       "card_id": 92,
       "species": "Dusky Grouper",
+      "reproduction": "sex-changing-f2m",
       "class": "Fish, Mollusk & Crustacean",
       "rarity": "Mythic",
       "slot": 2,
@@ -977,6 +982,7 @@
     {
       "card_id": 94,
       "species": "Candy Cane Snail",
+      "reproduction": "unsexed",
       "class": "Fish, Mollusk & Crustacean",
       "rarity": "Legendary",
       "slot": 3,

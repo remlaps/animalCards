@@ -343,6 +343,8 @@
         var metaLeft = count > 1
             ? '<span style="font-size:0.75rem;">Quantity: <strong style="color:var(--text-primary);">' + count + '</strong></span>'
             : '<span style="font-size:0.75rem;">Serial: <strong style="color:var(--text-primary);">' + escapeHtml(serials[0] || '') + '</strong></span>';
+        var sexLabel = (typeof cardSexLabel === 'function') ? cardSexLabel(card, serials) : '';
+        var sexSpan = sexLabel ? '<span style="font-size:0.75rem; font-weight:600;">' + escapeHtml(sexLabel) + '</span>' : '';
 
         el.innerHTML =
             '<div class="card-image-container">' +
@@ -361,6 +363,7 @@
                 '<p class="card-attribution">' + attribution + '</p>' +
                 '<div class="card-meta">' +
                     metaLeft +
+                    sexSpan +
                     '<span class="verify-badge">Verified</span>' +
                 '</div>' +
             '</div>';
