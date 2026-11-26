@@ -23,6 +23,21 @@ function dlButton(u, account) {
     });
 }
 
+// Run an async fn over items with at most `concurrency` tasks in flight.
+async function mapWithConcurrency(items, concurrency, fn) {
+    const results = new Array(items.length);
+    let next = 0;
+    async function worker() {
+        while (next < items.length) {
+            const i = next++;
+            results[i] = await fn(items[i], i);
+        }
+    }
+    const n = Math.max(1, Math.min(concurrency, items.length));
+    await Promise.all(Array.from({ length: n }, () => worker()));
+    return results;
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     const timeFilter = document.getElementById('time-filter');
     const loading = document.getElementById('loading');
@@ -64,6 +79,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const burnSTEEM = {};
             const burnSBD = {};
             const blocksData = {};
+            const burns = []; // every STEEM/SBD burn in the window; each now yields a card
 
             // Group history by block
             for (const item of history) {
@@ -78,6 +94,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     burners[from] += val; // Total across all assets (used for ranking)
                     if (asset === 'STEEM') burnSTEEM[from] = (burnSTEEM[from] || 0) + val;
                     else if (asset === 'SBD') burnSBD[from] = (burnSBD[from] || 0) + val;
+
+                    if (asset === 'STEEM' || asset === 'SBD') {
+                        burns.push({ account: from, asset, amount: val, block: item.block, trx_id: item.trx_id, timestamp: item.timestamp });
+                    }
 
                     if (!blocksData[item.block]) {
                         blocksData[item.block] = {
@@ -98,40 +118,38 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
-            // Determine cards for each block.
-            // winsByAccount -> every card win per account (all serials in the timeframe).
+            // Resolve a card for EVERY burn. The block+asset's unique top burner gets
+            // the full card; everyone else (tied top burners and lower burns) gets the
+            // same resolution downgraded one rarity tier (the old tie rule).
+            //   winsByAccount  -> only unique top-burner wins (drives Titles + streak)
+            //   cardsByAccount -> every card, wins + downgraded (drives ranking + lists)
             const winsByAccount = {};
-            const blockNums = Object.keys(blocksData).sort((a, b) => b - a); // Newest blocks first
-
-            for (const blockNum of blockNums) {
-                const bData = blocksData[blockNum];
-
-                const assets = [
-                    { asset: 'STEEM', serial: `${blockNum}.0`, data: bData.STEEM },
-                    { asset: 'SBD', serial: `${blockNum}.1`, data: bData.SBD }
-                ];
-
-                for (const a of assets) {
-                    const isTie = a.data.winners.length > 1;
-                    for (const w of a.data.winners) {
-                        const resolved = await api.resolveCardForBlock(a.serial, w.trx_id, { winningBurnAmount: a.data.maxBurn, tie: isTie });
-                        const mint = {
-                            account: w.account,
-                            status: resolved.status,
-                            className: resolved.className,
-                            rarity: resolved.rarity,
-                            card: resolved.card,
-                            generic_reason: resolved.generic_reason || null,
-                            block: blockNum,
-                            trx_id: w.trx_id,
-                            serial: a.serial,
-                            asset: a.asset
-                        };
-                        if (!winsByAccount[mint.account]) winsByAccount[mint.account] = [];
-                        winsByAccount[mint.account].push(mint);
-                    }
+            const cardsByAccount = {};
+            await mapWithConcurrency(burns, 8, async (b) => {
+                const slot = blocksData[b.block][b.asset];
+                const isWin = slot.winners.length === 1 && slot.winners[0].trx_id === b.trx_id;
+                const serial = `${b.block}.${b.asset === 'STEEM' ? 0 : 1}`;
+                const resolved = await api.resolveCardForBlock(serial, b.trx_id, { winningBurnAmount: b.amount, tie: !isWin });
+                const mint = {
+                    account: b.account,
+                    status: resolved.status,
+                    className: resolved.className,
+                    rarity: resolved.rarity,
+                    card: resolved.card,
+                    generic_reason: resolved.generic_reason || null,
+                    block: b.block,
+                    trx_id: b.trx_id,
+                    serial: serial,
+                    asset: b.asset,
+                    won: isWin
+                };
+                if (isWin) {
+                    if (!winsByAccount[mint.account]) winsByAccount[mint.account] = [];
+                    winsByAccount[mint.account].push(mint);
                 }
-            }
+                if (!cardsByAccount[mint.account]) cardsByAccount[mint.account] = [];
+                cardsByAccount[mint.account].push(mint);
+            });
 // Weighted card total per account: each card won contributes its rarity's
             // weight (1 for Common, 2 for Rare, 4 for Epic, ... from cards-config.json).
             // Generic and not-yet-released ('none') cards also count, using their slot rarity.
@@ -182,7 +200,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             var streakDays = searchLengthDays(timeConstraint);
 
 const weightedTotalByAccount = {};
-            for (const [acct, mints] of Object.entries(winsByAccount)) {
+            for (const [acct, mints] of Object.entries(cardsByAccount)) {
                 let total = 0;
                 for (const m of mints) {
                     total += api.beneficiaries[m.rarity] || 1;
@@ -207,7 +225,7 @@ const weightedTotalByAccount = {};
             for (const [account] of sortedBurners) {
                 const byCard = new Map();
                 const pendingClasses = new Map();
-                for (const m of (winsByAccount[account] || [])) {
+                for (const m of (cardsByAccount[account] || [])) {
                     if (m.status === 'none') {
                         // No card issued for this class yet; record which class + rarity it would've been.
                         const pkey = `${m.className}|${m.rarity}`;

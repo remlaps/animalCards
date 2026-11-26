@@ -186,29 +186,39 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
-            // 3) Compute the account's totals and the newest-first block list from the
-            //    data already gathered. No per-block fetch or verification needed —
-            //    the null history already gave us exact block numbers and trx ids.
+            // 3) Compute the account's totals and the blocks where it burned. Every
+            //    burn now yields a card: the block+asset's unique top burner gets the
+            //    full card, and everyone else (tied top burners and lower burns) gets
+            //    the same resolution downgraded one rarity tier — the old tie rule.
             const totalSteem = transfers.reduce((s, t) => s + (t.unit === 'STEEM' ? t.amount : 0), 0);
             const totalSbd = transfers.reduce((s, t) => s + (t.unit === 'SBD' ? t.amount : 0), 0);
             const burnTransactionCount = transfers.length;
-            const blockNums = Object.keys(blocksData).sort((a, b) => b - a); // Newest first
+
+            // The account's own burns, grouped by block (one card per burn).
+            const transfersByBlock = {};
+            for (const t of transfers) {
+                (transfersByBlock[t.block] = transfersByBlock[t.block] || []).push(t);
+            }
+            const awardBlocks = Object.keys(transfersByBlock).map(Number).sort((a, b) => b - a); // Newest first
 
             let processed = 0;
-            loadingStatus.textContent = 'Identifying BurnMaxxers...';
-            loadingProgress.textContent = `Checked 0 of ${blockNums.length.toLocaleString()} BurnMaxxer operations`;
+            loadingStatus.textContent = 'Resolving your burn cards...';
+            loadingProgress.textContent = `Checked 0 of ${awardBlocks.length.toLocaleString()} burn blocks`;
 
-            async function processBlock(blockNumStr) {
-                const blockNum = Number(blockNumStr);
+            async function processBlock(blockNum) {
                 const bData = blocksData[blockNum];
+                const myBurns = transfersByBlock[blockNum] || [];
                 const found = [];
 
-                // Only fetch the block if this account won an asset in it. Grabbing the
-                // block once yields the authoritative header timestamp (account-history
-                // timestamps run 3s behind the real block time).
-                const accountWon = bData.STEEM.winners.some(we => we.account === account) || bData.SBD.winners.some(we => we.account === account);
+                // Fetch the block header once (authoritative timestamp) only when this
+                // account was a block+asset's sole top burner; otherwise fall back to
+                // the account-history timestamp (+3s correction below).
+                const iWon = myBurns.some(t => {
+                    const w = bData[t.unit].winners;
+                    return w.length === 1 && w[0].trx_id === t.trx_id;
+                });
                 let blockTimestamp = null;
-                if (accountWon) {
+                if (iWon) {
                     try {
                         const block = await api.getBlock(blockNum);
                         if (block && block.timestamp) blockTimestamp = block.timestamp;
@@ -221,27 +231,25 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const fallbackTimestamp = (slotTs) =>
                     new Date(new Date(slotTs + 'Z').getTime() + 3000).toISOString().slice(0, 19);
 
-                for (const asset of ['STEEM', 'SBD']) {
-                    const slot = bData[asset];
-                    // Find this account's winning entry (if any) in the winners array.
-                    const winEntry = slot.winners.find(we => we.account === account);
-                    if (winEntry) {
-                        const isTie = slot.winners.length > 1;
-                        const serial = `${blockNum}.${asset === 'STEEM' ? 0 : 1}`;
-                        const resolved = await api.resolveCardForBlock(serial, winEntry.trx_id, { winningBurnAmount: slot.maxBurn, tie: isTie });
-                        found.push({
-                            account: account,
-                            status: resolved.status,
-                            className: resolved.className,
-                            rarity: resolved.rarity,
-                            card: resolved.card,
-                            generic_reason: resolved.generic_reason || null,
-                            block: blockNum,
-                            trx_id: winEntry.trx_id,
-                            serial: serial,
-                            timestamp: blockTimestamp || fallbackTimestamp(slot.timestamp)
-                        });
-                    }
+                for (const t of myBurns) {
+                    const slot = bData[t.unit];
+                    // Full card only for the block+asset's unique top burner.
+                    const isWin = slot.winners.length === 1 && slot.winners[0].trx_id === t.trx_id;
+                    const serial = `${blockNum}.${t.unit === 'STEEM' ? 0 : 1}`;
+                    const resolved = await api.resolveCardForBlock(serial, t.trx_id, { winningBurnAmount: t.amount, tie: !isWin });
+                    found.push({
+                        account: account,
+                        status: resolved.status,
+                        className: resolved.className,
+                        rarity: resolved.rarity,
+                        card: resolved.card,
+                        generic_reason: resolved.generic_reason || null,
+                        block: blockNum,
+                        trx_id: t.trx_id,
+                        serial: serial,
+                        won: isWin,
+                        timestamp: blockTimestamp || fallbackTimestamp(t.timestamp)
+                    });
                 }
 
                 return found;
@@ -251,11 +259,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             const tickingProcessBlock = async (blockNum) => {
                 const result = await processBlock(blockNum);
                 processed++;
-                loadingProgress.textContent = `Checked ${processed.toLocaleString()} of ${blockNums.length.toLocaleString()} BurnMaxxer operations`;
+                loadingProgress.textContent = `Checked ${processed.toLocaleString()} of ${awardBlocks.length.toLocaleString()} burn blocks`;
                 return result;
             };
 
-            const perBlockCards = await mapWithConcurrency(blockNums, BLOCK_CONCURRENCY, tickingProcessBlock);
+            const perBlockCards = await mapWithConcurrency(awardBlocks, BLOCK_CONCURRENCY, tickingProcessBlock);
             const wonCards = perBlockCards.flat();
 
             header.textContent = `Portfolio for @${account}`;

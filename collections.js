@@ -142,8 +142,10 @@ form.addEventListener('submit', async (e) => {
                 }
             });
 
-            // Group burns by block + asset
+            // Group burns by block + asset (all accounts, for top-burner detection)
+            // and record the searched account's own burns (each now yields a card).
             const blocksData = {};
+            const transfers = [];
             for (const item of history) {
                 const op = item.op;
                 if (op[0] !== 'transfer' || op[1].to !== 'null') continue;
@@ -151,6 +153,10 @@ form.addEventListener('submit', async (e) => {
                 const [valStr, asset] = op[1].amount.split(' ');
                 const val = parseFloat(valStr);
                 if (asset !== 'STEEM' && asset !== 'SBD') continue;
+
+                if (from === account) {
+                    transfers.push({ amount: val, unit: asset, block: item.block, trx_id: item.trx_id, timestamp: item.timestamp });
+                }
 
                 if (!blocksData[item.block]) {
                     blocksData[item.block] = {
@@ -167,22 +173,31 @@ form.addEventListener('submit', async (e) => {
                 }
             }
 
-            const blockNums = Object.keys(blocksData).sort((a, b) => b - a);
+            // The account's own burns, grouped by block (one card per burn).
+            const transfersByBlock = {};
+            for (const t of transfers) {
+                (transfersByBlock[t.block] = transfersByBlock[t.block] || []).push(t);
+            }
+            const awardBlocks = Object.keys(transfersByBlock).map(Number).sort((a, b) => b - a);
             let processed = 0;
-            loadingStatus.textContent = 'Identifying BurnMaxxers...';
-            loadingProgress.textContent = 'Checked 0 of ' + blockNums.length.toLocaleString() + ' BurnMaxxer operations';
+            loadingStatus.textContent = 'Resolving your burn cards...';
+            loadingProgress.textContent = 'Checked 0 of ' + awardBlocks.length.toLocaleString() + ' burn blocks';
 
             const wonCards = [];
 
-            async function processBlock(blockNumStr) {
-                const blockNum = Number(blockNumStr);
+            async function processBlock(blockNum) {
                 const bData = blocksData[blockNum];
+                const myBurns = transfersByBlock[blockNum] || [];
                 const found = [];
-                const accountWon = bData.STEEM.winners.some(we => we.account === account) ||
-                    bData.SBD.winners.some(we => we.account === account);
 
+                // Authoritative block timestamp fetched only when this account was a
+                // block+asset's sole top burner; otherwise the +3s fallback is used.
+                const iWon = myBurns.some(t => {
+                    const w = bData[t.unit].winners;
+                    return w.length === 1 && w[0].trx_id === t.trx_id;
+                });
                 let blockTimestamp = null;
-                if (accountWon) {
+                if (iWon) {
                     try {
                         const block = await api.getBlock(blockNum);
                         if (block && block.timestamp) blockTimestamp = block.timestamp;
@@ -192,31 +207,30 @@ form.addEventListener('submit', async (e) => {
                 const fallbackTimestamp = (slotTs) =>
                     new Date(new Date(slotTs + 'Z').getTime() + 3000).toISOString().slice(0, 19);
 
-                for (const asset of ['STEEM', 'SBD']) {
-                    const slot = bData[asset];
-                    const winEntry = slot.winners.find(we => we.account === account);
-                    if (winEntry) {
-                        const isTie = slot.winners.length > 1;
-                        const serial = blockNum + '.' + (asset === 'STEEM' ? 0 : 1);
-                        const resolved = await api.resolveCardForBlock(serial, winEntry.trx_id, { winningBurnAmount: slot.maxBurn, tie: isTie });
-                        found.push({
-                            account, status: resolved.status, className: resolved.className,
-                            rarity: resolved.rarity, card: resolved.card, block: blockNum,
-                            trx_id: winEntry.trx_id, serial,
-                            timestamp: blockTimestamp || fallbackTimestamp(slot.timestamp)
-                        });
-                    }
+                for (const t of myBurns) {
+                    const slot = bData[t.unit];
+                    // Full card only for the block+asset's unique top burner; every
+                    // other burn gets the same resolution downgraded one rarity tier.
+                    const isWin = slot.winners.length === 1 && slot.winners[0].trx_id === t.trx_id;
+                    const serial = blockNum + '.' + (t.unit === 'STEEM' ? 0 : 1);
+                    const resolved = await api.resolveCardForBlock(serial, t.trx_id, { winningBurnAmount: t.amount, tie: !isWin });
+                    found.push({
+                        account, status: resolved.status, className: resolved.className,
+                        rarity: resolved.rarity, card: resolved.card, block: blockNum,
+                        trx_id: t.trx_id, serial, won: isWin,
+                        timestamp: blockTimestamp || fallbackTimestamp(t.timestamp)
+                    });
                 }
                 return found;
             }
-const tickingProcessBlock = async (blockNum) => {
+            const tickingProcessBlock = async (blockNum) => {
                 const result = await processBlock(blockNum);
                 processed++;
-                loadingProgress.textContent = 'Checked ' + processed.toLocaleString() + ' of ' + blockNums.length.toLocaleString() + ' BurnMaxxer operations';
+                loadingProgress.textContent = 'Checked ' + processed.toLocaleString() + ' of ' + awardBlocks.length.toLocaleString() + ' burn blocks';
                 return result;
             };
 
-            const perBlockCards = await mapWithConcurrency(blockNums, 4, tickingProcessBlock);
+            const perBlockCards = await mapWithConcurrency(awardBlocks, 4, tickingProcessBlock);
             for (const cards of perBlockCards) {
                 for (const c of cards) wonCards.push(c);
             }
@@ -261,9 +275,10 @@ const tickingProcessBlock = async (blockNum) => {
                 }
             }
 
-            // --- Streak calculation ---
+            // --- Streak calculation (unique top-burner wins only) ---
             const winDays = new Set();
             for (const m of wonCards) {
+                if (!m.won) continue;
                 const d = new Date(m.timestamp + 'Z');
                 if (!isNaN(d.getTime())) {
                     winDays.add(d.toISOString().slice(0, 10));
