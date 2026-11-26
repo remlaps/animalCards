@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     else if (asset === 'SBD') burnSBD[from] = (burnSBD[from] || 0) + val;
 
                     if (asset === 'STEEM' || asset === 'SBD') {
-                        burns.push({ account: from, asset, amount: val, block: item.block, trx_id: item.trx_id, timestamp: item.timestamp });
+                        burns.push({ account: from, asset, amount: val, block: item.block, trxId: item.trx_id, timestamp: item.timestamp });
                     }
 
                     if (!blocksData[item.block]) {
@@ -118,32 +118,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
-            // Resolve a card for EVERY burn. The block+asset's unique top burner gets
-            // the full card; everyone else (tied top burners and lower burns) gets the
-            // same resolution downgraded one rarity tier (the old tie rule).
+            // The award policy + winner determination live in the engine; here we
+            // resolve each derived award and bucket it.
             //   winsByAccount  -> only unique top-burner wins (drives Titles + streak)
             //   cardsByAccount -> every card, wins + downgraded (drives ranking + lists)
             const winsByAccount = {};
             const cardsByAccount = {};
-            await mapWithConcurrency(burns, 8, async (b) => {
-                const slot = blocksData[b.block][b.asset];
-                const isWin = slot.winners.length === 1 && slot.winners[0].trx_id === b.trx_id;
-                const serial = `${b.block}.${b.asset === 'STEEM' ? 0 : 1}`;
-                const resolved = await api.resolveCardForBlock(serial, b.trx_id, { winningBurnAmount: b.amount, tie: !isWin });
+            const awards = CardResolver.deriveBurnAwards(burns, { mode: getAwardMode() });
+            await mapWithConcurrency(awards, 8, async (a) => {
+                const resolved = await api.resolveCardForBlock(a.serial, a.trxId, { winningBurnAmount: a.amount, downgrade: a.downgrade });
                 const mint = {
-                    account: b.account,
+                    account: a.account,
                     status: resolved.status,
                     className: resolved.className,
                     rarity: resolved.rarity,
                     card: resolved.card,
                     generic_reason: resolved.generic_reason || null,
-                    block: b.block,
-                    trx_id: b.trx_id,
-                    serial: serial,
-                    asset: b.asset,
-                    won: isWin
+                    block: a.block,
+                    trx_id: a.trxId,
+                    serial: a.serial,
+                    asset: a.asset,
+                    won: a.isWin
                 };
-                if (isWin) {
+                if (a.isWin) {
                     if (!winsByAccount[mint.account]) winsByAccount[mint.account] = [];
                     winsByAccount[mint.account].push(mint);
                 }

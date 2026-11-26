@@ -142,11 +142,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
 
-            // Track the searched account's transfers (for stats) and the per-block,
-            // per-asset max burner (for winner determination). An exact tie for the
-            // max burn means no one wins that block+asset.
+            // Track the searched account's own transfers (for the stats line) and every
+            // burn in scope (for award derivation). The award *policy* — who earns a
+            // card and who is downgraded — lives in the engine (card-resolver.js).
             const transfers = [];
-            const blocksData = {};
+            const allBurns = [];
             for (const item of history) {
                 const op = item.op;
                 if (op[0] !== 'transfer' || op[1].to !== 'null') continue;
@@ -154,6 +154,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const [valStr, asset] = op[1].amount.split(' ');
                 const val = parseFloat(valStr);
                 if (asset !== 'STEEM' && asset !== 'SBD') continue;
+
+                allBurns.push({ account: from, block: item.block, asset, amount: val, trxId: item.trx_id });
 
                 // Record the searched account's own burns for the stats line.
                 if (from === account) {
@@ -168,28 +170,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                         timestamp: item.timestamp
                     });
                 }
-
-                if (!blocksData[item.block]) {
-                    blocksData[item.block] = {
-                        STEEM: { maxBurn: 0, winners: [], timestamp: item.timestamp },
-                        SBD: { maxBurn: 0, winners: [], timestamp: item.timestamp }
-                    };
-                }
-                const slot = blocksData[item.block][asset];
-                if (val > slot.maxBurn) {
-                    slot.maxBurn = val;
-                    slot.winners = [{ account: from, trx_id: item.trx_id, timestamp: item.timestamp }];
-                } else if (val === slot.maxBurn && !slot.winners.some(w => w.trx_id === item.trx_id)) {
-                    // Exact tie for the top burn → both (all) tied accounts
-                    // win a downgraded card.
-                    slot.winners.push({ account: from, trx_id: item.trx_id, timestamp: item.timestamp });
-                }
             }
+            const burnWinners = CardResolver.findBurnWinners(allBurns);
 
-            // 3) Compute the account's totals and the blocks where it burned. Every
-            //    burn now yields a card: the block+asset's unique top burner gets the
-            //    full card, and everyone else (tied top burners and lower burns) gets
-            //    the same resolution downgraded one rarity tier — the old tie rule.
+            // 3) Compute the account's totals. Award derivation (who earns a card and
+            //    who is downgraded) happens per block below, via the engine's
+            //    deriveBurnAwards() driven by config's award_mode.
             const totalSteem = transfers.reduce((s, t) => s + (t.unit === 'STEEM' ? t.amount : 0), 0);
             const totalSbd = transfers.reduce((s, t) => s + (t.unit === 'SBD' ? t.amount : 0), 0);
             const burnTransactionCount = transfers.length;
@@ -206,19 +192,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             loadingProgress.textContent = `Checked 0 of ${awardBlocks.length.toLocaleString()} burn blocks`;
 
             async function processBlock(blockNum) {
-                const bData = blocksData[blockNum];
                 const myBurns = transfersByBlock[blockNum] || [];
                 const found = [];
 
+                // The engine decides who earns a card and who is downgraded, per the
+                // config's award_mode.
+                const awards = CardResolver.deriveBurnAwards(
+                    myBurns.map(t => ({ account: account, block: blockNum, asset: t.unit, amount: t.amount, trxId: t.trx_id })),
+                    { mode: getAwardMode() },
+                    burnWinners
+                );
+
                 // Fetch the block header once (authoritative timestamp) only when this
-                // account was a block+asset's sole top burner; otherwise fall back to
-                // the account-history timestamp (+3s correction below).
-                const iWon = myBurns.some(t => {
-                    const w = bData[t.unit].winners;
-                    return w.length === 1 && w[0].trx_id === t.trx_id;
-                });
+                // account earned a *full* card here; otherwise fall back to the
+                // account-history timestamp (+3s correction below).
                 let blockTimestamp = null;
-                if (iWon) {
+                if (awards.some(a => a.isWin)) {
                     try {
                         const block = await api.getBlock(blockNum);
                         if (block && block.timestamp) blockTimestamp = block.timestamp;
@@ -231,12 +220,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const fallbackTimestamp = (slotTs) =>
                     new Date(new Date(slotTs + 'Z').getTime() + 3000).toISOString().slice(0, 19);
 
-                for (const t of myBurns) {
-                    const slot = bData[t.unit];
-                    // Full card only for the block+asset's unique top burner.
-                    const isWin = slot.winners.length === 1 && slot.winners[0].trx_id === t.trx_id;
-                    const serial = `${blockNum}.${t.unit === 'STEEM' ? 0 : 1}`;
-                    const resolved = await api.resolveCardForBlock(serial, t.trx_id, { winningBurnAmount: t.amount, tie: !isWin });
+                const tsByTrx = {};
+                for (const t of myBurns) tsByTrx[t.trx_id] = t.timestamp;
+
+                for (const a of awards) {
+                    const resolved = await api.resolveCardForBlock(a.serial, a.trxId, { winningBurnAmount: a.amount, downgrade: a.downgrade });
                     found.push({
                         account: account,
                         status: resolved.status,
@@ -245,10 +233,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         card: resolved.card,
                         generic_reason: resolved.generic_reason || null,
                         block: blockNum,
-                        trx_id: t.trx_id,
-                        serial: serial,
-                        won: isWin,
-                        timestamp: blockTimestamp || fallbackTimestamp(t.timestamp)
+                        trx_id: a.trxId,
+                        serial: a.serial,
+                        won: a.isWin,
+                        timestamp: blockTimestamp || fallbackTimestamp(tsByTrx[a.trxId])
                     });
                 }
 
