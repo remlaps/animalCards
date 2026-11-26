@@ -89,6 +89,11 @@ if (cfg.sex_labels != null) {
     }
 }
 
+// award_mode (optional): who earns a card per block+asset.
+if (cfg.award_mode != null && cfg.award_mode !== 'all_burns' && cfg.award_mode !== 'winners_only') {
+    errors.push(`award_mode must be "all_burns" or "winners_only" (got "${cfg.award_mode}").`);
+}
+
 // 2. unique card_id
 const seenIds = new Map();
 for (const c of cards) {

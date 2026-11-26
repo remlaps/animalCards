@@ -68,11 +68,11 @@
     }
 
     // Given the originally-resolved rarity + global slotPick + optional RABD
-    // constraints, return the effective (rarity, slot) the winner actually
-    // receives, or null when the burn clears no rarity's minimum at all.
+    // constraints, return the effective (rarity, slot) a burner actually receives,
+    // or null when the burn clears no rarity's minimum at all.
     //   - no constraints / no difficulty / no finite burn → keep original rarity.
-    //   - constraints.tie = true → downgrade one rarity tier (e.g. Rare → Common)
-    //     after the normal cascade, so tied accounts get a lower card.
+    //   - constraints.downgrade = true → drop one rarity tier (e.g. Rare → Common)
+    //     after the normal cascade, for non-winning awards.
     //   - cascaded slot = slotPick % bandWidth — deterministic; equals the
     //     original slotInRarity for the original rarity, and a valid in-band slot
     //     for any lower rarity.
@@ -80,7 +80,7 @@
         slotCounts = slotCounts || DEFAULT_RARITY_SLOT_COUNTS;
         const minBurns = (constraints && constraints.rarity_min_burn) || null;
         const burn = constraints && constraints.winning_burn_amount;
-        const isTie = constraints && constraints.tie;
+        const downgrade = constraints && constraints.downgrade;
 
         const keep = (r) => ({
             rarity: r,
@@ -89,8 +89,8 @@
             note: null
         });
 
-        // Downgrade one rarity tier (used for ties). Returns null when already
-        // at Common or the input is null.
+        // Drop one rarity tier (used for non-winning awards). Returns null when
+        // already at Common or the input is null.
         const downgradeOne = (result) => {
             if (!result) return null;
             const idx = CASCADE_ORDER.indexOf(result.rarity);
@@ -100,15 +100,15 @@
                 rarity: down,
                 slot: slotPick % slotCounts[down],
                 cascaded: true,
-                note: `Tie downgrade: ${result.rarity} → ${down}`
+                note: `Downgraded: ${result.rarity} → ${down}`
             };
         };
 
         // No difficulty at all → resolution is exactly as it was before RABD.
-        if (!minBurns) return isTie ? downgradeOne(keep(selectedRarity)) : keep(selectedRarity);
+        if (!minBurns) return downgrade ? downgradeOne(keep(selectedRarity)) : keep(selectedRarity);
         // Unknown/absent burn amount → can't discriminate; be conservative and
         // keep the original rarity (same as having no difficulty applied).
-        if (!Number.isFinite(burn)) return isTie ? downgradeOne(keep(selectedRarity)) : keep(selectedRarity);
+        if (!Number.isFinite(burn)) return downgrade ? downgradeOne(keep(selectedRarity)) : keep(selectedRarity);
 
         let from = CASCADE_ORDER.indexOf(selectedRarity);
         if (from === -1) from = CASCADE_ORDER.length - 1; // Generic/'none' → start at Common
@@ -117,7 +117,7 @@
         // Fast path: the burn already clears the resolved rarity's minimum.
         if (burn >= (minBurns[startHigh] || 0)) {
             const result = keep(startHigh);
-            return isTie ? downgradeOne(result) : result;
+            return downgrade ? downgradeOne(result) : result;
         }
 
         // Walk down the cascade until the burn clears a rarity's minimum.
@@ -130,12 +130,12 @@
                     cascaded: true,
                     note: `Cascaded ${startHigh} → ${r} (burn ${burn} < ${startHigh} min ${minBurns[startHigh]})`
                 };
-                return isTie ? downgradeOne(result) : result;
+                return downgrade ? downgradeOne(result) : result;
             }
         }
 
         // Burn clears nothing — not even Common. Permanent generic below_minimum.
-        return isTie ? null : null; // null is unchanged either way
+        return null;
     }
 
     // Compute the deterministic SHA-256 hash integer for a serial + block hash.
@@ -150,11 +150,12 @@
 
     // Resolve the card a BurnMax winner receives, deterministically.
     // config: { cards: [...], class_weights: { className: weight, ... } }
-    // constraints (optional): { rarity_min_burn: {Common: n, ...}, winning_burn_amount: x }
+    // constraints (optional): { rarity_min_burn: {Common: n, ...}, winning_burn_amount: x, downgrade: bool }
     //   - rarity_min_burn  enables RABD (rarity-adjusted burn difficulty)
-    //   - winning_burn_amount is the winning burn; when below the resolved
-    //     rarity's minimum the winner cascades to the next lower rarity their
-    //     burn qualifies for, or (if below every minimum) receives a permanent generic.
+    //   - winning_burn_amount is the burn to gate on; when below the resolved
+    //     rarity's minimum the award cascades to the next lower rarity the burn
+    //     qualifies for, or (if below every minimum) becomes a permanent generic.
+    //   - downgrade: true  drops one rarity tier after the cascade (non-winning awards).
     // Returns { status, className, rarity, slot, slotPick, card, cascade, generic_reason }:
     //   status          'released' | 'generic' | 'none'
     //   className       the picked animal class
@@ -287,6 +288,72 @@
         return { status: 'none', className, rarity: effRarity, slot: effSlot, slotPick, card: null, generic_reason: genericReason, cascade: eff ? eff.note : null };
     }
 
-    return { hashForSerial, resolveCardForBlock, getSlotLayoutForBlock, DEFAULT_RARITY_SLOT_COUNTS, RARITY_WEIGHT };
+    // ---------------------------------------------------------------------------
+    // Award derivation — the game's award *policy*, kept in the engine so every
+    // front-end (and the CLI) computes identical awards from the same burn history.
+    //
+    //   burns: [{ account, block, asset, amount, trxId }] — every burn to `null` in
+    //     scope (asset is an opaque string key, e.g. "STEEM"/"SBD").
+    //   opts.mode: 'all_burns' (default) | 'winners_only'
+    //     - 'all_burns'    : every burn earns a card; only the block+asset's *unique*
+    //                        top burner gets the full card, everyone else is downgraded.
+    //     - 'winners_only' : only the top burner(s) earn a card; a tie downgrades them.
+    //   opts.assetSuffix: map asset -> serial suffix (default { STEEM: '0', SBD: '1' }).
+    //
+    // A "winner" is the unique largest burn for its block+asset; an exact top tie
+    // makes every tied burner a (downgraded) winner.
+    function findBurnWinners(burns) {
+        const winners = {};
+        for (const b of burns) {
+            const key = `${b.block}|${b.asset}`;
+            const w = winners[key] || (winners[key] = { max: -Infinity, winnerTrxIds: [] });
+            if (b.amount > w.max) { w.max = b.amount; w.winnerTrxIds = [b.trxId]; }
+            else if (b.amount === w.max && w.winnerTrxIds.indexOf(b.trxId) === -1) w.winnerTrxIds.push(b.trxId);
+        }
+        return winners;
+    }
+
+    // Derive the awards for a list of burns (the *policy* layer). Returns awards
+    // aligned to the input order:
+    //   [{ account, block, asset, amount, trxId, serial, isWin, downgrade }]
+    //   isWin     — the unique top burner of its block+asset (gets the full card).
+    //   downgrade — hand to resolveCardForBlock() to drop one rarity tier.
+    // `winners` is the output of findBurnWinners(); pass it when you already have
+    // it (awards only a subset without re-scanning) or omit it to compute it here.
+    function deriveBurnAwards(burns, opts, winners) {
+        opts = opts || {};
+        const mode = opts.mode === 'winners_only' ? 'winners_only' : 'all_burns';
+        const assetSuffix = opts.assetSuffix || { STEEM: '0', SBD: '1' };
+        if (!winners) winners = findBurnWinners(burns);
+
+        const awards = [];
+        for (const b of burns) {
+            const w = winners[`${b.block}|${b.asset}`];
+            if (!w) continue;
+            const isWin = w.winnerTrxIds.length === 1 && w.winnerTrxIds[0] === b.trxId;
+            const tiedTop = w.winnerTrxIds.length > 1 && w.winnerTrxIds.indexOf(b.trxId) !== -1;
+            let downgrade;
+            if (mode === 'winners_only') {
+                if (!isWin && !tiedTop) continue; // non-winners get nothing
+                downgrade = tiedTop;              // ties are downgraded
+            } else {
+                downgrade = !isWin;               // everyone but the sole winner
+            }
+            const suffix = assetSuffix[b.asset] != null ? assetSuffix[b.asset] : '';
+            awards.push({
+                account: b.account,
+                block: b.block,
+                asset: b.asset,
+                amount: b.amount,
+                trxId: b.trxId,
+                serial: `${b.block}.${suffix}`,
+                isWin: isWin,
+                downgrade: downgrade
+            });
+        }
+        return awards;
+    }
+
+    return { hashForSerial, resolveCardForBlock, findBurnWinners, deriveBurnAwards, getSlotLayoutForBlock, DEFAULT_RARITY_SLOT_COUNTS, RARITY_WEIGHT };
 }));
 

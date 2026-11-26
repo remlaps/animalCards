@@ -17,9 +17,9 @@
  *                               unless this flag narrows it).
  * - --json                   — machine-readable JSON output.
  *
- * Without --trx-id the tool auto-fetches that block's burn winners from the
- * Steem chain (`condenser_api.get_account_history` for `null`) and resolves the
- * card for each winning asset, mirroring leaderboard.js tie rules.
+ * Without --trx-id the tool auto-fetches that block's burns from the Steem chain
+ * (`condenser_api.get_account_history` for `null`) and derives each award via the
+ * shared engine (card-resolver.js), driven by the config's `award_mode`.
  *
  * The resolution itself lives in the shared `card-resolver.js` module — the same
  * single source of truth used by the browser (`blockchain-api.js`).
@@ -85,17 +85,12 @@ function slotRangeFor(rarity, slotCounts) {
     return count == null ? '-' : `0-${count - 1}`;
 }
 
-// Auto-fetch the winning burn for a block, per asset.
-// Mirrors leaderboard.js: the single largest transfer to `null` in that block
-// Fetch all transfers to `null` in a given block and return the top burn(s) per
-// asset. An exact tie for the top amount yields multiple winners, each receiving a
-// downgraded card (see cascadeRarity's `tie` flag). Paginates the `null` account
-// history newest-first and stops once it passes the target block.
-async function fetchNullWinners(blockNum) {
-    const winners = {
-        STEEM: { max: -Infinity, winners: [] },
-        SBD: { max: -Infinity, winners: [] }
-    };
+// Fetch every transfer to `null` in the given block (all burners, any amount).
+// The award policy (who earns a card, who is downgraded) is then applied by the
+// shared engine (card-resolver.js). Paginates the `null` account history
+// newest-first and stops once it passes the target block.
+async function fetchBlockBurns(blockNum) {
+    const burns = [];
     let start = -1;
     let limit = 100; // condenser_api caps get_account_history limit at 100
     let gonePast = false;
@@ -122,16 +117,8 @@ async function fetchNullWinners(blockNum) {
             if (!params || params.to !== 'null' || typeof params.amount !== 'string') continue;
 
             const parts = params.amount.split(' ');
-            if (parts.length !== 2 || !winners[parts[1]]) continue;
-            const asset = parts[1];
-            const val = parseFloat(parts[0]);
-            if (val > winners[asset].max) {
-                winners[asset] = { max: val, winners: [{ account: params.from, trx_id: item.trx_id }] };
-            } else if (val === winners[asset].max && !winners[asset].winners.some(w => w.trx_id === item.trx_id)) {
-                // Exact tie for the top burn → both (all) tied accounts
-                // win a downgraded card.
-                winners[asset].winners.push({ account: params.from, trx_id: item.trx_id });
-            }
+            if (parts.length !== 2 || ASSETS.indexOf(parts[1]) === -1) continue;
+            burns.push({ account: params.from, block: blockNum, asset: parts[1], amount: parseFloat(parts[0]), trxId: item.trx_id });
         }
 
         if (gonePast) break;
@@ -145,7 +132,7 @@ async function fetchNullWinners(blockNum) {
     if (pages >= MAX_HISTORY_PAGES) {
         console.warn('(history pagination hit its safety cap — the block may be very old)');
     }
-    return winners;
+    return burns;
 }
 
 function renderHuman(outputs, blockNum, totalSlots) {
@@ -211,25 +198,25 @@ async function main() {
         const resolved = await CardResolver.resolveCardForBlock(serial, args.trxId, config);
         outputs.push(buildOutput(asset, serial, args.trxId, null, resolved, null, null, slotCounts));
     } else {
-        // Auto mode — fetch that block's burn winners from the chain.
-        const winners = await fetchNullWinners(args.blockNum);
+        // Auto mode — fetch that block's burns and derive awards via the engine
+        // (policy driven by the config's award_mode).
+        const burns = await fetchBlockBurns(args.blockNum);
+        const mode = config.award_mode || 'all_burns';
         const assets = args.asset ? [args.asset] : ASSETS;
         // Effective per-rarity minimum burns for this block (RABD). All zeroes
         // when rarity_difficulty is absent or disabled → nothing is gated.
         const effBurns = CardDifficulty.effectiveMinBurns(args.blockNum, config);
+        const awards = CardResolver.deriveBurnAwards(burns, { mode });
         for (const asset of assets) {
-            const w = winners[asset];
-            if (w.winners.length === 0) {
-                const note = Number.isFinite(w.max) ? 'no burn to null in this block' : 'no burn to null in this block';
-                outputs.push(buildOutput(asset, serialFor(args.blockNum, asset), null, null, null, note, null, slotCounts));
+            const assetAwards = awards.filter(a => a.asset === asset);
+            if (assetAwards.length === 0) {
+                outputs.push(buildOutput(asset, serialFor(args.blockNum, asset), null, null, null, 'no burn to null in this block', null, slotCounts));
                 continue;
             }
-            const isTie = w.winners.length > 1;
-            for (const we of w.winners) {
-                const serial = serialFor(args.blockNum, asset);
-                const constraints = { rarity_min_burn: effBurns, winning_burn_amount: w.max, tie: isTie };
-                const resolved = await CardResolver.resolveCardForBlock(serial, we.trx_id, config, constraints);
-                outputs.push(buildOutput(asset, serial, we.trx_id, we.account, resolved, null, effBurns, slotCounts));
+            for (const a of assetAwards) {
+                const constraints = { rarity_min_burn: effBurns, winning_burn_amount: a.amount, downgrade: a.downgrade };
+                const resolved = await CardResolver.resolveCardForBlock(a.serial, a.trxId, config, constraints);
+                outputs.push(buildOutput(asset, a.serial, a.trxId, a.account, resolved, null, effBurns, slotCounts));
             }
         }
     }

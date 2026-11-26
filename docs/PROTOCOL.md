@@ -45,17 +45,26 @@ The protocol is, in one sentence: **a pure function of chain history + config �
 - Any independent implementation MUST produce byte-identical results for a given
   `(serial, seed, config)`.
 
-### 1.3 Award rule *(added 2026-11-25)*
-Every burn (a `transfer` to `null`) earns a card:
-- the block+asset's **unique top burner** receives the **full** card;
-- **every other burn** — tied top burners *and* all lower burns — receives the **same
-  resolution downgraded exactly one rarity tier** (the former tie rule; a Common downgrade
-  yields the permanent generic);
-- a non-winner is gated by **its own** burn amount against the rarity minimums **before** the
-  one-tier downgrade.
+### 1.3 Award rule *(implemented 2026-11-25; moved into the engine 2026-11-26)*
+Who earns a card is the game's **award mode**, a top-level `cards-config.json` value:
 
-> This rule is currently embedded in the page scripts. The protocol intends it to live in the
-> engine so all clients behave identically. See `docs/decisions/0002-award-rule-in-engine.md`.
+```jsonc
+"award_mode": "all_burns"   // or "winners_only"
+```
+
+- **`all_burns`** (animalCards today): every burn (a `transfer` to `null`) earns a card — the
+  block+asset's **unique top burner** receives the **full** card, and **every other burn**
+  (tied top burners *and* all lower burns) receives the same resolution **downgraded exactly
+  one rarity tier** (a Common downgrade yields the permanent generic).
+- **`winners_only`**: only the top burner(s) earn a card; an exact top tie downgrades them.
+
+Derivation lives in the engine, not the pages:
+
+- `findBurnWinners(burns)` → the top burner(s) per block+asset.
+- `deriveBurnAwards(burns, { mode })` → `[{ account, serial, trxId, amount, isWin, downgrade }]`.
+
+A non-winner is gated by **its own** burn amount against the rarity minimums **before** the
+one-tier downgrade. See `docs/decisions/0002-award-rule-in-engine.md`.
 
 ### 1.4 Versioning
 - **OPEN.** A protocol version tag, with the rule that *past blocks resolve under the rules in

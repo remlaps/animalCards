@@ -109,10 +109,10 @@ class BlockchainAPI {
                 winning_burn_amount: opts.winningBurnAmount
             };
         }
-        // Always apply the tie flag if present (works with or without RABD).
-        if (opts.tie) {
+        // Always apply the downgrade flag if present (works with or without RABD).
+        if (opts.downgrade) {
             if (!constraints) constraints = {};
-            constraints.tie = true;
+            constraints.downgrade = true;
         }
         return CardResolver.resolveCardForBlock(serialNumber, blockHash, {
             cards: this.cardsConfig,
@@ -257,6 +257,12 @@ const DEFAULT_SEX_LABELS = { odd: 'Male', even: 'Female' };
 // The parity -> label mapping from config, or the default when absent/unloaded.
 function getSexLabels() {
     return (typeof api !== 'undefined' && api && api.rawConfig && api.rawConfig.sex_labels) || DEFAULT_SEX_LABELS;
+}
+
+// The award policy from config (see card-resolver.deriveBurnAwards): 'all_burns'
+// (default) or 'winners_only'.
+function getAwardMode() {
+    return (typeof api !== 'undefined' && api && api.rawConfig && api.rawConfig.award_mode) || 'all_burns';
 }
 
 // Map a serial's block parity to its sex label. `labels` comes from config.
