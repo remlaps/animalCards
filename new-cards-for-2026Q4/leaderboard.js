@@ -267,6 +267,59 @@ const weightedTotalByAccount = {};
                 return sortDir === 'asc' ? val : -val;
             };
 
+            // Compact "class (rows) x rarity (columns)" pivot for the Cards Won
+            // column, with a totals row and column. Counts are distinct cards;
+            // replaces the old per-card list that grew tall for prolific accounts.
+            const LB_RARITY_AXIS = ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic'];
+            const renderPendingNote = (pendingClasses) => {
+                if (!pendingClasses || pendingClasses.length === 0) return '';
+                const parts = pendingClasses.map(c => c.rarity ? `${c.className} (${c.rarity})` : c.className);
+                return `<div class="lb-pivot-pending">Pending (no card yet): ${parts.join(', ')}</div>`;
+            };
+            const renderCardPivot = (uniqueCards, pendingClasses) => {
+                const matrix = new Map(); // class -> Map(rarity -> { d, t })
+                for (const u of uniqueCards) {
+                    const cls = u.card.class;
+                    const rarity = u.rarity || u.card.rarity;
+                    if (!matrix.has(cls)) matrix.set(cls, new Map());
+                    const m = matrix.get(cls);
+                    const cur = m.get(rarity) || { d: 0, t: 0 };
+                    cur.d += 1; // distinct card (grouped by class+rarity+species)
+                    cur.t += Array.isArray(u.serials) ? u.serials.length : 1; // copies won
+                    m.set(rarity, cur);
+                }
+                const allClasses = (api.classOrder && api.classOrder.length)
+                    ? api.classOrder.slice()
+                    : Object.keys(api.classWeightsObj || {});
+                const rows = allClasses.filter(c => matrix.has(c));
+                for (const cls of matrix.keys()) if (rows.indexOf(cls) === -1) rows.push(cls);
+                if (rows.length === 0) {
+                    return renderPendingNote(pendingClasses) || '<span style="color: var(--text-secondary)">No card won in timeframe</span>';
+                }
+                // Every rarity is a column, even when empty for this account.
+                const cols = LB_RARITY_AXIS.slice();
+                for (const cls of rows) for (const r of matrix.get(cls).keys()) if (cols.indexOf(r) === -1) cols.push(r);
+                const get = (cls, r) => matrix.get(cls).get(r) || { d: 0, t: 0 };
+                const cell = (o) => o.t === 0
+                    ? '<span class="lb-pivot-zero">&middot;</span>'
+                    : `<span class="lb-pivot-d">${o.d}</span><span class="lb-pivot-sep">/</span>${o.t}`;
+                const sum = (items, pick) => items.reduce((acc, x) => { const o = pick(x); acc.d += o.d; acc.t += o.t; return acc; }, { d: 0, t: 0 });
+                const rowSum = (cls) => sum(cols, (r) => get(cls, r));
+                const colSum = (r) => sum(rows, (cls) => get(cls, r));
+                const grand = sum(rows, (cls) => rowSum(cls));
+                let html = '<table class="lb-pivot"><thead><tr><th class="lb-pivot-corner"></th>';
+                for (const r of cols) html += `<th>${r}</th>`;
+                html += '<th class="lb-pivot-total">Total</th></tr></thead><tbody>';
+                for (const cls of rows) {
+                    html += `<tr><th class="lb-pivot-rowhead">${cls}</th>`;
+                    for (const r of cols) html += `<td>${cell(get(cls, r))}</td>`;
+                    html += `<td class="lb-pivot-total">${cell(rowSum(cls))}</td></tr>`;
+                }
+                html += '</tbody><tfoot><tr><th class="lb-pivot-rowhead">Total</th>';
+                for (const r of cols) html += `<td>${cell(colSum(r))}</td>`;
+                html += `<td class="lb-pivot-total">${cell(grand)}</td></tr></tfoot></table>`;
+                return '<div class="lb-pivot-scroll">' + html + '</div>' + renderPendingNote(pendingClasses);
+            };
             const renderTable = () => {
                 const sorted = [...rowData].sort(compareRows);
 
@@ -302,24 +355,6 @@ const weightedTotalByAccount = {};
                     const uniqueCards = row.cardsArr;
                     const pendingClasses = row.pendingArr;
 
-                    const issuedHtml = uniqueCards.map(u => `
-                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;">
-                            ${cardThumbTag(u.card, { imgStyle: 'width: 28px; height: 28px; border-radius: 4px; object-fit: cover; flex-shrink: 0;' })}
-                            <span style="font-weight: 600;">${u.card.species}</span>
-                            ${u.card.is_generic ? `<span class="rarity-badge" style="font-size:0.7rem; color:var(--text-secondary); border:1px solid var(--border-color,rgba(128,128,128,0.3)); border-radius:4px; padding:1px 5px;">${u.rarity || u.card.rarity}</span>` : ''}
-                        </div>`).join('');
-
-                    const pendingHtml = pendingClasses.map(c => `
-                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;">
-                            <span style="font-weight: 600;">${c.className}</span>
-                            <span class="rarity-badge" style="font-size:0.7rem; color:var(--text-secondary); border:1px solid var(--border-color,rgba(128,128,128,0.3)); border-radius:4px; padding:1px 5px;">${c.rarity || ''}</span>
-                            <span style="color: var(--text-secondary); font-size: 0.75rem;">(no card released yet)</span>
-                        </div>`).join('');
-
-                    const cardHtml = (issuedHtml || pendingHtml)
-                        ? issuedHtml + pendingHtml
-                        : '<span style="color: var(--text-secondary)">No card won in timeframe</span>';
-
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td class="rank-cell">#${index + 1}</td>
@@ -328,19 +363,9 @@ const weightedTotalByAccount = {};
                         <td style="font-weight: 600;">${row.weighted}</td>
                         <td>${row.steem.toFixed(3)}</td>
                         <td>${row.sbd.toFixed(3)}</td>
-                        <td>${cardHtml}</td>
+                        <td class="lb-cards-cell">${renderCardPivot(uniqueCards, pendingClasses)}</td>
                     `;
                     tbody.appendChild(tr);
-
-                    const mobileCardChips = (uniqueCards.length > 0 || pendingClasses.length > 0)
-                        ? [...uniqueCards.map(u => `
-                            <span class="leaderboard-card-chip">
-                                ${cardThumbTag(u.card)}
-                                ${u.card.species}${u.card.is_generic ? ` (${u.rarity})` : ''}
-                            </span>`),
-                            ...pendingClasses.map(c => `
-                            <span class="leaderboard-card-chip pending">${c.className}${c.rarity ? ` (${c.rarity} pending)` : ' (pending)'}</span>`)].join('')
-                        : '<span style="color: var(--text-secondary); font-size: 0.85rem;">No card won in timeframe</span>';
 
                     const mobileRow = document.createElement('div');
                     mobileRow.className = 'leaderboard-card-row';
@@ -371,7 +396,7 @@ const weightedTotalByAccount = {};
                         </div>
                         <div class="leaderboard-cards-preview">
                             <div class="leaderboard-cards-preview-label">Cards Won</div>
-                            <div class="leaderboard-cards-list">${mobileCardChips}</div>
+                            ${renderCardPivot(uniqueCards, pendingClasses)}
                         </div>
                     `;
                     const tc = document.querySelector('.leaderboard-table-container');
