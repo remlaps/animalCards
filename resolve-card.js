@@ -6,7 +6,7 @@
  * id + asset), it reports the connected slot, species, and rarity.
  *
  * Usage:
- *   node resolve-card.js <blockNumber> [--trx-id <txid>] [--asset STEEM|SBD] [--json]
+ *   node resolve-card.js <blockNumber> [--trx-id <txid>] [--asset STEEM|SBD] [--amount <number>] [--json]
  *
  * - <blockNumber> (required) — the chain block to verify.
  * - --trx-id <txid>          — the winning burn transaction id (the "blockHash"
@@ -15,6 +15,9 @@
  * - --asset STEEM|SBD        — which asset to resolve (defaults to STEEM when
  *                               --trx-id is given; with auto-fetch both are shown
  *                               unless this flag narrows it).
+ * - --amount <number>        — (with --trx-id) the winning burn amount, used to
+ *                               apply the RABD minimum gates. Without it, local
+ *                               resolution is uncapped (difficulty ignored).
  * - --json                   — machine-readable JSON output.
  *
  * Without --trx-id the tool auto-fetches that block's burns from the Steem chain
@@ -34,7 +37,7 @@ const ASSETS = ['STEEM', 'SBD'];
 const MAX_HISTORY_PAGES = 5000; // safety cap for auto-fetch pagination
 
 function parseArgs(argv) {
-    const args = { blockNum: null, trxId: null, asset: null, json: false };
+    const args = { blockNum: null, trxId: null, asset: null, amount: null, json: false };
     const positionals = [];
     for (let i = 2; i < argv.length; i++) {
         const a = argv[i];
@@ -46,6 +49,14 @@ function parseArgs(argv) {
                 throw new Error(`--asset must be STEEM or SBD (got "${v}").`);
             }
             args.asset = v;
+            continue;
+        }
+        if (a === '--amount') {
+            const v = Number(argv[++i]);
+            if (!Number.isFinite(v) || v < 0) {
+                throw new Error(`--amount must be a non-negative number (got "${argv[i]}").`);
+            }
+            args.amount = v;
             continue;
         }
         if (a.startsWith('--')) throw new Error(`Unknown option: ${a}`);
@@ -195,28 +206,40 @@ async function main() {
         // Manual mode — resolve locally, no network.
         const asset = args.asset || 'STEEM';
         const serial = serialFor(args.blockNum, asset);
-        const resolved = await CardResolver.resolveCardForBlock(serial, args.trxId, config);
-        outputs.push(buildOutput(asset, serial, args.trxId, null, resolved, null, null, slotCounts));
+        // RABD: manual mode cannot fetch the winning burn amount offline, so the
+        // asset minimum gates apply only when --amount is supplied; otherwise
+        // resolution is uncapped. Floors are selected by asset (STEEM vs SBD).
+        const minBurns = asset === 'SBD'
+            ? CardDifficulty.effectiveMinBurnsSBD(args.blockNum, config)
+            : CardDifficulty.effectiveMinBurns(args.blockNum, config);
+        const constraints = args.amount != null
+            ? { rarity_min_burn: minBurns, winning_burn_amount: args.amount }
+            : null;
+        const resolved = await CardResolver.resolveCardForBlock(serial, args.trxId, config, constraints);
+        outputs.push(buildOutput(asset, serial, args.trxId, null, resolved, null, args.amount != null ? minBurns : null, slotCounts));
     } else {
         // Auto mode — fetch that block's burns and derive awards via the engine
         // (policy driven by the config's award_mode).
         const burns = await fetchBlockBurns(args.blockNum);
         const mode = config.award_mode || 'all_burns';
         const assets = args.asset ? [args.asset] : ASSETS;
-        // Effective per-rarity minimum burns for this block (RABD). All zeroes
-        // when rarity_difficulty is absent or disabled → nothing is gated.
-        const effBurns = CardDifficulty.effectiveMinBurns(args.blockNum, config);
         const awards = CardResolver.deriveBurnAwards(burns, { mode });
         for (const asset of assets) {
+            // Effective per-rarity minimum burns for THIS asset (RABD). STEEM and
+            // SBD have independent floors; all zeroes when rarity_difficulty is
+            // absent or disabled, so nothing is gated.
+            const minBurns = asset === 'SBD'
+                ? CardDifficulty.effectiveMinBurnsSBD(args.blockNum, config)
+                : CardDifficulty.effectiveMinBurns(args.blockNum, config);
             const assetAwards = awards.filter(a => a.asset === asset);
             if (assetAwards.length === 0) {
                 outputs.push(buildOutput(asset, serialFor(args.blockNum, asset), null, null, null, 'no burn to null in this block', null, slotCounts));
                 continue;
             }
             for (const a of assetAwards) {
-                const constraints = { rarity_min_burn: effBurns, winning_burn_amount: a.amount, downgrade: a.downgrade };
+                const constraints = { rarity_min_burn: minBurns, winning_burn_amount: a.amount, downgrade: a.downgrade };
                 const resolved = await CardResolver.resolveCardForBlock(a.serial, a.trxId, config, constraints);
-                outputs.push(buildOutput(asset, a.serial, a.trxId, a.account, resolved, null, effBurns, slotCounts));
+                outputs.push(buildOutput(asset, a.serial, a.trxId, a.account, resolved, null, minBurns, slotCounts));
             }
         }
     }

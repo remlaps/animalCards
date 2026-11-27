@@ -165,6 +165,8 @@ therefore either:
   arguments needed), or
 - resolves **locally** when you pass the winner's transaction id with
   `--trx-id <txid>` (optionally `--asset STEEM|SBD`, which defaults to STEEM).
+  Add `--amount <number>` to apply the RABD minimum gates when resolving
+  locally; without it, the local resolution is uncapped (no difficulty applied).
 
 Examples:
 
@@ -173,6 +175,7 @@ node resolve-card.js 108735091                     # auto-fetch, both assets
 node resolve-card.js 108735091 --asset SBD         # auto-fetch, SBD only
 node resolve-card.js 108486823 --trx-id <txid>     # local, STEEM (no network)
 node resolve-card.js 108486823 --trx-id <txid> --json   # JSON output
+node resolve-card.js 109400012 --trx-id <txid> --amount 0.02 --asset SBD   # local, SBD (RABD applied)
 ```
 
 Both the CLI and the site (`blockchain-api.js`) use the same `card-resolver.js`
