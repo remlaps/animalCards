@@ -291,15 +291,16 @@ const weightedTotalByAccount = {};
                 const allClasses = (api.classOrder && api.classOrder.length)
                     ? api.classOrder.slice()
                     : Object.keys(api.classWeightsObj || {});
-                const rows = allClasses.filter(c => matrix.has(c));
-                for (const cls of matrix.keys()) if (rows.indexOf(cls) === -1) rows.push(cls);
-                if (rows.length === 0) {
+                if (uniqueCards.length === 0) {
                     return renderPendingNote(pendingClasses) || '<span style="color: var(--text-secondary)">No card won in timeframe</span>';
                 }
+                // Every class is a row, even those the account has no cards in.
+                const rows = allClasses.slice();
+                for (const cls of matrix.keys()) if (rows.indexOf(cls) === -1) rows.push(cls);
                 // Every rarity is a column, even when empty for this account.
                 const cols = LB_RARITY_AXIS.slice();
-                for (const cls of rows) for (const r of matrix.get(cls).keys()) if (cols.indexOf(r) === -1) cols.push(r);
-                const get = (cls, r) => matrix.get(cls).get(r) || { d: 0, t: 0 };
+                for (const m of matrix.values()) for (const r of m.keys()) if (cols.indexOf(r) === -1) cols.push(r);
+                const get = (cls, r) => { const m = matrix.get(cls); return (m && m.get(r)) || { d: 0, t: 0 }; };
                 const cell = (o) => o.t === 0
                     ? '<span class="lb-pivot-zero">&middot;</span>'
                     : `<span class="lb-pivot-d">${o.d}</span><span class="lb-pivot-sep">/</span>${o.t}`;
