@@ -1382,3 +1382,16 @@ a.logo span {
     opacity: 0.7;
     margin: 0 1px;
 }
+
+.lb-section-header {
+    cursor: pointer;
+    user-select: none;
+}
+.lb-chevron {
+    font-size: 0.85em;
+    margin-left: 0.4rem;
+    color: var(--text-secondary);
+}
+.lb-section.collapsed .lb-section-content {
+    display: none;
+}
