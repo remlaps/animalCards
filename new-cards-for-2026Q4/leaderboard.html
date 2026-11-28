@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Leaderboard - animalCards</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=22">
+    <link rel="stylesheet" href="style.css?v=23">
     <link rel="stylesheet" href="vaas.css?v=2">
 </head>
 <body>
@@ -65,8 +65,10 @@
             <h3 style="margin-bottom: 1.5rem; font-family: 'Outfit';">Current Streaks — Top 10</h3>
 <div id="streaks-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem; margin-bottom: 2rem;">
     <!-- Populated via JS -->
-</div><h3 style="margin-bottom: 1.5rem; font-family: 'Outfit';">Summary Table — Top 10</h3>
-<div class="leaderboard-table-container">
+</div><section class="lb-section" id="summary-section">
+<h3 class="lb-section-header" id="summary-table-toggle" role="button" aria-expanded="true" tabindex="0" style="margin-bottom: 1.5rem; font-family: 'Outfit';">Summary Table — Top 10 <span class="lb-chevron" aria-hidden="true"></span></h3>
+            <div class="lb-section-content">
+                <div class="leaderboard-table-container">
                 <table class="leaderboard-table">
                     <thead>
                         <tr>
@@ -84,6 +86,8 @@
                     </tbody>
                 </table>
             </div>
+            </div>
+        </section>
             
             <h3 style="margin-bottom: 1.5rem; font-family: 'Outfit';">Card Winners — Top 10</h3>
             <div id="recent-cards-grid">
@@ -116,7 +120,7 @@
     <script src="blockchain-api.js?v=46"></script>
     <script src="vendor/html-to-image.js?v=1"></script>
     <script src="card-export.js?v=16"></script>
-    <script src="leaderboard.js?v=27"></script>
+    <script src="leaderboard.js?v=28"></script>
     <script src="vaas.js?v=6"></script>
     <script>
         // Drop-in VAAS widget — adopts animalCards' glass design tokens.

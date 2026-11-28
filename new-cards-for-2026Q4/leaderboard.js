@@ -510,6 +510,25 @@ loading.style.display = 'none';
         }
     }
 
+    // Collapsible summary table (expand/collapse the section and its mobile rows).
+    const summaryToggle = document.getElementById('summary-table-toggle');
+    const summarySection = document.getElementById('summary-section');
+    if (summaryToggle && summarySection) {
+        const chevron = summaryToggle.querySelector('.lb-chevron');
+        const applySummaryState = () => {
+            const collapsed = summarySection.classList.contains('collapsed');
+            summaryToggle.setAttribute('aria-expanded', String(!collapsed));
+            if (chevron) chevron.textContent = collapsed ? '\u25B8' : '\u25BE';
+        };
+        summaryToggle.addEventListener('click', () => {
+            summarySection.classList.toggle('collapsed');
+            applySummaryState();
+        });
+        summaryToggle.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); summaryToggle.click(); }
+        });
+        applySummaryState();
+    }
     timeFilter.addEventListener('change', loadLeaderboard);
     renderDifficultyDashboard();
     loadLeaderboard();
