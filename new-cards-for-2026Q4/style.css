@@ -1395,3 +1395,17 @@ a.logo span {
 .lb-section.collapsed .lb-section-content {
     display: none;
 }
+
+.winner-toggle {
+    cursor: pointer;
+    user-select: none;
+}
+.winner-toggle .lb-chevron::after {
+    content: "\25BE";
+}
+.winner-section.collapsed .winner-toggle .lb-chevron::after {
+    content: "\25B8";
+}
+.winner-section.collapsed .cards-grid {
+    display: none;
+}

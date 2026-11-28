@@ -462,11 +462,12 @@ const weightedTotalByAccount = {};
 
                     return `
                         <div class="winner-section" style="margin-bottom: 2.5rem;">
-                            <h4 style="font-family: 'Outfit'; font-size: 1.25rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem;">
+                            <h4 class="winner-toggle" role="button" tabindex="0" aria-expanded="true" style="font-family: 'Outfit'; font-size: 1.25rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem;">
                                 @${account}
                                 <span style="color: var(--text-secondary); font-size: 0.9rem;">
                                     ${(burnSTEEM[account] || 0).toFixed(3)} STEEM • ${(burnSBD[account] || 0).toFixed(3)} SBD
                                 </span>
+                                <span class="lb-chevron" aria-hidden="true"></span>
                             </h4>
                             <div class="cards-grid">${cardsHtml}</div>
                         </div>`;
@@ -529,6 +530,22 @@ loading.style.display = 'none';
         });
         applySummaryState();
     }
+    // Collapsible Card Winners accounts (delegated so it survives re-renders).
+    cardsGrid.addEventListener('click', (e) => {
+        const toggle = e.target.closest && e.target.closest('.winner-toggle');
+        if (!toggle) return;
+        const section = toggle.closest('.winner-section');
+        if (!section) return;
+        const collapsed = section.classList.toggle('collapsed');
+        toggle.setAttribute('aria-expanded', String(!collapsed));
+    });
+    cardsGrid.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        const toggle = e.target.closest && e.target.closest('.winner-toggle');
+        if (!toggle) return;
+        e.preventDefault();
+        toggle.click();
+    });
     timeFilter.addEventListener('change', loadLeaderboard);
     renderDifficultyDashboard();
     loadLeaderboard();
